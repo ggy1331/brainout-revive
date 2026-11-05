@@ -198,4 +198,19 @@ public class ServerCTFRealization extends ServerRealization<GameModeCTF>
     {
         return SpawnMode.allowed;
     }
+
+    // revive: the original had no bot task for CTF (bots just stood still after warmup).
+    // Bots hunt enemies; carrying the flag (chip) is left to players.
+    @Override
+    public com.desertkun.brainout.bot.Task getBotStartingTask(com.desertkun.brainout.bot.TaskStack taskStack,
+                                                             com.desertkun.brainout.client.BotClient client)
+    {
+        return new com.desertkun.brainout.bot.TaskHunter(taskStack, client);
+    }
+
+    @Override
+    public boolean needRolesForBots()
+    {
+        return false;
+    }
 }

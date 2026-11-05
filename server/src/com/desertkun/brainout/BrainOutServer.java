@@ -279,6 +279,9 @@ public class BrainOutServer extends BrainOut implements Runnable
         Controller.getClients().init();
 
         String roomSettingsData = BrainOutServer.getenv("room_settings", "room:settings");
+        // revive: applied after the map source is created (mode/map/keep-mode need it;
+        // it used to crash with NPE when room_settings came together with --maps)
+        RoomSettings pendingRoomSettings = null;
 
         if (roomSettingsData != null)
         {
@@ -305,7 +308,7 @@ public class BrainOutServer extends BrainOut implements Runnable
                 if (Log.INFO) Log.info("Global Conflict Mode: " + settings.getZone());
             }
 
-            setRoomSettings(settings);
+            pendingRoomSettings = settings;
         }
         else
         {
@@ -373,6 +376,11 @@ public class BrainOutServer extends BrainOut implements Runnable
         }
 
         if (Log.INFO) Log.info("Map source loaded!");
+
+        if (pendingRoomSettings != null)
+        {
+            setRoomSettings(pendingRoomSettings);
+        }
 
         if (Settings == null)
         {

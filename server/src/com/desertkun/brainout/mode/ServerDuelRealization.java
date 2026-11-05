@@ -282,6 +282,61 @@ public class ServerDuelRealization extends ServerRealization<GameModeDuel>
                     done.run();
                 }));
             }
+            else
+            {
+                // revive: offline there is no reward service and no matchmaking
+                // ("try again" on the client goes to the official matchmaker), so the
+                // room used to hang forever. Announce the result and start a rematch
+                // for the same pair instead.
+                offlineRematch(loser);
+            }
+        }
+
+        private void offlineRematch(Client loser)
+        {
+            String winnerName = "?";
+            int loserDeaths = getDeaths(loser);
+            int winnerDeaths = deaths.size - loserDeaths;
+
+            for (PlayerClient duelist : duelists)
+            {
+                if (duelist != loser)
+                {
+                    winnerName = duelist.getName();
+                }
+            }
+
+            for (PlayerClient duelist : duelists)
+            {
+                duelist.sendChatImportant("Дуэль: победил " + winnerName + " (" + loserDeaths + ":" + winnerDeaths +
+                    "). Реванш через 5 секунд.");
+            }
+
+            if (Log.INFO) Log.info("Offline duel completed in " + dimension + ", winner " + winnerName + ", rematch");
+
+            deaths.clear();
+            setState(GameModeDuel.DuelState.await);
+
+            for (PlayerClient duelist : duelists)
+            {
+                ServerDuelRealization.this.updated(duelist);
+            }
+
+            BrainOutServer.Timer.schedule(new TimerTask()
+            {
+                @Override
+                public void run()
+                {
+                    BrainOutServer.PostRunnable(() ->
+                    {
+                        if (duelists.size() < 2)
+                            return;
+
+                        killAll();
+                        scheduleSpawn();
+                    });
+                }
+            }, 5000);
         }
 
         public void cancelForceSpawn()
@@ -574,8 +629,10 @@ public class ServerDuelRealization extends ServerRealization<GameModeDuel>
     {
         super.clientMapInitialized(playerClient);
 
+        // revive: the duel entry fee (rubles) only makes sense with the online economy;
+        // offline every player was kicked with MENU_NOT_ENOUGH_RU
         float ru = playerClient.getStat("ru", 0);
-        if (ru < BrainOutServer.Settings.getPrice("duel"))
+        if (com.desertkun.brainout.BrainOut.OnlineEnabled() && ru < BrainOutServer.Settings.getPrice("duel"))
         {
             playerClient.kick("MENU_NOT_ENOUGH_RU");
             return;

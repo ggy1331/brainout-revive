@@ -254,6 +254,10 @@
 	"sets":
 	[
 		{
+			"map": "bunker_ctf",
+			"mode": "ctf"
+		},
+		{
 			"map": "factory",
 			"mode": "domination,assault"
 		},
