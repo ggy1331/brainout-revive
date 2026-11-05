@@ -2,7 +2,7 @@
 
 Общий контекст проекта. Claude Code читает этот файл автоматически, поэтому всё, что важно помнить между сессиями и между участниками, пишем сюда.
 
-Это форк https://github.com/desertkun/brainout (лицензия MIT, © 2022 desertkun — файл `LICENSE` не трогаем). Наши правки — в ветке **`revive`**, `master` = оригинал без изменений.
+Наш репо: https://github.com/ggy1331/brainout-revive (приватный). Это форк https://github.com/desertkun/brainout (лицензия MIT, © 2022 desertkun — файл `LICENSE` не трогаем). Наши правки — в ветке **`revive`**, `master` = оригинал без изменений.
 
 ## Цель
 
@@ -151,4 +151,4 @@ primary = { damage = 65, clipSize = 20, fire-rate = 540, reloadTime = 3, ... }
 - Находки для роликов: консольная команда **`Impulse101`** — отсылка к чит-коду Half-Life (M4A1, магнум, бинокль, гранаты). У ботов русские имена. Медаль `medal-5year` упомянута в карточке, но самого контента нет — недоделанная награда за 5 лет. Комментарий в `Client.java`: «allow to farm bots up until 10 level».
 - 2026-11-06 — Был обрыв клиента без дампа `hs_err`, лог тогда не писался — причина неизвестна. Теперь ярлыки пишут лог.
 - 2026-11-06 — Мультиплеер (2b7d9060): профили по именам. Проверено на одном ПК через Radmin-IP: два клиента + 6 ботов, режим normal на tower, разные команды; клиент из архива со встроенным JRE доходит до игры.
-- 2026-11-06 — Репо перенесено на GitHub (приватное), сюда же — CLAUDE.md, ярлыки, `make-client-zip.ps1`.
+- 2026-11-06 — Репо на GitHub: https://github.com/ggy1331/brainout-revive (приватное, основная ветка `revive`, `master` = оригинал). Сюда же — CLAUDE.md, ярлыки, `make-client-zip.ps1`. Релиз **v0.1** с `BrainOut-client.zip`: https://github.com/ggy1331/brainout-revive/releases/tag/v0.1. Новый релиз: `make-client-zip.ps1`, затем `gh release create vX.Y BrainOut-client.zip --target revive`.
