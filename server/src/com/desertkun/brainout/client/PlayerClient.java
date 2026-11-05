@@ -671,7 +671,7 @@ public class PlayerClient extends Client
                         {
                             log("User is admin since online is disabled.");
 
-                            setupOfflineProfile();
+                            setupOfflineProfile(msg.key);
                             onlineInitialized(true);
                             setRights(PlayerRights.admin);
                             sendServerInfo();
@@ -696,9 +696,55 @@ public class PlayerClient extends Client
         return true;
     }
 
-    private void setupOfflineProfile()
+    // revive: per-player offline profiles in profiles/<name>.json
+    private String offlineProfileFile = "default-profile.json";
+
+    public String getOfflineProfileFile()
     {
-        JSONObject defaultProfile = new JSONObject(Gdx.files.local("default-profile.json").readString("UTF-8"));
+        return offlineProfileFile;
+    }
+
+    private static String sanitizeOfflineName(String name)
+    {
+        if (name == null)
+            return null;
+
+        java.lang.StringBuilder sb = new java.lang.StringBuilder();
+        for (char c : name.trim().toCharArray())
+        {
+            if (Character.isLetterOrDigit(c) || c == '_' || c == '-')
+                sb.append(c);
+            if (sb.length() >= 24)
+                break;
+        }
+
+        return sb.length() > 0 ? sb.toString() : null;
+    }
+
+    private void setupOfflineProfile(String requestedName)
+    {
+        String name = sanitizeOfflineName(requestedName);
+        com.badlogic.gdx.files.FileHandle source = Gdx.files.local("default-profile.json");
+
+        if (name != null)
+        {
+            offlineProfileFile = "profiles/" + name + ".json";
+            com.badlogic.gdx.files.FileHandle own = Gdx.files.local(offlineProfileFile);
+
+            if (own.exists())
+            {
+                source = own;
+            }
+        }
+
+        JSONObject defaultProfile = new JSONObject(source.readString("UTF-8"));
+
+        if (name != null)
+        {
+            defaultProfile.put("name", name);
+        }
+
+        log("Offline profile: " + offlineProfileFile + (source.path().equals(offlineProfileFile) ? "" : " (new, from " + source.path() + ")"));
         setProfile(defaultProfile);
 
         // revive: offline players get everything unlocked (disable with BRAINOUT_NO_UNLOCK=1)

@@ -260,7 +260,7 @@ public class ClientProfile extends UserProfile
         if (!BrainOut.OnlineEnabled())
         {
             locked = false;
-            Gdx.files.local("default-profile.json").writeString(ext.toString(4), false, "UTF-8");
+            Gdx.files.local(client.getOfflineProfileFile()).writeString(ext.toString(4), false, "UTF-8");
             return;
         }
 

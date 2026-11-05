@@ -176,7 +176,14 @@ public class CSConnected extends ControllerState
         }
         else
         {
-            getController().sendTCP(new HelloMsg(Version.VERSION, null, null, reconnect));
+            // revive: offline servers ignore the key, so we use it to pass the player name
+            String name = BrainOutClient.OfflinePlayerName;
+            if (name == null || name.trim().isEmpty())
+            {
+                name = System.getProperty("user.name");
+            }
+
+            getController().sendTCP(new HelloMsg(Version.VERSION, name, null, reconnect));
         }
     }
 

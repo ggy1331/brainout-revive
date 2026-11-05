@@ -83,6 +83,10 @@ public class BrainOutClient extends BrainOut implements ApplicationListener
     @Parameter(names = {"--offline"}, description = "Offline Mode")
     public boolean offline = false;
 
+    // revive: player name sent to an offline server (selects the per-player profile there)
+    @Parameter(names = {"--name"}, description = "Player name for offline servers")
+    public static String OfflinePlayerName = null;
+
     public static TimeMeasure _render = new TimeMeasure();
     public static TimeMeasure _update = new TimeMeasure();
     public static TimeMeasure _events = new TimeMeasure();
