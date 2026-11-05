@@ -72,6 +72,7 @@
 
 - **Всё открыто оффлайн** — `PlayerClient.unlockEverythingOffline()`: при входе в профиль добавляются все SlotItem (оружие, скины игрока, специализации), Skin (скины оружия), Upgrade/UpgradeChain (обвесы), Layout, ProfileBadge (~4629 шт.); макс. `level`/`tech-level`; skillpts/gears/nuclear-material = 999999. Отключить: env `BRAINOUT_NO_UNLOCK=1` на сервере.
 - **Профили по именам** — клиент шлёт `--name` (по умолчанию имя пользователя Windows) в `HelloMsg.key` (оффлайн-сервер его раньше игнорировал); сервер хранит `bin/server/profiles/<имя>.json`, при первом входе копирует `default-profile.json`. `profiles/` не в git.
+- **Borderless вместо эксклюзивного полноэкранного режима** — `DesktopLauncher`: при `fullscreen` окно без рамки на весь монитор в разрешении рабочего стола + `setAutoIconify(false)`. Старый режим: env `BRAINOUT_EXCLUSIVE_FULLSCREEN=1`.
 - Ярлыки запуска, скрипт архива клиента, этот файл.
 
 ## Структура репо
@@ -157,3 +158,4 @@ primary = { damage = 65, clipSize = 20, fire-rate = 540, reloadTime = 3, ... }
   1. Иногда вечное «соединение установлено, загрузка» при запуске сервера. Гипотеза: клиент стартовал через фиксированные 8 с, раньше, чем сервер догрузился → теперь ждём `Initialized!`.
   2. FoxHunt («Охотник», `MODE_FOXHUNT`): игрок не мог возродиться, помог перезапуск сервера. По коду `ServerFoxHuntRealization.canSpawn` всегда `allowed` → вероятно, сбой состояния (смена «лиса» в `setPlayerAsFox` молча выходит, если `playerData == null`; или переход на следующую карту после конца матча). Ждём лог.
 - 2026-11-06 — Репо на GitHub: https://github.com/ggy1331/brainout-revive (приватное, основная ветка `revive`, `master` = оригинал). Сюда же — CLAUDE.md, ярлыки, `make-client-zip.ps1`. Релиз **v0.1** с `BrainOut-client.zip`: https://github.com/ggy1331/brainout-revive/releases/tag/v0.1. Новый релиз: `make-client-zip.ps1`, затем `gh release create vX.Y BrainOut-client.zip --target revive`.
+- 2026-11-06 — **Alt+Tab** (858c408a, релиз **v0.2**). Воспроизведено тестом (PowerShell: keybd_event Alt+Tab, ShowWindow, снимки экрана): в эксклюзивном полноэкранном режиме LWJGL3/GLFW сворачивает игру при потере фокуса (`iconic=True`), при возврате переключает видеорежим, один раз окно не развернулось. Обрыва связи и падений не было — игра в 1.11 продолжает рендер и сеть в свёрнутом виде. Решение — borderless; после него Alt+Tab не сворачивает, картинка на месте. Протокол не менялся: клиент v0.1 к серверу тоже подключается.
