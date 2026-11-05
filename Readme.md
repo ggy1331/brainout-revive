@@ -1,3 +1,19 @@
+# Brain / Out — revive
+
+Оживлённая сборка BRAIN / OUT: игра без официальных серверов, боты в обычных режимах, мультиплеер по LAN / Radmin VPN.
+Наши правки — в ветке `revive`, ветка `master` — оригинальный код без изменений. Подробности, сборка и журнал — в [CLAUDE.md](CLAUDE.md).
+Готовый клиент для игры по сети — в [Releases](https://github.com/ggy1331/brainout-revive/releases).
+
+## Авторы revive
+
+- **GGY** ([@ggy1331](https://github.com/ggy1331)) — идея, хост, тесты
+- **Семён** ([@markozph](https://github.com/markozph)) — соавтор: тесты по сети, баг-репорты, помощь с проектом
+- Код и правки помогал писать Claude (Anthropic)
+
+Оригинальная игра и исходники — **desertkun**, лицензия MIT (см. [LICENSE](LICENSE)). Ниже — оригинальный README.
+
+---
+
 # Brain / Out
 
 Source code for [Brain / Out](https://brainout.org/), the game.
