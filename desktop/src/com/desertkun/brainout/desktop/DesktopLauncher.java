@@ -56,7 +56,20 @@ public class DesktopLauncher
             cfg.setTitle(environment.getAppName());
         }
 
-        if (settings.getFullscreen().getValue())
+        // revive: "fullscreen" = borderless window over the whole monitor. Exclusive fullscreen
+        // switched the monitor video mode and got auto-minimized by Windows on Alt+Tab.
+        // Old behaviour: env BRAINOUT_EXCLUSIVE_FULLSCREEN=1
+        boolean exclusiveFullscreen = System.getenv("BRAINOUT_EXCLUSIVE_FULLSCREEN") != null;
+
+        if (settings.getFullscreen().getValue() && !exclusiveFullscreen)
+        {
+            Graphics.DisplayMode desktopMode = Lwjgl3ApplicationConfiguration.getDisplayMode();
+
+            cfg.setDecorated(false);
+            cfg.setWindowedMode(desktopMode.width, desktopMode.height);
+            cfg.setWindowPosition(0, 0);
+        }
+        else if (settings.getFullscreen().getValue())
         {
             ScreenResolutionProperty dm = settings.getDisplayMode();
             Graphics.DisplayMode selected = null;
@@ -110,6 +123,9 @@ public class DesktopLauncher
         cfg.addIcon("icons/icon-32.png", Files.FileType.Internal);
         cfg.addIcon("icons/icon-16.png", Files.FileType.Internal);
          */
+
+        // revive: never minimize the window just because it lost focus
+        cfg.setAutoIconify(false);
 
         cfg.useVsync(settings.getvSync().getValue());
         cfg.setAudioConfig(64, 512, 9);
