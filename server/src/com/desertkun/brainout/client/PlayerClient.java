@@ -700,6 +700,65 @@ public class PlayerClient extends Client
     {
         JSONObject defaultProfile = new JSONObject(Gdx.files.local("default-profile.json").readString("UTF-8"));
         setProfile(defaultProfile);
+
+        // revive: offline players get everything unlocked (disable with BRAINOUT_NO_UNLOCK=1)
+        if (System.getenv("BRAINOUT_NO_UNLOCK") == null)
+        {
+            unlockEverythingOffline();
+        }
+    }
+
+    private void unlockEverythingOffline()
+    {
+        ClientProfile p = getProfile();
+        int unlocked = 0;
+
+        Class<?>[] kinds = {
+            com.desertkun.brainout.content.shop.SlotItem.class,          // weapons, player skins, specializations, grenades
+            com.desertkun.brainout.content.Skin.class,                   // weapon skins
+            com.desertkun.brainout.content.upgrades.Upgrade.class,       // attachments / upgrades
+            com.desertkun.brainout.content.upgrades.UpgradeChain.class,  // upgrade levels
+            com.desertkun.brainout.content.Layout.class,                 // loadout layouts
+            com.desertkun.brainout.content.ProfileBadge.class            // profile badges
+        };
+
+        for (Class<?> kind : kinds)
+        {
+            @SuppressWarnings("unchecked")
+            Array<OwnableContent> items = BrainOutServer.ContentMgr.queryContent((Class<OwnableContent>) kind);
+
+            for (OwnableContent item : items)
+            {
+                if (p.itemsHave(item) == 0)
+                {
+                    p.addItem(item, 1);
+                    unlocked++;
+                }
+            }
+        }
+
+        String[][] levelKinds = {
+            {Constants.User.LEVEL, ServerConstants.Online.ProfileFields.SCORE},
+            {Constants.User.TECH_LEVEL, ServerConstants.Online.ProfileFields.TECH_SCORE}
+        };
+
+        for (String[] lk : levelKinds)
+        {
+            Levels levels = BrainOutServer.Controller.getLevels(lk[0]);
+
+            if (levels == null || levels.getLevels().size == 0)
+                continue;
+
+            Levels.Level max = levels.getLevels().peek();
+            p.setStat(lk[0], max.number);
+            p.setStat(lk[1], max.score);
+        }
+
+        p.setStat(Constants.User.SKILLPOINTS, 999999);
+        p.setStat(Constants.User.GEARS, 999999);
+        p.setStat(Constants.User.NUCLEAR_MATERIAL, 999999);
+
+        log("Offline unlock-all: added " + unlocked + " items, max levels, currencies.");
     }
 
     private void extend(String token)
