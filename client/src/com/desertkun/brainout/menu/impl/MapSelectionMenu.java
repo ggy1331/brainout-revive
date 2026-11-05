@@ -107,7 +107,7 @@ public class MapSelectionMenu extends Menu
                 Button btn = new Button(BrainOutClient.Skin, "button-notext");
 
                 {
-                    Image image = new Image(BrainOutClient.Skin, "map-" + map);
+                    Image image = com.desertkun.brainout.menu.ui.MapIcons.create(map);
                     image.setScaling(Scaling.none);
                     image.setFillParent(true);
                     image.setTouchable(Touchable.disabled);

@@ -154,7 +154,7 @@ public class EndGameMenu extends PlayerListMenu
                     {
                         final int logoPadding = 4;
 
-                        Image image = new Image(BrainOutClient.Skin, "map-" + voteMap.mapName);
+                        Image image = com.desertkun.brainout.menu.ui.MapIcons.create(voteMap.mapName);
                         image.setSize(mapLogoSize - logoPadding * 2, mapLogoSize - logoPadding * 2);
                         image.setPosition(logoPadding, logoPadding);
                         image.setTouchable(Touchable.disabled);
