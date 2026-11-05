@@ -56,7 +56,9 @@
 - `connect.bat [IP] [ИМЯ]` — подключиться к хосту по IP (Radmin/LAN); без аргументов спрашивает, помнит последние в `connect-last.txt`. Лог — `client-last.log` рядом.
 - `make-client-zip.ps1` — собрать `BrainOut-client.zip` (~258 МБ) для игроков без сборки: `connect.bat`, `client/` (jar + packages), `jre/` (jlink JDK 17, 53 МБ), README (`docs/friend-README.txt`). Выкладываем в GitHub Releases, не в git. **Пересобирать после каждой правки клиента/контента** — иначе version mismatch.
 - Перед запуском закрыть предыдущий сервер (порт 36555 один).
-- Логи: клиент — `build/client-last.log`; ошибки контента/локализации — `bin/client/error.log`.
+- Логи: сервер — `build/server-last.log` (UTF-16, пишет `play-*.bat` через PowerShell Tee-Object; читать `type` или `iconv -f utf-16`), клиент — `build/client-last.log`; ошибки контента/локализации — `bin/client/error.log`.
+- `play-*.bat` запускают клиент только после строки `Initialized!` в логе сервера (до 90 с): порт сервер открывает раньше, чем догружается. Падение сервера ловим по точной фразе `ERROR: Failed to load.` — просто «Failed to load» встречается в нормальном логе (`Failed to load content for content card` про medal-5year) и ложно срабатывало в Free Play.
+- Если старый клиент ещё открыт, новый может не запуститься (лог `client-last.log` занят) — закрывайте старые окна игры.
 - Ярлыки ищут Java в `C:\Program Files\Java\jdk-17`, иначе берут `java` из PATH.
 
 Вручную:
@@ -151,4 +153,7 @@ primary = { damage = 65, clipSize = 20, fire-rate = 540, reloadTime = 3, ... }
 - Находки для роликов: консольная команда **`Impulse101`** — отсылка к чит-коду Half-Life (M4A1, магнум, бинокль, гранаты). У ботов русские имена. Медаль `medal-5year` упомянута в карточке, но самого контента нет — недоделанная награда за 5 лет. Комментарий в `Client.java`: «allow to farm bots up until 10 level».
 - 2026-11-06 — Был обрыв клиента без дампа `hs_err`, лог тогда не писался — причина неизвестна. Теперь ярлыки пишут лог.
 - 2026-11-06 — Мультиплеер (2b7d9060): профили по именам. Проверено на одном ПК через Radmin-IP: два клиента + 6 ботов, режим normal на tower, разные команды; клиент из архива со встроенным JRE доходит до игры.
+- 2026-11-06 — **Первая игра по сети через Radmin работает** (игроки GGY, markozph, Orel3287). Открытые баги (логов не было, причина не найдена):
+  1. Иногда вечное «соединение установлено, загрузка» при запуске сервера. Гипотеза: клиент стартовал через фиксированные 8 с, раньше, чем сервер догрузился → теперь ждём `Initialized!`.
+  2. FoxHunt («Охотник», `MODE_FOXHUNT`): игрок не мог возродиться, помог перезапуск сервера. По коду `ServerFoxHuntRealization.canSpawn` всегда `allowed` → вероятно, сбой состояния (смена «лиса» в `setPlayerAsFox` молча выходит, если `playerData == null`; или переход на следующую карту после конца матча). Ждём лог.
 - 2026-11-06 — Репо на GitHub: https://github.com/ggy1331/brainout-revive (приватное, основная ветка `revive`, `master` = оригинал). Сюда же — CLAUDE.md, ярлыки, `make-client-zip.ps1`. Релиз **v0.1** с `BrainOut-client.zip`: https://github.com/ggy1331/brainout-revive/releases/tag/v0.1. Новый релиз: `make-client-zip.ps1`, затем `gh release create vX.Y BrainOut-client.zip --target revive`.
