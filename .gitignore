@@ -82,3 +82,6 @@ bin/server/profiles/
 connect-last.txt
 client-last.log
 /BrainOut-client*.zip
+
+backend-data/
+__pycache__/
