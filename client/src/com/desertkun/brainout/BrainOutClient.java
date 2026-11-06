@@ -83,6 +83,14 @@ public class BrainOutClient extends BrainOut implements ApplicationListener
     @Parameter(names = {"--offline"}, description = "Offline Mode")
     public boolean offline = false;
 
+    // revive: skip "click to continue" on the intro screen
+    @Parameter(names = {"--auto-continue"}, description = "Skip the intro click (testing)")
+    public static boolean AutoContinue = false;
+
+    // revive: location of the environment service of a self-hosted back-end
+    @Parameter(names = {"--env"}, description = "Environment service location (self-hosted back-end)")
+    public static String EnvServiceOverride = null;
+
     // revive: player name sent to an offline server (selects the per-player profile there)
     @Parameter(names = {"--name"}, description = "Player name for offline servers")
     public static String OfflinePlayerName = null;
@@ -127,7 +135,11 @@ public class BrainOutClient extends BrainOut implements ApplicationListener
             ClientConstants.Name.APP_NAME,
             Version.VERSION);
 
-        Online = AnthillRuntime.Create(ENV_SERVICE, applicationInfo);
+        // revive: the official env.brainout.org is dead; --env http://host:port/environment
+        // (or env BRAINOUT_ENV_SERVICE) points the game to a local back-end (tools/mock-backend)
+        String envService = EnvServiceOverride != null ? EnvServiceOverride : System.getenv("BRAINOUT_ENV_SERVICE");
+        Online = AnthillRuntime.Create(envService != null && !envService.isEmpty() ? envService : ENV_SERVICE,
+            applicationInfo);
 
         Skin = new SkinFromStream();
         ShapeRenderer = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();

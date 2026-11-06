@@ -336,6 +336,12 @@ public class IntroMenu extends Menu implements EventReceiver
             pop();
             autoContinue.run();
         }
+        else if (BrainOutClient.AutoContinue)
+        {
+            // revive: --auto-continue skips "click to continue" (testing the online flow unattended)
+            BrainOutClient.AutoContinue = false;
+            Gdx.app.postRunnable(this::continueToNextMenu);
+        }
     }
 
     public void setAutoContinue(Runnable autoContinue)
