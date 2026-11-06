@@ -337,6 +337,31 @@ public class GameUser
         {
             this.online = online;
         }
+
+        // revive: own friends (back-end /social/friends)
+        private String account;
+        private String status = "friend";
+
+        public String getAccount()
+        {
+            return account;
+        }
+
+        public void setAccount(String account)
+        {
+            this.account = account;
+        }
+
+        /** "friend", "incoming" (wants to be your friend) or "outgoing" (you asked him) */
+        public String getStatus()
+        {
+            return status;
+        }
+
+        public void setStatus(String status)
+        {
+            this.status = status;
+        }
     }
 
     public interface WorkshopItemDownloadedFileGetResultCallback
@@ -481,19 +506,190 @@ public class GameUser
         //
     }
 
+    // ------------------------------------------------------------------------------------------
+    // revive: own friends. BRAIN / OUT took friends from Steam only; without Steam the list was
+    // empty. When online (self-hosted back-end, tools/mock-backend) friends come from
+    // <social>/friends; GameSteamUser still overrides these methods with Steam friends.
+
+    public interface FriendsCallback
+    {
+        void done(boolean success, String status);
+    }
+
+    private final Array<Friend> backendFriends = new Array<>();
+    private volatile long friendsRefreshedAt = 0;
+
+    private static String socialLocation()
+    {
+        org.anthillplatform.runtime.services.SocialService s =
+            org.anthillplatform.runtime.services.SocialService.Get();
+        return s != null ? s.getLocation() : null;
+    }
+
+    private static String accessToken()
+    {
+        LoginService l = LoginService.Get();
+        if (l == null || l.getCurrentAccessToken() == null)
+            return null;
+        String t = l.getCurrentAccessToken().get();
+        return t == null || t.isEmpty() ? null : t;
+    }
+
+    public boolean hasBackendFriends()
+    {
+        return BrainOut.OnlineEnabled() && socialLocation() != null && accessToken() != null;
+    }
+
+    private static void post(Runnable r)
+    {
+        if (r != null)
+            Gdx.app.postRunnable(r);
+    }
+
+    public void refreshFriends(Runnable done)
+    {
+        String location = socialLocation(), token = accessToken();
+        if (location == null || token == null)
+        {
+            post(done);
+            return;
+        }
+
+        friendsRefreshedAt = System.currentTimeMillis();
+
+        com.mashape.unirest.http.Unirest.get(location + "/friends").queryString("access_token", token)
+            .asStringAsync(new com.mashape.unirest.http.async.Callback<String>()
+        {
+            @Override
+            public void completed(com.mashape.unirest.http.HttpResponse<String> response)
+            {
+                if (response.getStatus() == 200)
+                {
+                    try
+                    {
+                        org.json.JSONArray list = new org.json.JSONObject(response.getBody()).optJSONArray("friends");
+                        Array<Friend> parsed = new Array<>();
+                        for (int i = 0; list != null && i < list.length(); i++)
+                        {
+                            org.json.JSONObject o = list.getJSONObject(i);
+                            Friend f = new Friend();
+                            f.setAccount(o.optString("account"));
+                            f.setCredential(o.optString("credential", ""));
+                            f.setName(o.optString("name", "?"));
+                            f.setStatus(o.optString("status", "friend"));
+                            f.setOnline(o.optBoolean("online", false));
+                            f.setRoom(o.isNull("room") ? null : o.optString("room", null));
+                            parsed.add(f);
+                        }
+                        synchronized (backendFriends)
+                        {
+                            backendFriends.clear();
+                            backendFriends.addAll(parsed);
+                        }
+                    }
+                    catch (org.json.JSONException ignored) {}
+                }
+                post(done);
+            }
+
+            @Override
+            public void failed(com.mashape.unirest.http.exceptions.UnirestException e)
+            {
+                post(done);
+            }
+
+            @Override
+            public void cancelled()
+            {
+                post(done);
+            }
+        });
+    }
+
+    /** Add a friend by name ("Nick" or "#account") or accept an incoming request (account id). */
+    public void addFriend(String name, String account, FriendsCallback callback)
+    {
+        String location = socialLocation(), token = accessToken();
+        if (location == null || token == null)
+        {
+            post(() -> callback.done(false, "offline"));
+            return;
+        }
+
+        com.mashape.unirest.request.body.MultipartBody req =
+            com.mashape.unirest.http.Unirest.post(location + "/friends/add").field("access_token", token)
+                .field(account != null ? "account" : "name", account != null ? account : name);
+
+        req.asStringAsync(new com.mashape.unirest.http.async.Callback<String>()
+        {
+            @Override
+            public void completed(com.mashape.unirest.http.HttpResponse<String> response)
+            {
+                boolean ok = response.getStatus() == 200;
+                String status = "error";
+                try
+                {
+                    org.json.JSONObject o = new org.json.JSONObject(response.getBody());
+                    status = ok ? o.optString("status", "outgoing") : o.optString("error", "error");
+                }
+                catch (org.json.JSONException ignored) {}
+                final String s = status;
+                refreshFriends(() -> callback.done(ok, s));
+            }
+
+            @Override
+            public void failed(com.mashape.unirest.http.exceptions.UnirestException e)
+            {
+                post(() -> callback.done(false, "network"));
+            }
+
+            @Override
+            public void cancelled()
+            {
+                post(() -> callback.done(false, "cancelled"));
+            }
+        });
+    }
+
     public boolean getFriends(Array<Friend> friends)
     {
+        if (!hasBackendFriends())
+            return true;
+
+        synchronized (backendFriends)
+        {
+            friends.addAll(backendFriends);
+        }
+
+        if (System.currentTimeMillis() - friendsRefreshedAt > 10000)
+        {
+            refreshFriends(null);
+        }
+
         return true;
     }
 
     public boolean inviteFriend(Friend friend)
     {
-        return false;
+        return inviteFriendCustom(friend, BrainOutClient.Env.getCurrentRoom());
     }
 
     public boolean inviteFriendCustom(Friend friend, String context)
     {
-        return false;
+        String location = socialLocation(), token = accessToken();
+        if (location == null || token == null || friend.getAccount() == null)
+            return false;
+
+        com.mashape.unirest.http.Unirest.post(location + "/friends/invite").field("access_token", token)
+            .field("account", friend.getAccount()).field("room", context != null ? context : "")
+            .asStringAsync(new com.mashape.unirest.http.async.Callback<String>()
+        {
+            @Override public void completed(com.mashape.unirest.http.HttpResponse<String> response) {}
+            @Override public void failed(com.mashape.unirest.http.exceptions.UnirestException e) {}
+            @Override public void cancelled() {}
+        });
+
+        return true;
     }
 
     public interface WorkshopItemsQueryCallback

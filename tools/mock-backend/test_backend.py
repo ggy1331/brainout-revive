@@ -86,13 +86,24 @@ class WsClient:
         return data
 
     def recv(self):
-        b1, b2 = self._read(2)
-        n = b2 & 0x7F
-        if n == 126:
-            n = int.from_bytes(self._read(2), "big")
-        elif n == 127:
-            n = int.from_bytes(self._read(8), "big")
-        return json.loads(self._read(n).decode())
+        """Next call from the server (responses to our own calls are skipped)."""
+        while True:
+            b1, b2 = self._read(2)
+            n = b2 & 0x7F
+            if n == 126:
+                n = int.from_bytes(self._read(2), "big")
+            elif n == 127:
+                n = int.from_bytes(self._read(8), "big")
+            msg = json.loads(self._read(n).decode())
+            if "method" in msg:
+                return msg
+
+    def recv_type(self, message_type):
+        """Next "message" of the given type (earlier notifications are skipped)."""
+        while True:
+            msg = self.recv()
+            if msg.get("params", {}).get("message_type") == message_type:
+                return msg
 
     def send(self, obj):
         data = json.dumps(obj).encode()
@@ -207,8 +218,83 @@ def main():
 
         st, r = a.call("GET", "/market/markets/freeplay")
         assert "max-price" in r["settings"], r
+
+        # clans (social groups)
+        st, r = a.call("POST", "/social/groups/create", name="Dvor", join_method="approve", max_members=10,
+                       group_profile={"tag": "DVR"}, participation_profile={"name": "alice"})
+        assert st == 200, r
+        gid = r["id"]
+        st, r = b.call("POST", "/social/groups/create", name="dvor")
+        assert st == 409, "name is busy (case-insensitive)"
+        st, r = b.call("GET", "/social/groups/search", query="dv")
+        assert r["groups"][0]["group"]["group_id"] == gid and r["groups"][0]["group"]["free_members"] == 9, r
+        st, r = b.call("POST", "/social/group/%s/join" % gid)
+        assert st == 409, "approve-only group"
+        st, r = b.call("POST", "/social/group/%s/request" % gid, participation_profile={"name": "bob"},
+                       notify={"name": "bob"})
+        key = r["key"]
+        note = ws_a.recv_type("group_request")
+        assert note["params"]["message_type"] == "group_request" and note["params"]["recipient_key"] == gid, note
+        st, r = b.call("POST", "/social/group/%s/approve/%s" % (gid, acc_b), key=key, role=0, permissions=[])
+        assert st == 406, "only members can approve"
+        st, r = a.call("POST", "/social/group/%s/approve/%s" % (gid, acc_b), key=key, role=5, permissions=["x"],
+                       notify={"ok": True})
+        assert st == 200, r
+        ws_b.recv_type("group_request_approved")
+        st, r = b.call("GET", "/social/group/%s" % gid)
+        assert set(r["participants"]) == {acc_a, acc_b} and r["me"]["role"] == 5, r
+        assert r["group"]["owner"] == acc_a and r["group"]["profile"]["tag"] == "DVR", r
+        # clan chat through the message service
+        ws_b.call("send_message", recipient_class="social-group", recipient_key=gid, message_type="clan_chat",
+                  message={"text": "ku"}, flags=[])
+        got = ws_a.recv_type("clan_chat")
+        assert got["params"]["message_type"] == "clan_chat" and got["params"]["payload"]["text"] == "ku", got
+        st, r = b.call("GET", "/message/group/social-group/%s" % gid)
+        assert any(m["type"] == "clan_chat" for m in r["messages"]), r
+        # group profile @func, participation, ownership rules
+        st, r = b.call("POST", "/social/group/%s/profile" % gid, profile={"score": {"@func": "++", "@value": 7}})
+        assert r["group"]["profile"]["score"] == 7, r
+        st, r = a.call("GET", "/social/group/%s/participation/%s" % (gid, acc_b))
+        assert r["participation"]["profile"]["name"] == "bob" and r["owner"] is False, r
+        st, r = a.call("POST", "/social/group/%s/leave" % gid)
+        assert st == 409, "owner can't leave a non-empty clan"
+        st, r = b.call("DELETE", "/social/group/%s/participation/%s" % (gid, acc_a))
+        assert st == 406, "can't kick a higher role"
+        st, r = a.call("DELETE", "/social/group/%s/participation/%s" % (gid, acc_b), notify={"bye": 1})
+        assert st == 200, r
+        ws_b.recv_type("kicked")
+        st, r = a.call("POST", "/social/group/%s/leave" % gid)
+        st, r = a.call("GET", "/social/group/%s" % gid)
+        assert st == 404, "last member left -> clan removed"
+
+        # friends (our addition)
+        a.call("POST", "/profile/profile/me", data={"name": "Alice"})
+        b.call("POST", "/profile/profile/me", data={"name": "Bob"})
+        st, r = a.call("POST", "/social/friends/add", name="nobody")
+        assert st == 404, r
+        st, r = a.call("POST", "/social/friends/add", name="bob")
+        assert st == 200 and r["status"] == "outgoing", r
+        req = ws_b.recv_type("friend_request")
+        assert req["params"]["payload"]["name"] == "Alice", req
+        st, r = b.call("GET", "/social/friends")
+        assert r["friends"][0]["status"] == "incoming" and r["friends"][0]["name"] == "Alice", r
+        st, r = b.call("POST", "/social/friends/add", account=acc_a)
+        assert r["status"] == "friend", r
+        st, r = a.call("GET", "/social/friends")
+        f = r["friends"][0]
+        assert f["status"] == "friend" and f["online"] is True and f["credential"] == "anonymous:bob", r
+        st, r = a.call("POST", "/social/friends/invite", account=acc_b, room="7")
+        inv = ws_b.recv_type("friend_invite")
+        assert inv["params"]["payload"]["room"] == "7", inv
+        st, r = b.call("POST", "/social/friends/remove", account=acc_a)
+        st, r = a.call("GET", "/social/friends")
+        assert r["friends"] == [], r
+        st, r = a.call("POST", "/social/friends/invite", account=acc_b, room="7")
+        assert st == 406, "can invite only friends"
         print("OK: login, profile @func, stash, orders (escrow, fulfill, delete, expiry), "
-              "messages (websocket push, market notifications, history)")
+              "messages (websocket push, market notifications, history), "
+              "clans (create, search, request/approve, chat, profile @func, kick, leave), "
+              "friends (add by name, accept, online, invite, remove)")
     finally:
         proc.terminate()
 

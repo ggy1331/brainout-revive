@@ -150,6 +150,48 @@ public class InviteMenu extends Menu
 
         contents.add(filter).expandX().fillX().pad(8).row();
 
+        GameUser user = BrainOutClient.Env.getGameUser();
+
+        if (user.hasBackendFriends())
+        {
+            // revive: add a friend by nickname (own friends system, no Steam needed)
+            Table add = new Table();
+            TextField nameField = new TextField("", BrainOutClient.Skin, "edit-default");
+            nameField.setMessageText("Ник друга");
+            TextButton addButton = new TextButton("Добавить", BrainOutClient.Skin, "button-small");
+            addStatus = new Label("", BrainOutClient.Skin, "title-small");
+            addButton.addListener(new ClickOverListener()
+            {
+                @Override
+                public void clicked(InputEvent event, float x, float y)
+                {
+                    String name = nameField.getText().trim();
+                    if (name.isEmpty())
+                        return;
+                    Menu.playSound(MenuSound.select);
+                    addStatus.setText("...");
+                    user.addFriend(name, null, (success, status) ->
+                    {
+                        if (success)
+                        {
+                            addStatus.setText("friend".equals(status) ? "Теперь вы друзья" : "Запрос отправлен");
+                            nameField.setText("");
+                        }
+                        else
+                        {
+                            addStatus.setText("No such player".equals(status) ? "Игрок не найден" : "Не вышло: " + status);
+                        }
+                        reloadFriends();
+                    });
+                }
+            });
+            add.add(nameField).expandX().fillX();
+            add.add(addButton).height(32).padLeft(4).row();
+            contents.add(add).expandX().fillX().padLeft(8).padRight(8).row();
+            contents.add(addStatus).expandX().fillX().padLeft(8).row();
+            user.refreshFriends(this::reloadFriends);
+        }
+
         friendsData = new Table();
 
         ScrollPane pane = new ScrollPane(friendsData, BrainOutClient.Skin, "scroll-no-background");
@@ -169,12 +211,51 @@ public class InviteMenu extends Menu
         }
     }
 
+    private Label addStatus;
+
+    private void reloadFriends()
+    {
+        if (friendsData == null)
+            return;
+        friends.clear();
+        BrainOutClient.Env.getGameUser().getFriends(friends);
+        updateFriends();
+    }
+
     private void updateFriends()
     {
         friendsData.clear();
 
         for (final GameUser.Friend friend : friends)
         {
+            if (!"friend".equals(friend.getStatus()))
+            {
+                // revive: pending requests of the own friends system
+                if (!filter.isEmpty() && !friend.getName().toLowerCase().contains(filter))
+                    continue;
+                boolean incoming = "incoming".equals(friend.getStatus());
+                Button req = new Button(BrainOutClient.Skin, "button-hoverable");
+                Table info = new Table();
+                info.add(new Label(friend.getName(), BrainOutClient.Skin, "title-small")).width(274).row();
+                info.add(new Label(incoming ? "Хочет в друзья - нажмите, чтобы принять" : "Запрос отправлен",
+                    BrainOutClient.Skin, incoming ? "title-yellow" : "title-gray")).expandX().fillX().row();
+                req.add(info).expandX().fillX().pad(4);
+                if (incoming)
+                {
+                    req.addListener(new ClickOverListener()
+                    {
+                        @Override
+                        public void clicked(InputEvent event, float x, float y)
+                        {
+                            Menu.playSound(MenuSound.select);
+                            BrainOutClient.Env.getGameUser().addFriend(null, friend.getAccount(),
+                                (success, status) -> reloadFriends());
+                        }
+                    });
+                }
+                friendsData.add(req).width(396).expandX().fillX().row();
+                continue;
+            }
             if (!filter.isEmpty())
             {
                 if (!friend.getName().toLowerCase().contains(filter))

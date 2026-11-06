@@ -25,6 +25,7 @@ Write-Host "Copying client..."
 Copy-Item "$root\bin\client\brainout-desktop.jar" "$out\client\"
 Copy-Item -Recurse "$root\bin\client\packages" "$out\client\"
 Copy-Item "$root\connect.bat" "$out\"
+Copy-Item "$root\connect-online.bat" "$out\"
 Copy-Item "$root\docs\friend-README.txt" "$out\README.txt"
 
 Write-Host "Zipping..."

@@ -85,3 +85,4 @@ client-last.log
 
 backend-data/
 __pycache__/
+connect-online-last.txt

@@ -78,7 +78,8 @@ def handle(ctx, rest):
         with app.lock:
             rec = st.get("credentials", credential)
             if rec is None:
-                rec = {"account": _next_account(st), "key": key, "created": int(time.time())}
+                rec = {"account": _next_account(st), "key": key, "created": int(time.time()),
+                       "credential": credential}
                 st.put("credentials", credential, rec)
             elif rec.get("key") and key and rec["key"] != key:
                 raise HttpError(403, {"error": "wrong key"})

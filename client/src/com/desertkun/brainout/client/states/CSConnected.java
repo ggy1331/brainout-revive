@@ -119,6 +119,16 @@ public class CSConnected extends ControllerState
                 {
                     getController().getUserProfile().read(o);
                     BrainOutClient.SocialController.userProfileUpdated(getController().getUserProfile());
+
+                    // revive: --name sets the nickname on self-hosted online servers too
+                    // (anonymous accounts get a random name, friends are found by nickname)
+                    String wanted = BrainOutClient.OfflinePlayerName;
+                    if (BrainOut.OnlineEnabled() && wanted != null && !wanted.trim().isEmpty()
+                        && !wanted.trim().equals(getController().getUserProfile().getName()))
+                    {
+                        getController().sendTCP(
+                            new com.desertkun.brainout.common.msg.client.ChangeNameMsg(wanted.trim()));
+                    }
                 }
             }
         });

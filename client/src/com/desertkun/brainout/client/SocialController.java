@@ -143,10 +143,64 @@ public class SocialController implements EventReceiver
         return false;
     }
 
+    // revive: own friends system - incoming request and invitation popups
+    private void friendRequest(String name, String account)
+    {
+        BrainOutClient.getInstance().topState().pushMenu(
+            new com.desertkun.brainout.menu.popups.ConfirmationPopup(name + " хочет добавить вас в друзья. Принять?")
+        {
+            @Override
+            public void yes()
+            {
+                BrainOutClient.Env.getGameUser().addFriend(null, account, (success, status) -> {});
+            }
+        });
+    }
+
+    private void friendInvite(String name, String room)
+    {
+        if (room == null || room.isEmpty() || room.equals(BrainOutClient.Env.getCurrentRoom()))
+            return;
+
+        BrainOutClient.getInstance().topState().pushMenu(
+            new com.desertkun.brainout.menu.popups.ConfirmationPopup(name + " зовёт вас в игру. Присоединиться?")
+        {
+            @Override
+            public void yes()
+            {
+                BrainOutClient.ClientController.disconnect(
+                    com.desertkun.brainout.common.enums.DisconnectReason.leave, () ->
+                {
+                    BrainOutClient.Env.gameCompleted();
+                    BrainOutClient.getInstance().popState();
+                    BrainOutClient.ClientController.setState(
+                        new com.desertkun.brainout.client.states.CSJoinRoom(room));
+                });
+            }
+        });
+    }
+
     private void process(SocialMessages.ClientMessage e)
     {
         switch (e.messageType)
         {
+            case "friend_request":
+            {
+                String name = e.payload.optString("name", "?");
+                String account = e.payload.optString("account", null);
+                if (account != null)
+                {
+                    Gdx.app.postRunnable(() -> friendRequest(name, account));
+                }
+                break;
+            }
+            case "friend_invite":
+            {
+                String name = e.payload.optString("name", "?");
+                String room = e.payload.optString("room", "");
+                Gdx.app.postRunnable(() -> friendInvite(name, room));
+                break;
+            }
             case "order_completed":
             {
                 String give_item = e.payload.optString("give_item", "");

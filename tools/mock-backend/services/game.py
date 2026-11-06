@@ -194,6 +194,13 @@ class GameMaster:
         return out
 
 
+def _remember_room(app, player, room):
+    """Last room of every player (friends see "in game" and can be invited there)."""
+    if not hasattr(app, "player_rooms"):
+        app.player_rooms = {}
+    app.player_rooms[str(player["account"])] = room.id
+
+
 def _master(app):
     if not hasattr(app, "game_master"):
         app.game_master = GameMaster(app)
@@ -213,25 +220,27 @@ def handle(ctx, rest):
         return {"regions": {"local": {"settings": {}, "location": {"x": 0, "y": 0}}}, "my_region": "local"}
 
     if call in ("join", "create") and len(rest) >= 3:
-        token_from(ctx)
+        player = token_from(ctx)
         game = rest[2]
         settings = ctx.json_arg("create_settings", None) or ctx.json_arg("settings", {}) or {}
         if not isinstance(settings, dict):
             settings = {}
         auto_create = call == "create" or str(ctx.arg("auto_create", "true")).lower() == "true"
         room = gm.find_or_create(game, settings, auto_create)
+        _remember_room(app, player, room)
         out = gm.room_out(room)
         if call == "create":
             out["location"]["init"] = room.settings
         return out
 
     if call == "room" and len(rest) >= 4 and rest[3] == "join":
-        token_from(ctx)
+        player = token_from(ctx)
         gm.cleanup()
         room = gm.rooms.get(rest[2])
         if room is None:
             raise HttpError(404, {"error": "no such room"})
         gm._wait_ready(room)
+        _remember_room(app, player, room)
         return gm.room_out(room)
 
     if call == "rooms" and len(rest) >= 3:
