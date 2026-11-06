@@ -116,10 +116,16 @@ class Handler(BaseHTTPRequestHandler):
 
 
 class App:
-    def __init__(self, base_url, storage):
+    def __init__(self, base_url, storage, public_host="127.0.0.1", repo=".", java="java"):
         self.base_url = base_url
         self.storage = storage
         self.lock = threading.RLock()
+        self.public_host = public_host
+        self.repo = repo
+        self.java = java
+        self.server_dir = os.path.join(repo, "bin", "server")
+        self.logs_dir = os.path.join(repo, "build", "rooms")
+        self.log = log
 
     def service_url(self, name):
         return self.base_url + "/" + name
@@ -133,12 +139,15 @@ def main():
                     help="address clients use to reach this backend (Radmin/LAN IP for friends)")
     repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap.add_argument("--data", default=os.path.join(repo, "backend-data"))
+    default_java = r"C:\Program Files\Java\jdk-17\bin\java.exe"
+    ap.add_argument("--java", default=default_java if os.path.exists(default_java) else "java",
+                    help="java used to start game servers on demand")
     a = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                         handlers=[logging.StreamHandler(sys.stdout)])
     base_url = "http://%s:%d" % (a.public_host, a.port)
-    app = App(base_url, Storage(a.data))
+    app = App(base_url, Storage(a.data), public_host=a.public_host, repo=repo, java=a.java)
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     srv.app = app
     log.info("Anthill mock backend on %s:%d, public url %s, data %s", a.host, a.port, base_url, a.data)

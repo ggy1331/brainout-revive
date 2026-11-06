@@ -14,6 +14,13 @@ def event(ctx, rest):
     raise HttpError(404, {"error": "event call not implemented: " + "/".join(rest)})
 
 
+def blog(ctx, rest):
+    # GET /blog/blog/<name> -> {"entries": []}   (news in the main menu; TODO: own news feed)
+    if rest and rest[0] == "blog":
+        return {"entries": []}
+    raise HttpError(404, {"error": "blog call not implemented: " + "/".join(rest)})
+
+
 def store(ctx, rest):
     if rest and rest[0] == "orders":
         return {"orders": []}

@@ -3,7 +3,9 @@
 Локальная замена официальных онлайн-сервисов BRAIN / OUT (`env.brainout.org` мёртв).
 Один процесс на Python (только стандартная библиотека), данные — JSON-файлы в `backend-data/`.
 
-Запуск вместе с игрой: `play-online.bat [боты] [bots|free]` из корня репо.
+Запуск вместе с игрой: `play-online.bat` из корня репо (бэкенд + клиент → хаб; серверы бэкенд запускает сам).
+Остановить бэкенд и все его серверы: `stop-online.bat`.
+Отладка без кликов: флаг клиента `--auto-continue` сам проходит заставку «нажмите, чтобы продолжить».
 Вручную: `build\pyenv\Scripts\python.exe tools\mock-backend\backend.py --port 9511 [--public-host IP]`.
 
 Игра находит бэкенд через флаг клиента `--env http://HOST:9511/environment`
@@ -19,7 +21,8 @@
 | login | анонимный вход `/auth`, `/extend`, `/validate`, токен для игрового сервера `/server-token` |
 | profile | `/profile/me`, `/profile/<account>`, `/profiles`; слияние и `@func` — код из anthill-common |
 | market | рынок `freeplay`: склад/тайник (предметы = имя + свойства, рубли = `ru`), барахолка (заказы с хранением выставленного, покупка, снятие, возврат по сроку), настройки (`fee`, `max-price`… — можно переопределить в `backend-data/market_settings/freeplay.json`) |
-| event, store | заглушки: пустые списки |
+| game | регионы (`local`), поиск/создание комнат, комната по номеру, список комнат (браузер серверов). **Сам запускает игровые серверы** по запросу (`lobby`, `main`, `freeplay`, `duel`, `zombie`, `custom` — таблица `GAMES` в `services/game.py`), порты с 36600, логи `build/rooms/`. Одна комната на (игру, настройки) переиспользуется, пока процесс жив |
+| event, store, blog | заглушки: пустые списки |
 
 Проверка без игры: `build\pyenv\Scripts\python.exe tools\mock-backend\test_backend.py`.
 

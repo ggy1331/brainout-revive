@@ -83,6 +83,10 @@ public class BrainOutClient extends BrainOut implements ApplicationListener
     @Parameter(names = {"--offline"}, description = "Offline Mode")
     public boolean offline = false;
 
+    // revive: skip "click to continue" on the intro screen
+    @Parameter(names = {"--auto-continue"}, description = "Skip the intro click (testing)")
+    public static boolean AutoContinue = false;
+
     // revive: location of the environment service of a self-hosted back-end
     @Parameter(names = {"--env"}, description = "Environment service location (self-hosted back-end)")
     public static String EnvServiceOverride = null;
