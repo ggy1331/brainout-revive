@@ -103,6 +103,17 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        if (self.headers.get("Upgrade") or "").lower() == "websocket":
+            parsed = urlparse(self.path)
+            query = {k: v[-1] for k, v in parse_qs(parsed.query, keep_blank_values=True).items()}
+            log.info("WEBSOCKET %s", parsed.path)
+            self.close_connection = True
+            if parsed.path.rstrip("/") == "/message/listen":
+                from services import message
+                message.serve_listen(self.server.app, self, query)
+            else:
+                self.send_error(404, "no websocket here")
+            return
         self._dispatch("GET")
 
     def do_POST(self):

@@ -136,12 +136,28 @@ def _expire_orders(app):
                 _refund_and_delete(app, o)
 
 
+def _notify(app, o, message_type, extra):
+    """Message to the order owner, as anthill-market does (flags remove_delivered)."""
+    from .message import deliver
+    payload = {
+        "order_id": o["order_id"], "give_item": o["give_item"], "give_amount": o["give_amount"],
+        "give_payload": o["give_payload"], "take_item": o["take_item"], "take_amount": o["take_amount"],
+        "take_payload": o["take_payload"], "payload": o.get("payload") or {},
+    }
+    payload.update(extra)
+    try:
+        deliver(app, "user", o["owner_id"], o["owner_id"], message_type, payload, ["remove_delivered"])
+    except Exception:
+        app.log.exception("market: failed to notify owner %s", o["owner_id"])
+
+
 def _refund_and_delete(app, o):
     left = o["give_amount"] * o["available"]
     if left > 0:
         update_items(app, o["market"], o["owner_id"],
                      [{"name": o["give_item"], "payload": o["give_payload"], "amount": left}])
     app.storage.delete("market_orders", o["order_id"])
+    _notify(app, o, "order_cancelled", {"were_available": o["available"]})
 
 
 def _json(ctx, name, default):
@@ -277,6 +293,8 @@ def handle(ctx, rest):
                 else:
                     app.storage.put("market_orders", oid, o)
                     complete = False
+            _notify(app, o, "order_completed", {"give_amount": o["give_amount"] * n,
+                                                "amount_completed": n, "amount_left": max(0, o["available"])})
             return {"order_id": oid, "fulfilled_completely": complete}
 
         if sub[2] == "delete":

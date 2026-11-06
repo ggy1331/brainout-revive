@@ -60,6 +60,52 @@ class Client:
         return r["account"]
 
 
+class WsClient:
+    """Tiny WebSocket client for /message/listen (masked frames, text only)."""
+
+    def __init__(self, port, token):
+        import base64
+        self.sock = socket.create_connection(("127.0.0.1", port), timeout=5)
+        key = base64.b64encode(os.urandom(16)).decode()
+        self.sock.sendall(("GET /message/listen?access_token=%s HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\n"
+                           "Connection: Upgrade\r\nSec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n"
+                           % (token, key)).encode())
+        head = b""
+        while b"\r\n\r\n" not in head:
+            head += self.sock.recv(1)
+        assert b" 101 " in head.split(b"\r\n")[0], head
+        self.next_id = 0
+
+    def _read(self, n):
+        data = b""
+        while len(data) < n:
+            chunk = self.sock.recv(n - len(data))
+            if not chunk:
+                raise ConnectionError
+            data += chunk
+        return data
+
+    def recv(self):
+        b1, b2 = self._read(2)
+        n = b2 & 0x7F
+        if n == 126:
+            n = int.from_bytes(self._read(2), "big")
+        elif n == 127:
+            n = int.from_bytes(self._read(8), "big")
+        return json.loads(self._read(n).decode())
+
+    def send(self, obj):
+        data = json.dumps(obj).encode()
+        mask = os.urandom(4)
+        n = len(data)
+        head = bytes([0x81]) + (bytes([0x80 | n]) if n < 126 else bytes([0x80 | 126]) + n.to_bytes(2, "big"))
+        self.sock.sendall(head + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(data)))
+
+    def call(self, method, **params):
+        self.next_id += 1
+        self.send({"jsonrpc": "2.0", "method": method, "params": params, "id": self.next_id})
+
+
 def balance(c, name="ru", payload=None):
     st, r = c.call("GET", "/market/markets/freeplay/items")
     assert st == 200, r
@@ -123,8 +169,21 @@ def main():
         st, r = b.call("POST", "/market/markets/freeplay/orders/%s/fulfill" % oid, amount=1)
         assert st == 409, r
         b.call("POST", "/market/markets/freeplay/items", items=[{"name": "ru", "payload": {}, "amount": 400}])
+        ws_a = WsClient(port, a.token)
+        ws_b = WsClient(port, b.token)
+        time.sleep(0.2)
         st, r = b.call("POST", "/market/markets/freeplay/orders/%s/fulfill" % oid, amount=1)
         assert st == 200 and r["fulfilled_completely"] is False, r
+        note = ws_a.recv()
+        assert note["method"] == "message" and note["params"]["message_type"] == "order_completed", note
+        assert note["params"]["payload"]["amount_left"] == 1, note
+        # live message alice -> bob
+        ws_a.call("send_message", recipient_class="user", recipient_key=acc_b, message_type="chat",
+                  message={"text": "privet"}, flags=[])
+        got = ws_b.recv()
+        assert got["params"]["payload"]["text"] == "privet" and got["params"]["sender"] == str(acc_a), got
+        st, r = a.call("GET", "/message/messages")
+        assert any(m["type"] == "order_completed" for m in r["messages"]), r
         assert balance(b) == 100 and balance(b, "instrument", gun) == 1
         assert balance(a) == 350
         st, r = a.call("POST", "/market/markets/freeplay/orders/%s/fulfill" % oid, amount=1)
@@ -148,7 +207,8 @@ def main():
 
         st, r = a.call("GET", "/market/markets/freeplay")
         assert "max-price" in r["settings"], r
-        print("OK: login, profile @func, stash, orders (escrow, fulfill, delete, expiry)")
+        print("OK: login, profile @func, stash, orders (escrow, fulfill, delete, expiry), "
+              "messages (websocket push, market notifications, history)")
     finally:
         proc.terminate()
 

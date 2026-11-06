@@ -22,6 +22,8 @@
 | profile | `/profile/me`, `/profile/<account>`, `/profiles`; слияние и `@func` — код из anthill-common |
 | market | рынок `freeplay`: склад/тайник (предметы = имя + свойства, рубли = `ru`), барахолка (заказы с хранением выставленного, покупка, снятие, возврат по сроку), настройки (`fee`, `max-price`… — можно переопределить в `backend-data/market_settings/freeplay.json`) |
 | game | регионы (`local`), поиск/создание комнат, комната по номеру, список комнат (браузер серверов). **Сам запускает игровые серверы** по запросу (`lobby`, `main`, `freeplay`, `duel`, `zombie`, `custom` — таблица `GAMES` в `services/game.py`), порты с 36600, логи `build/rooms/`. Одна комната на (игру, настройки) переиспользуется, пока процесс жив |
+| message | WebSocket `/message/listen` (JSON-RPC 2.0, свой минимальный WebSocket на stdlib — `services/websocket.py`): живая доставка пользователю (`user`) и группе (`social-group` = клан), `send_message` / `mark_as_read` / `delete_message` / `update_message`; история `/message/messages`, `/message/group/<класс>/<ключ>`. Рынок шлёт владельцу `order_completed` / `order_cancelled` |
+| social | пока только членство в группах для сообщений; API кланов — следующий шаг |
 | event, store, blog | заглушки: пустые списки |
 
 Проверка без игры: `build\pyenv\Scripts\python.exe tools\mock-backend\test_backend.py`.
