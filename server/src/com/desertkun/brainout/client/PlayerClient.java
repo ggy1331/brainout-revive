@@ -754,6 +754,48 @@ public class PlayerClient extends Client
         }
     }
 
+    /**
+     * revive: online profiles (self-hosted back-end).
+     * 1) once per account: if an offline profile with the same nickname exists (profiles/<name>.json,
+     *    the LAN games before the online mode), it is imported with all items and stats;
+     * 2) everything is unlocked like offline (disable with env BRAINOUT_NO_UNLOCK=1).
+     */
+    private void reviveOnlineProfile()
+    {
+        if (profile == null)
+            return;
+
+        String name = profile.getName();
+        String safe = sanitizeOfflineName(name);
+
+        if (safe != null && profile.getStats().get("revive-imported", 0.0f) < 1)
+        {
+            com.badlogic.gdx.files.FileHandle offline = Gdx.files.local("profiles/" + safe + ".json");
+            if (offline.exists())
+            {
+                try
+                {
+                    JSONObject data = new JSONObject(offline.readString("UTF-8"));
+                    data.put("name", name);
+                    setProfile(data);
+                    profile.setStat("revive-imported", 1);
+                    log("Imported offline profile " + offline.path() + " into the online account");
+                }
+                catch (Exception e)
+                {
+                    log("Failed to import offline profile " + offline.path() + ": " + e);
+                }
+            }
+        }
+
+        if (System.getenv("BRAINOUT_NO_UNLOCK") == null)
+        {
+            unlockEverythingOffline();
+        }
+
+        profile.setDirty();
+    }
+
     private void unlockEverythingOffline()
     {
         ClientProfile p = getProfile();
@@ -1929,6 +1971,11 @@ public class PlayerClient extends Client
             BrainOutServer.PostRunnable(() ->
             {
                 profile.setName(msg.name);
+                if (BrainOut.OnlineEnabled())
+                {
+                    // revive: the nickname may have an offline profile to import
+                    reviveOnlineProfile();
+                }
                 profile.setDirty();
 
                 sendUserProfile();
@@ -2362,6 +2409,7 @@ public class PlayerClient extends Client
                     BrainOutServer.PostRunnable(() ->
                     {
                         setProfile(profile);
+                        reviveOnlineProfile();
 
                         onlineInitialized(true);
                     });
@@ -2375,6 +2423,7 @@ public class PlayerClient extends Client
                     BrainOutServer.PostRunnable(() ->
                     {
                         newProfile();
+                        reviveOnlineProfile();
                         onlineInitialized(true);
                     });
 
