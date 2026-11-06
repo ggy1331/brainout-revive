@@ -40,11 +40,11 @@ def update_profile(app, account, fields, path=None, merge=True):
         root = app.storage.get(COLLECTION, account) or {}
         work = copy.deepcopy(root)
         try:
-            result = Profile.merge_data(work, fields, path or None, merge)
+            new_root = Profile.merge_data(work, fields, path or None, merge)
         except ProfileError as e:
             raise HttpError(400, {"error": str(e.message if hasattr(e, "message") else e)})
-        app.storage.put(COLLECTION, account, work)
-    return result
+        app.storage.put(COLLECTION, account, new_root)
+    return _get_path(new_root, path) if path else new_root
 
 
 def _path(rest):

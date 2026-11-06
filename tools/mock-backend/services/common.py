@@ -70,6 +70,12 @@ class Storage:
                 json.dump(value, f, ensure_ascii=False, indent=2)
             os.replace(tmp, p)
 
+    def delete(self, collection, key):
+        p = self._path(collection, key)
+        with self.lock:
+            if os.path.exists(p):
+                os.remove(p)
+
     def all(self, collection):
         d = os.path.join(self.root, collection)
         if not os.path.isdir(d):
