@@ -77,9 +77,7 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
         private int chambered;
         private int chamberedQuality;
         private State state;
-        private SharedValue<Integer> stuckIn;
         private SharedValue<Integer> misfireIn;
-        private SharedValue.SimpleContainer<Integer> ownStuckIn;
         private Weapon.WeaponProperties weaponProperties;
 
         public enum State
@@ -177,8 +175,6 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
             this.weaponData = weaponData;
             this.weaponComponent = weaponComponent;
             this.weaponProperties = properties;
-            this.stuckIn = new SharedValue<>();
-            this.ownStuckIn = new SharedValue.SimpleContainer<>();
             this.dirty = false;
             this.state = State.normal;
             this.slot = slot;
@@ -241,21 +237,8 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
                 }
             }
 
-            if (disableWear())
-            {
-                stuckIn = null;
-            }
-            else
-            {
-                if (weaponData.getOwner() != null)
-                {
-                    originalOwner = BrainOutServer.Controller.getClients().get(weaponData.getOwner().getOwnerId());
-                    if (originalOwner != null)
-                    {
-                        stuckIn.init(weapon.getID(), originalOwner.getStuckContainer());
-                    }
-                }
-            }
+            if (!disableWear() && weaponData.getOwner() != null)
+                originalOwner = BrainOutServer.Controller.getClients().get(weaponData.getOwner().getOwnerId());
 
             if (forceLoad() || (BrainOutServer.Settings.isWeaponAutoLoad() && !loadedFirstTime))
             {
@@ -381,7 +364,6 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
                 state = State.normal;
             }
 
-            fixStuck();
 
             if (weaponProperties.isPerBulletReload() && !full)
             {
@@ -432,7 +414,6 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
                 state = State.normal;
             }
 
-            fixStuck();
 
             if (getChambered() >= weaponProperties.getChambers())
             {
@@ -546,7 +527,6 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
                 state = State.normal;
             }
 
-            fixStuck();
 
             if (weaponProperties.isPerBulletReload() && !full)
             {
@@ -621,71 +601,9 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
             }
         }
 
-        private void fixStuck()
-        {
-            if (stuckIn != null)
-            {
-                if (this.stuckIn.get(0) <= 0)
-                {
-                    this.stuckIn.set(generateStuckIn());
-                }
-            }
-        }
-
-        private int getStuckIn()
-        {
-            if (this.stuckIn == null)
-                return -1;
-
-            return this.stuckIn.get(0);
-        }
-
-        private boolean decStuckIn()
-        {
-            if (stuckIn == null)
-                return false;
-
-            int value = getStuckIn();
-            value--;
-            stuckIn.set(value);
-            return value <= 0;
-        }
-
-        private boolean testStuck()
-        {
-            if (stuckIn == null)
-                return false;
-
-            int stuckIn = getStuckIn();
-            return stuckIn > 0 && decStuckIn();
-        }
-
         public boolean isLoadingRoundsInMagazine()
         {
             return state == State.addRound;
-        }
-
-        private int generateStuckIn()
-        {
-            WeaponDurabilityComponentData wdcd = weaponData.getComponent(WeaponDurabilityComponentData.class);
-
-            if (wdcd != null)
-            {
-                if (wearResistance != null && wearResistance.asFloat() != 0)
-                {
-
-                    float wear = 1.0f / wearResistance.asFloat();
-
-                    int from = (int) (MathUtils.random(Constants.Weapons.StuckCoefficients.BAD_MIN,
-                            Constants.Weapons.StuckCoefficients.BAD_MAX) / wear),
-                            to = (int) (MathUtils.random(Constants.Weapons.StuckCoefficients.GOOD_MIN,
-                                    Constants.Weapons.StuckCoefficients.GOOD_MAX) / wear);
-
-                    return (int) MathUtils.lerp(from, to, wdcd.getDurabilityNormalized());
-                }
-            }
-
-            return 0;
         }
 
         public void update(float dt)
@@ -728,7 +646,7 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
 
                                 if (record != null)
                                 {
-                                    int stuckIn = getStuckIn();
+                                    int stuckIn = disableWear() ? -1 : 1;
 
                                     WeaponInfoMsg msg = new WeaponInfoMsg(
                                         record, getSlot(),
@@ -907,54 +825,36 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
 
                     if (enough)
                     {
-                        if (BrainOutServer.Controller.isFreePlay() && MisfireUtils.TestMisfire(getChamberedQuality(), random))
-                        {
-                            setChambered(0, -1);
-                            state = State.normal;
-                            forceReset = true;
-                            updateWeapon(true);
-                            playEffect(Constants.Effects.STUCK_EFFECT);
-                            return LaunchResult.misfire;
-                        }
-                        else if (testStuck())
-                        {
-                            state = State.stuck;
-                            updateWeapon(true);
-                            return LaunchResult.stuck;
-                        }
-                        else
-                        {
-                            fireTimer += shootTime;
+                        fireTimer += shootTime;
 
-                            if (chambering)
+                        if (chambering)
+                        {
+                            if (getRounds() > 0 && !weaponProperties.isPullRequired())
                             {
-                                if (getRounds() > 0 && !weaponProperties.isPullRequired())
-                                {
-                                    int take = Math.min(weaponProperties.getChambers(), Math.min(bulletsAmount, getRounds()));
-                                    setRounds(getRounds() - take, getRoundsQuality());
-                                    setChambered(take, getRoundsQuality());
-                                }
-                                else
-                                {
-                                    setChambered(0, -1);
-                                }
+                                int take = Math.min(weaponProperties.getChambers(), Math.min(bulletsAmount, getRounds()));
+                                setRounds(getRounds() - take, getRoundsQuality());
+                                setChambered(take, getRoundsQuality());
                             }
                             else
                             {
-                                setRounds(getRounds() - bulletsAmount, getRoundsQuality());
+                                setChambered(0, -1);
                             }
+                        }
+                        else
+                        {
+                            setRounds(getRounds() - bulletsAmount, getRoundsQuality());
+                        }
 
-                            applyWear();
+                        applyWear();
 
-                            if (getRounds() == 0)
-                            {
-                                playEffect(Constants.Effects.LAST_ROUND_EFFECT);
-                            }
+                        if (getRounds() == 0)
+                        {
+                            playEffect(Constants.Effects.LAST_ROUND_EFFECT);
+                        }
 
-                            if (weaponProperties.isPullRequired())
-                            {
-                                state = State.pullRequired;
-                            }
+                        if (weaponProperties.isPullRequired())
+                        {
+                            state = State.pullRequired;
                         }
 
                         updateWeapon(false);
@@ -1081,22 +981,6 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
             }
 
             originalOwner = null;
-        }
-
-        private void onOwnerChanged(ActiveData newOwner)
-        {
-            if (disableWear())
-                return;
-
-            if (newOwner != null && originalOwner != null && stuckIn != null)
-            {
-                boolean sameOwner = isSameOwner();
-                if (!sameOwner)
-                {
-                    ownStuckIn.set(stuckIn.getKey(), originalOwner.getStuckContainer().get(stuckIn.getKey(), 0));
-                }
-                stuckIn.setContainer(sameOwner ? originalOwner.getStuckContainer() : ownStuckIn);
-            }
         }
 
         public int getRounds()
@@ -1420,17 +1304,6 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
     {
         switch (event.getID())
         {
-            case ownerChanged:
-            {
-                OwnerChangedEvent e = ((OwnerChangedEvent) event);
-
-                for (Slot slot : slots.values())
-                {
-                    slot.onOwnerChanged(e.newOwner);
-                }
-
-                return false;
-            }
             case simple:
             {
                 SimpleEvent e = ((SimpleEvent) event);

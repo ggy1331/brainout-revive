@@ -76,6 +76,15 @@ public class KeyboardController extends GameController
         updateMoves();
     }
 
+    private void notifySpawnAction() {
+        if (getControllerMode() != ControllerMode.action) return;
+        com.desertkun.brainout.client.states.CSGame game = BrainOutClient.ClientController.getState(
+            com.desertkun.brainout.client.states.CSGame.class);
+        if (game == null || game.getPlayerData() == null || !game.getPlayerData().hasSpawnProtection()) return;
+        game.getPlayerData().setSpawnProtection(0);
+        BrainOutClient.ClientController.sendTCP(new com.desertkun.brainout.common.msg.client.SpawnActionMsg(game.getPlayerData()));
+    }
+
     private boolean keyPressed(int key)
     {
         if (getControllerMode() == ControllerMode.disabledKeys)
@@ -85,6 +94,7 @@ public class KeyboardController extends GameController
         {
             if (keyCodes[keyDirections.ordinal()] == key)
             {
+                notifySpawnAction();
                 directionKeyPressed(keyDirections);
 
                 return false;
@@ -95,6 +105,7 @@ public class KeyboardController extends GameController
 
         if (action != null)
         {
+            notifySpawnAction();
             switch (action)
             {
                 case sit:
@@ -235,6 +246,8 @@ public class KeyboardController extends GameController
                     sendEvent(SelectSlotEvent.obtain(6));
                     return true;
                 case slotKnifeAlt:
+                    sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.quickMelee));
+                    return true;
                 case slotKnife:
                 {
                     sendEvent(SelectSlotEvent.obtain(3));
@@ -466,7 +479,7 @@ public class KeyboardController extends GameController
     public boolean keyDown(int keyCode)
     {
         KeyProperties.Keys action = BrainOutClient.ClientSett.getControls().getKey(keyCode);
-        if ((action == KeyProperties.Keys.sit || action == KeyProperties.Keys.squat) && !stanceKeysHeld.add(keyCode))
+        if ((action == KeyProperties.Keys.sit || action == KeyProperties.Keys.squat || action == KeyProperties.Keys.slotKnifeAlt) && !stanceKeysHeld.add(keyCode))
             return true;
         return keyPressed(keyCode);
     }
@@ -518,6 +531,7 @@ public class KeyboardController extends GameController
         {
             case action:
             {
+                notifySpawnAction();
                 if (ClientEnvironment.isMac())
                 {
                     if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) && button == Input.Buttons.RIGHT)

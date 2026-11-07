@@ -11,7 +11,7 @@ from .common import HttpError
 from .login import token_from
 
 PORT = 39518
-QUERY = b"BrainOut hub discovery/0.8"
+QUERY = b"BrainOut hub discovery/10"
 
 
 class Hub:
@@ -67,10 +67,12 @@ class Hub:
 
     def info(self):
         with self.lock:
-            if self.match or not self.in_lobby(self.owner):
+            in_match = self.match and self.match.alive()
+            if not in_match and not self.in_lobby(self.owner):
                 return None
-            return {"protocol": "brainout-hub-8", "id": self.uid, "name": self.name,
-                    "players": sum(1 for a in self.seen if self.in_lobby(a)), "port": self.app.hub_port}
+            return {"protocol": "brainout-hub-10", "id": self.uid, "name": self.name,
+                    "match": bool(in_match),
+                    "players": (sum(1 for a in self.members if self.seen.get(a, 0) > time.monotonic() - 12) if in_match else sum(1 for a in self.seen if self.in_lobby(a))), "port": self.app.hub_port}
 
     def dispatch(self, ctx, action):
         if action == "info" and ctx.method == "GET":
@@ -84,11 +86,25 @@ class Hub:
         with self.lock:
             if owner:
                 self.owner = account
+            if action == "leave" and ctx.method == "POST" and not owner:
+                self.members.discard(account)
+                self.pending.pop(account, None)
+                self.seen.pop(account, None)
+                return {"ok": True}
             if action == "maps":
                 return {"maps": self.maps}
             if action == "state":
                 self.seen[account] = time.monotonic()
                 room = self.room(account)
+                if self.match and not self.match.alive():
+                    self.members.clear()
+                    self.pending = {a: t for a, t in self.pending.items() if t != self.match.id}
+                    self.match = None
+                if self.match and room and room.game == "lobby" and account not in self.zones:
+                    active = sum(a == self.owner or self.seen.get(a, 0) > time.monotonic() - 12 for a in self.members)
+                    if account in self.members or active < self.match.capacity:
+                        self.members.add(account)
+                        self.pending[account] = self.match.id
                 target = self.pending.get(account)
                 if room and room.id == target:
                     self.pending.pop(account, None)

@@ -420,7 +420,7 @@ public class Types
             EditorProperty.class, EditorProperty[].class, PropertyKind.class, PropertyValue.class,
             ActiveLayer.class, Weapon.ShootMode.class,
 
-            UpdateGlobalContentIndex.class,
+            UpdateGlobalContentIndex.class, SpawnActionMsg.class,
         });
     }
 }

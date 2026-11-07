@@ -955,6 +955,15 @@ public class CSGame extends ControllerState
     }
 
     @SuppressWarnings("unused")
+    public boolean received(com.desertkun.brainout.common.msg.client.SpawnActionMsg msg) {
+        Gdx.app.postRunnable(() -> {
+            ClientMap map = Map.Get(msg.dimension, ClientMap.class);
+            ActiveData actor = map == null ? null : map.getActiveData(msg.playerId);
+            if (actor instanceof PlayerData) ((PlayerData)actor).setSpawnProtection(0);
+        });
+        return true;
+    }
+
     public boolean received(OtherPlayerStateMsg msg)
     {
         Gdx.app.postRunnable(() ->

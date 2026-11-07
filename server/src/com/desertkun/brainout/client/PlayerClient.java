@@ -1456,6 +1456,20 @@ public class PlayerClient extends Client
 
 
     @SuppressWarnings("unused")
+    public boolean received(final SpawnActionMsg msg) {
+        BrainOutServer.PostRunnable(() -> {
+            if (playerData != null && msg.playerId == playerData.getId() && msg.dimension == playerData.getDimensionId()) endSpawnProtection();
+        });
+        return true;
+    }
+
+    private void endSpawnProtection() {
+        if (playerData != null && playerData.hasSpawnProtection()) {
+            playerData.setSpawnProtection(0);
+            BrainOutServer.Controller.getClients().sendTCP(new SpawnActionMsg(playerData));
+        }
+    }
+
     public boolean received(final PlayerAimMsg msg)
     {
         BrainOutServer.PostRunnable(() ->
@@ -1475,6 +1489,7 @@ public class PlayerClient extends Client
         BrainOutServer.PostRunnable(() -> {
             if (playerController != null)
             {
+                if (playerData != null && playerData.getState() != msg.state) endSpawnProtection();
                 playerController.setState(msg.state);
             }
         });
@@ -1487,6 +1502,7 @@ public class PlayerClient extends Client
     {
         if (playerController != null)
         {
+            if (msg.moveX != 0 || msg.moveY != 0) endSpawnProtection();
             if (!playerController.move(msg.x, msg.y, msg.aimX, msg.aimY, msg.moveX, msg.moveY))
             {
                 UdpMessage res = playerController.generateMoveMessage(false);
@@ -1613,7 +1629,9 @@ public class PlayerClient extends Client
 
         BrainOutServer.PostRunnable(() ->
         {
-            PlayerData pd = hasBeenAliveRecently();
+            PlayerData pd = playerData;
+            if (pd == null || pd.getId() != msg.playerId || !pd.canDealBulletDamage()) return;
+            endSpawnProtection();
 
             if (pd != null)
             {

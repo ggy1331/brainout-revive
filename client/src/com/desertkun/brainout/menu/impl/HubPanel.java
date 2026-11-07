@@ -94,7 +94,7 @@ public final class HubPanel extends Menu {
                             connection.setConnectTimeout(1800); connection.setReadTimeout(1800);
                             try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(connection.getInputStream(),StandardCharsets.UTF_8))) {
                                 JSONObject info = new JSONObject(reader.readLine());
-                                available = "brainout-hub-8".equals(info.optString("protocol")) &&
+                                available = "brainout-hub-10".equals(info.optString("protocol")) &&
                                     !info.optString("id").equals(System.getenv("BRAINOUT_HUB_ID"));
                             }
                         } catch (Exception ignored) {
@@ -126,7 +126,7 @@ public final class HubPanel extends Menu {
             Set<String> instances=new HashSet<>();
             try(DatagramSocket socket=new DatagramSocket()){
                 socket.setBroadcast(true);socket.setSoTimeout(180);
-                byte[] query="BrainOut hub discovery/0.8".getBytes(StandardCharsets.US_ASCII);
+                byte[] query="BrainOut hub discovery/10".getBytes(StandardCharsets.US_ASCII);
                 Set<InetAddress> addresses=new HashSet<>();addresses.add(InetAddress.getByName("255.255.255.255"));
                 for(NetworkInterface ni:Collections.list(NetworkInterface.getNetworkInterfaces())){
                     if(!ni.isUp()||ni.isLoopback())continue;
@@ -139,11 +139,11 @@ public final class HubPanel extends Menu {
                     try{socket.receive(packet);}catch(SocketTimeoutException e){continue;}
                     try {
                         JSONObject host=new JSONObject(new String(packet.getData(),0,packet.getLength(),StandardCharsets.UTF_8));
-                        if(!"brainout-hub-8".equals(host.optString("protocol")) || host.optString("id").equals(System.getenv("BRAINOUT_HUB_ID")))continue;
+                        if(!"brainout-hub-10".equals(host.optString("protocol")) || host.optString("id").equals(System.getenv("BRAINOUT_HUB_ID")))continue;
                         int port=host.getInt("port");if(port<1||port>65535)continue;
                         if(!instances.add(host.getString("id")))continue;
                         String endpoint=packet.getAddress().getHostAddress()+":"+port;
-                        found.put(endpoint,host.optString("name")+"   ·   "+host.optInt("players")+" игр.   ·   "+endpoint);
+                        found.put(endpoint,host.optString("name")+(host.optBoolean("match") ? " · В матче" : " · Хаб")+"   ·   "+host.optInt("players")+" игр.   ·   "+endpoint);
                     }catch(RuntimeException ignored){}
                 }
             }catch(java.io.IOException ignored){}

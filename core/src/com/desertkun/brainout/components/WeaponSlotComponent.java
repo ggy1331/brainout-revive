@@ -89,7 +89,7 @@ public abstract class WeaponSlotComponent extends Component
     protected int shootMode;
     private int burstCounter;
     private int shootSequence;
-    private int launchesToStuck;
+    private boolean wearEnabled;
     private boolean forceReset;
     private int loadMagazineId;
     private float currentAccuracy;
@@ -143,7 +143,7 @@ public abstract class WeaponSlotComponent extends Component
         this.currentAccuracy = 0;
         this.angleOffset = 0;
         this.shootSequence = 0;
-        this.launchesToStuck = -1;
+        this.wearEnabled = false;
         this.record = record;
         this.angles = null;
 
@@ -249,6 +249,7 @@ public abstract class WeaponSlotComponent extends Component
     public void setLaunching(boolean launching)
     {
         this.launching = launching;
+        if (!launching) singleSwing = false;
     }
 
     private boolean isEnabled(boolean checkShootingDisabled)
@@ -277,6 +278,12 @@ public abstract class WeaponSlotComponent extends Component
         PlayerOwnerComponent poc = owner.getComponent(PlayerOwnerComponent.class);
 
         return poc == null || poc.isEnabled();
+    }
+
+    private boolean singleSwing;
+    public void beginSingleSwing() {
+        beginLaunching();
+        singleSwing = isLaunching();
     }
 
     public void beginLaunching()
@@ -928,6 +935,7 @@ public abstract class WeaponSlotComponent extends Component
 
         currentAccuracy = MathUtils.clamp(currentAccuracy + calculateLaunchAdd(), 0f, 1f);
 
+        if (singleSwing) setLaunching(false);
         onLaunch(launchData, bullets, MathUtils.random(0, 100000));
     }
 
@@ -1085,50 +1093,40 @@ public abstract class WeaponSlotComponent extends Component
                 onBeforeLaunch();
             }
 
-            if (applyWear())
+            applyWear();
+            if (weaponProperties.hasChambering())
             {
-                if (weaponProperties.hasChambering())
-                {
-                    bullets = Math.max(bullets, getChambered());
-                    setChambered(0, -1);
-                }
-                else
-                {
-                    setRounds(getRounds() - bullets, getRoundsQuality());
-                }
-
-                WeaponAnimationComponentData wac = data.getComponent(WeaponAnimationComponentData.class);
-
-                if (wac != null)
-                {
-                    launch(wac.getLaunchPointData(), bullets);
-                    setState(State.launched);
-                }
-
-                if (weaponProperties.hasChambering() && getRounds() > 0 && !isReloading())
-                {
-                    if (weaponProperties.isPullRequired())
-                    {
-                        setState(State.fetchWait);
-                    }
-                    else
-                    {
-                        int take = Math.min(getRounds(), weaponProperties.getChambers());
-                        setRounds(getRounds() - take, getRoundsQuality());
-                        setChambered(take, getChamberedQuality());
-                    }
-                }
-
-                return true;
+                bullets = Math.max(bullets, getChambered());
+                setChambered(0, -1);
             }
             else
             {
-                stuck();
-
-                setState(State.stuckIdle);
-
-                return false;
+                setRounds(getRounds() - bullets, getRoundsQuality());
             }
+
+            WeaponAnimationComponentData wac = data.getComponent(WeaponAnimationComponentData.class);
+
+            if (wac != null)
+            {
+                launch(wac.getLaunchPointData(), bullets);
+                setState(State.launched);
+            }
+
+            if (weaponProperties.hasChambering() && getRounds() > 0 && !isReloading())
+            {
+                if (weaponProperties.isPullRequired())
+                {
+                    setState(State.fetchWait);
+                }
+                else
+                {
+                    int take = Math.min(getRounds(), weaponProperties.getChambers());
+                    setRounds(getRounds() - take, getRoundsQuality());
+                    setChambered(take, getChamberedQuality());
+                }
+            }
+
+            return true;
 
         }
         else
@@ -1400,35 +1398,12 @@ public abstract class WeaponSlotComponent extends Component
         return angleOffset;
     }
 
-    private boolean applyWear()
+    private void applyWear()
     {
-        if (launchesToStuck < 0)
-        {
-            // not initialized yet (server decides), so wait
-            return true;
-        }
-
-        WeaponDurabilityComponentData wdcd = data.getComponent(WeaponDurabilityComponentData.class);
-
-        if (wdcd != null)
-        {
-            if (wearResistance != null && wearResistance.asFloat() != 0)
-            {
-                float wear = 1.0f / wearResistance.asFloat();
-                wdcd.decreaseDurability(wear);
-
-                if (launchesToStuck > 0)
-                {
-                    launchesToStuck--;
-                    return true;
-                } else
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        if (!wearEnabled) return;
+        WeaponDurabilityComponentData durability = data.getComponent(WeaponDurabilityComponentData.class);
+        if (durability != null && wearResistance != null && wearResistance.asFloat() > 0)
+            durability.decreaseDurability(1.0f / wearResistance.asFloat());
     }
 
     private boolean testMisfire(int random)
@@ -1582,7 +1557,7 @@ public abstract class WeaponSlotComponent extends Component
         }
 
         setChambered(chambered, chamberedQuality);
-        this.launchesToStuck = stuckIn;
+        this.wearEnabled = stuckIn >= 0;
         if (forceReset)
         {
             this.forceReset = true;

@@ -1370,7 +1370,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                 UIAnimation preview = new UIAnimation(BrainOutClient.ContentMgr.get("anim-actor", Animation.class));
                 preview.getSkeleton().setSkin(((PlayerSkinSlotItem)item).getSkin().getData());
                 preview.getSkeleton().setSlotsToSetupPose();
-                preview.getSkeleton().setScale(12f, 12f);
+                preview.getSkeleton().setScale(34f, 34f);
                 preview.getState().setAnimation(0, "stay", true);
                 Container<UIAnimation> frame = new Container<>(preview);
                 frame.fill();
@@ -1872,9 +1872,10 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
 
             corners.init();
 
-            items.add(slotItemContainer).size(204, 64).pad(2);
+            boolean costumes = "slot-player-skin".equals(slot.getID());
+            items.add(slotItemContainer).size(costumes ? 118 : 204, costumes ? 148 : 64).pad(2);
 
-            if (++i >= 3)
+            if (++i >= (costumes ? 5 : 3))
             {
                 i = 0;
                 items.row();

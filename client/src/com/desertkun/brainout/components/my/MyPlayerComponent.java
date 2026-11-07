@@ -258,6 +258,9 @@ public class MyPlayerComponent extends PlayerControllerComponentData
                         break;
                     }
 
+                    case quickMelee:
+                        quickMelee();
+                        return true;
                     case beginSit:
                     {
                         setPositionMode(state == Player.State.sit ? PositionMode.normal : PositionMode.sit);
@@ -431,6 +434,48 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         }
 
         return activateClosestActive();
+    }
+
+    private ConsumableRecord quickReturn, quickKnife;
+    private String returnMode;
+    private WeaponSlotComponent swingSlot;
+    private float swingTime;
+
+    private void quickMelee() {
+        if (swingSlot != null || getPlayerData().isWounded() || !isEnabled()) return;
+        PlayerOwnerComponent owner = getPlayerData().getComponent(PlayerOwnerComponent.class);
+        if (owner == null) return;
+        ConsumableRecord previous = owner.getCurrentInstrumentRecord();
+        Slot melee = BrainOutClient.ContentMgr.get("slot-melee", Slot.class);
+        ConsumableRecord knife = owner.getNextInstrumentForSlot(melee, null);
+        if (previous == null || knife == null) return;
+        if (previous != knife) selectRecord(knife, Constants.Properties.SLOT_PRIMARY);
+        if (owner.getCurrentInstrumentRecord() != knife) return;
+        MyWeaponComponent weapon = owner.getCurrentInstrument().getComponent(MyWeaponComponent.class);
+        if (weapon == null || weapon.getCurrentSlot() == null) {
+            if (previous != knife) selectRecord(previous, currentMode);
+            return;
+        }
+        quickReturn = previous;
+        returnMode = currentMode;
+        quickKnife = knife;
+        swingTime = 0;
+        swingSlot = weapon.getCurrentSlot();
+        swingSlot.beginSingleSwing();
+    }
+
+    private void updateQuickMelee(float dt) {
+        if (swingSlot == null) return;
+        swingTime += dt;
+        PlayerOwnerComponent owner = getPlayerData().getComponent(PlayerOwnerComponent.class);
+        boolean stillEquipped = owner != null && owner.getCurrentInstrumentRecord() == quickKnife;
+        if (stillEquipped && swingTime < 2.5f && (swingTime < 0.22f || swingSlot.isLaunching())) return;
+        swingSlot.setLaunching(false);
+        swingSlot = null;
+        if (stillEquipped && quickReturn != quickKnife &&
+            owner.getConsumableContainer().get(quickReturn.getId()) == quickReturn)
+            selectRecord(quickReturn, returnMode);
+        quickReturn = quickKnife = null;
     }
 
     private boolean selectSlot(int slot, String mode)
@@ -922,6 +967,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         if (!isEnabled())
             return;
 
+        updateQuickMelee(dt);
         if (hitTimer > 0)
         {
             hitTimer -= dt;
@@ -1087,6 +1133,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
 
         Content content = cnt.getItem().getContent();
 
+        if ("instrument-binoculars".equals(content.getID())) return false;
         if (!(content instanceof ConsumableContent))
         {
             return false;

@@ -50,6 +50,18 @@ public class PlayerData extends PointData
         this.tmp = new PointLaunchData(0, 0, 0, dimension);
     }
 
+    private final com.desertkun.brainout.utils.TimeoutFlag spawnProtection =
+        new com.desertkun.brainout.utils.TimeoutFlag(0);
+
+    public boolean hasSpawnProtection() { return spawnProtection.value() > 0; }
+    public void setSpawnProtection(float seconds) { spawnProtection.setValue(seconds); }
+
+    public boolean canDealBulletDamage() {
+        com.desertkun.brainout.data.components.HealthComponentData health =
+            getComponent(com.desertkun.brainout.data.components.HealthComponentData.class);
+        return isAlive() && !isWounded() && (health == null || health.getHealth() > 0);
+    }
+
     public boolean isWounded()
     {
         return wounded;
@@ -117,6 +129,7 @@ public class PlayerData extends PointData
     {
         super.write(json);
 
+        json.writeValue("spawnProtection", spawnProtection.value());
         json.writeValue("sst", state.toString());
         json.writeValue("spd", speedCoef);
 
@@ -174,6 +187,7 @@ public class PlayerData extends PointData
     @Override
     public void read(Json json, JsonValue jsonData)
     {
+        if (jsonData.has("spawnProtection")) setSpawnProtection(jsonData.getFloat("spawnProtection"));
         // read sst before because that might affect position and super.read will perfectly adjust that
         if (jsonData.has("sst"))
         {

@@ -983,7 +983,7 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
             return null;
 
         ConsumableRecord record = poc.getConsumableContainer().get(recordId);
-        if (record == null || record.getAmount() < amount)
+        if (record == null || "instrument-binoculars".equals(record.getItem().getContent().getID()) || record.getAmount() < amount)
             return null;
 
         {
@@ -1680,6 +1680,7 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
 
     public boolean putRecordIntoItem(ItemData itemData, ConsumableRecord record, int amount)
     {
+        if ("instrument-binoculars".equals(record.getItem().getContent().getID())) return false;
         if (isWounded())
             return false;
 

@@ -172,6 +172,21 @@ public class PlayerAnimationComponentData extends AnimationComponentData<PlayerA
     }
 
     @Override
+    public void render(com.badlogic.gdx.graphics.g2d.Batch batch,
+                       com.desertkun.brainout.data.interfaces.RenderContext context) {
+        Skeleton skeleton = getSkeleton();
+        if (skeleton == null || !playerData.hasSpawnProtection()) {
+            super.render(batch, context);
+            return;
+        }
+        com.badlogic.gdx.graphics.Color tint = skeleton.getColor();
+        float r = tint.r, g = tint.g, b = tint.b, a = tint.a;
+        tint.set(0.35f, 0.88f, 1f, 0.72f + 0.20f * (float)Math.sin(System.nanoTime() / 90000000.0));
+        super.render(batch, context);
+        tint.set(r, g, b, a);
+    }
+
+    @Override
     protected void updateSkin(AnimationComponent animation, Skeleton skeleton)
     {
         PlayerData playerData = ((PlayerData) getComponentObject());

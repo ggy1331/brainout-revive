@@ -60,7 +60,7 @@ public class ConsumableInventoryPanel extends InventoryPanel
                 Slot slot = ici.getInstrumentData().getInstrument().getSlot();
                 if (slot != null)
                 {
-                    if (slot.getID().equals("slot-melee"))
+                    if (slot.getID().equals("slot-melee") || slot.getID().equals("slot-binoculars"))
                         continue;
                 }
             }

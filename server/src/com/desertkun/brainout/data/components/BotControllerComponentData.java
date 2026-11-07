@@ -280,8 +280,17 @@ public class BotControllerComponentData extends ServerPlayerControllerComponentD
         slot.doFetch();
     }
 
+    private void cancelBotProtection() {
+        PlayerData player = getPlayerData();
+        if (player != null && player.hasSpawnProtection()) {
+            player.setSpawnProtection(0);
+            BrainOutServer.Controller.getClients().sendTCP(new com.desertkun.brainout.common.msg.client.SpawnActionMsg(player));
+        }
+    }
+
     public void openFire(boolean fire)
     {
+        if (fire) cancelBotProtection();
         if (this.firing == fire)
             return;
 
@@ -739,6 +748,7 @@ public class BotControllerComponentData extends ServerPlayerControllerComponentD
                     }
                 }
 
+                if (moveDirectionX != 0 || moveDirectionY != 0) cancelBotProtection();
                 setMoveDirection(moveDirectionX, moveDirectionY);
             }
             else
