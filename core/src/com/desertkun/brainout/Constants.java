@@ -174,7 +174,8 @@ public class Constants
             "slot-special",
             "slot-melee",
             "slot-binoculars",
-            "slot-flashlight"
+            "slot-flashlight",
+            "slot-special-extra"
         });
     }
 

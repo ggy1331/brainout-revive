@@ -1054,6 +1054,7 @@ public class ClientController extends Controller
     @Override
     public void update(float dt)
     {
+        com.desertkun.brainout.menu.impl.HomeHub.tick();
         super.update(dt);
 
         if (state != null)

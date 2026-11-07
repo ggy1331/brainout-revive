@@ -437,21 +437,6 @@ public class Weapon extends Instrument
 
         noWeaponStats = jsonData.getBoolean("noWeaponStats", false);
 
-        if (jsonData.has("skills"))
-        {
-            for (JsonValue value : jsonData.get("skills"))
-            {
-                Skill skill = new Skill();
-                skill.read(json, value);
-                this.skills.add(skill);
-            }
-        }
-        else
-        {
-            skills.add(new Skill(25));
-            skills.add(new Skill(50));
-            skills.add(new Skill(100));
-        }
     }
 
     @Override

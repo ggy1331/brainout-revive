@@ -195,20 +195,22 @@ public class ServerPSGame extends PlayStateGame
         BrainOut.Timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                for (ObjectMap.Entry<Integer, Client> entry : C.getClients())
-                {
-                    Client client = entry.value;
-
-                    if (client instanceof PlayerClient)
+                BrainOutServer.PostRunnable(() -> {
+                    if (C.getPlayState() != ServerPSGame.this) return;
+                    for (Client client : C.getClients().values().toArray())
                     {
-                        PlayerClient playerClient = ((PlayerClient) client);
-                        // Wait 1 second to let player's state to change
-                        if (!playerClient.isInitialized()) return;
 
-                        playerClient.setModePayload(
-                            ((ServerRealization) getMode().getRealization()).newPlayerPayload(playerClient));
+                        if (client instanceof PlayerClient)
+                        {
+                            PlayerClient playerClient = ((PlayerClient) client);
+                            // Wait 1 second to let player's state to change
+                            if (!playerClient.isInitialized()) continue;
+
+                            playerClient.setModePayload(
+                                ((ServerRealization) getMode().getRealization()).newPlayerPayload(playerClient));
+                        }
                     }
-                }
+                });
             }
         }, TimeUnit.SECONDS.toMillis(1));
 

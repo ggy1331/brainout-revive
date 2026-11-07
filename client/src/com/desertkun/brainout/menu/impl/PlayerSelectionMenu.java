@@ -431,14 +431,14 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
         primaryContent.add(mainContent).padTop(8).width(729).expand().fill().colspan(3).row();
 
         primaryContent.add(customContent).bottom().left();
-        primaryContent.add(layoutContent).padRight(-8).padBottom(8).expandX().right().bottom();
+        primaryContent.add(layoutContent).padRight(4).padBottom(8).expandX().right().bottom();
         primaryContent.add(slotsContent).fillX().row();
     }
 
     protected void setUpRightPanel(Table rightContent)
     {
         rightContent.add(eventsContent).padRight(8).padTop(8).width(192).expandX().fillX().right().row();
-        rightContent.add(playerClanContent).padRight(8).width(192).expand().fillX().right().top().row();
+
     }
 
     protected void updateInfo()
@@ -452,157 +452,6 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
     private void updatePlayerClanInfo()
     {
         playerClanContent.clear();
-
-        UserProfile userProfile = BrainOutClient.ClientController.getUserProfile();
-
-        OwnableContent clanPass = BrainOutClient.ContentMgr.get(
-            ClientConstants.Other.CLAN_PASS,
-            OwnableContent.class);
-
-        if (clanPass == null)
-            return;
-
-        if (clanPass.getLockItem() != null && !clanPass.getLockItem().isUnlocked(userProfile))
-        {
-            return;
-        }
-
-        Label skinTitle = new Label(L.get("MENU_CLAN"),
-                BrainOutClient.Skin, "title-small");
-        skinTitle.setAlignment(Align.center);
-        playerClanContent.add(new BorderActor(skinTitle, "form-gray")).size(192, 32).expandX().fillX().row();
-
-        Button button = new Button(BrainOutClient.Skin, "button-notext");
-        button.setBackground("form-default");
-
-        Image avatarImage;
-
-        if (userProfile.isParticipatingClan())
-        {
-            avatarImage = new Image();
-
-            Avatars.Get(userProfile.getClanAvatar(),
-                (has, avatar) ->
-            {
-                if (has)
-                {
-                    avatarImage.setDrawable(new TextureRegionDrawable(new TextureRegion(avatar)));
-                }
-                else
-                {
-                    avatarImage.setDrawable(BrainOutClient.Skin, "default-avatar");
-                }
-            });
-        }
-        else
-        {
-            avatarImage = new Image(BrainOutClient.Skin, "default-avatar");
-        }
-
-        button.add(avatarImage).size(60, 60).expandX().center();
-
-        Clan myClan = BrainOutClient.SocialController.getMyClan();
-
-        if (myClan != null)
-        {
-            if (myClan.isInConflict())
-            {
-                avatarImage.addAction(Actions.repeat(RepeatAction.FOREVER, Actions.sequence(
-                    Actions.delay(0.25f),
-                    Actions.moveBy(0, 8, 0.25f, Interpolation.circleOut),
-                    Actions.moveBy(0, -8, 1.0f, Interpolation.bounceOut)
-                )));
-
-                {
-                    Image vs = new Image(BrainOutClient.Skin, "icon-vs");
-                    button.add(vs).size(24, 24).pad(4);
-                }
-
-                SocialService socialService = SocialService.Get();
-                LoginService loginService = LoginService.Get();
-
-                if (socialService != null && loginService != null)
-                {
-                    socialService.getGroup(loginService.getCurrentAccessToken(), myClan.getConflictWith(),
-                    (service, request, result, group) -> Gdx.app.postRunnable(() ->
-                    {
-                        if (result != Request.Result.success)
-                            return;
-
-                        Gdx.app.postRunnable(() ->
-                        {
-                            String avatar = group.getProfile().optString("avatar");
-
-                            if (avatar == null || avatar.isEmpty())
-                            {
-                                Image versus = new Image(BrainOutClient.Skin, "default-avatar");
-
-                                versus.addAction(Actions.sequence(
-                                        Actions.delay(0.25f),
-                                        Actions.repeat(RepeatAction.FOREVER, Actions.sequence(
-                                                Actions.delay(0.25f),
-                                                Actions.moveBy(0, 8, 0.25f, Interpolation.circleOut),
-                                                Actions.moveBy(0, -8, 1.0f, Interpolation.bounceOut)
-                                        ))
-                                ));
-
-                                button.add(versus).size(60, 60).expandX().center();
-
-                                return;
-                            }
-
-                            Avatars.Get(avatar, (has, avatar1) ->
-                            {
-                                Image versus;
-
-                                if (has)
-                                {
-                                    versus = new Image(new TextureRegionDrawable(
-                                        new TextureRegion(avatar1)));
-                                }
-                                else
-                                {
-                                    versus = new Image(BrainOutClient.Skin, "default-avatar");
-                                }
-
-                                versus.addAction(Actions.sequence(
-                                    Actions.delay(0.25f),
-                                    Actions.repeat(RepeatAction.FOREVER, Actions.sequence(
-                                            Actions.delay(0.25f),
-                                            Actions.moveBy(0, 8, 0.25f, Interpolation.circleOut),
-                                            Actions.moveBy(0, -8, 1.0f, Interpolation.bounceOut)
-                                    ))
-                                ));
-
-                                button.add(versus).size(60, 60).expandX().center();
-                            });
-                        });
-                    }));
-                }
-            }
-        }
-
-        button.addListener(new ClickOverListener()
-        {
-            @Override
-            public void clicked(InputEvent event, float x, float y)
-            {
-                Menu.playSound(MenuSound.select);
-
-                notReady();
-
-                if (userProfile.isParticipatingClan())
-                {
-                    pushMenu(new ClanMenu(userProfile.getClanId()));
-                }
-                else
-                {
-                    pushMenu(new BrowseClansMenu());
-                }
-            }
-        });
-
-        playerClanContent.add(button).expandX().fillX().padBottom(4).height(64).row();
     }
 
     private void checkRestrictions()
@@ -767,23 +616,23 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
 
         UserProfile userProfile = BrainOutClient.ClientController.getUserProfile();
 
-        Array<Layout> layouts =
-            BrainOutClient.ContentMgr.queryContentTpl(Layout.class, check -> !check.isLocked(userProfile));
+        int count = userProfile.getLayoutCount();
+        layoutContent.add(HubPanel.button("+", () -> {
+            Layout next = Layout.resolve("layout-" + (userProfile.getLayoutCount() + 1));
+            userProfile.setLayout(next);
+            selectLayout(next);
+        })).size(36, 28).padBottom(3).row();
 
-        if (layouts.size < 2)
-            return;
-
-        layouts.sort((o1, o2) -> o2.getOrder() - o1.getOrder());
-
+        Table rows = new Table();
+        ScrollPane scroll = new ScrollPane(rows, BrainOutClient.Skin, "scroll-default");
+        scroll.setScrollingDisabled(true, false);
+        scroll.setFadeScrollBars(false);
+        layoutContent.add(scroll).width(46).height(Math.min(4, count) * 30);
         ButtonGroup<TextButton> layoutsButtons = new ButtonGroup<>();
-        layoutsButtons.setMinCheckCount(1);
-        layoutsButtons.setMaxCheckCount(1);
-
-        for (Layout layout : layouts)
+        for (int i = 1; i <= count; i++)
         {
-            final Layout l_ = layout;
-
-            String title = layout.getKey().isEmpty() ? "1" : layout.getKey();
+            final Layout l_ = Layout.resolve("layout-" + i);
+            String title = Integer.toString(i);
             TextButton btn = new TextButton(title, BrainOutClient.Skin, "button-checkable");
 
             btn.addListener(new ClickOverListener()
@@ -798,20 +647,22 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             });
 
             layoutsButtons.add(btn);
-            layoutContent.add(btn).size(32, 32).row();
+            rows.add(btn).size(36, 30).row();
 
-            if (selectedLayout == layout)
+            if (selectedLayout != null && selectedLayout.getID().equals(l_.getID()))
             {
                 btn.setChecked(true);
             }
         }
+        scroll.layout();
+        if (selectedLayout != null) scroll.setScrollY(Math.max(0, selectedLayout.getOrder() - 2) * 30f);
     }
 
     private void selectLayout(Layout layout)
     {
         UserProfile userProfile = BrainOutClient.ClientController.getUserProfile();
 
-        if (layout.isLocked(userProfile))
+        if (layout == null || layout.getOrder() >= userProfile.getLayoutCount())
             return;
 
         userProfile.setLayout(layout);
@@ -1514,7 +1365,21 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             corners.setFillParent(true);
             slotItemContainer.addActor(corners);
 
-            if (item.hasComponent(IconComponent.class))
+            if (item instanceof PlayerSkinSlotItem && ((PlayerSkinSlotItem)item).getSkin() != null)
+            {
+                UIAnimation preview = new UIAnimation(BrainOutClient.ContentMgr.get("anim-actor", Animation.class));
+                preview.getSkeleton().setSkin(((PlayerSkinSlotItem)item).getSkin().getData());
+                preview.getSkeleton().setSlotsToSetupPose();
+                preview.getSkeleton().setScale(12f, 12f);
+                preview.getState().setAnimation(0, "stay", true);
+                Container<UIAnimation> frame = new Container<>(preview);
+                frame.fill();
+                frame.setTransform(true);
+                frame.setFillParent(true);
+                frame.setTouchable(Touchable.disabled);
+                slotItemContainer.addActor(frame);
+            }
+            else if (item.hasComponent(IconComponent.class))
             {
                 TextureAtlas.AtlasRegion icon = item.getComponent(IconComponent.class).getIcon();
 
@@ -1713,46 +1578,13 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
 
                     if (instrument != null)
                     {
-                        if (BrainOut.R.instanceOf(Weapon.class, instrument))
+                        DurabilityComponent durability = instrument.getComponentFrom(DurabilityComponent.class);
+                        if (durability != null && durability.isEnoughtToFix(durability.getDurability(userProfile)))
                         {
-                            Weapon weapon = ((Weapon) instrument);
-
-                            if (weapon.getSkills().size > 0)
-                            {
-                                String stat = weapon.getSkillStat();
-
-                                int skillLevel = BrainOutClient.ClientController.getUserProfile().getInt(stat, 0);
-
-                                SkillsButton skillButton = new SkillsButton(skillLevel,
-                                        weapon, islot.getTitle().get(), this);
-
-                                corners.setCorner(CornerButtons.Corner.topRight, skillButton, 24, 24);
-                            }
-                        }
-
-                        DurabilityComponent wdc = instrument.getComponentFrom(DurabilityComponent.class);
-
-                        if (wdc != null)
-                        {
-                            float durability = wdc.getDurability(BrainOutClient.ClientController.getUserProfile());
-
-                            if (wdc.isEnoughtToFix(durability))
-                            {
-                                GearsButton fixButton = new GearsButton(instrument, islot.getTitle().get(), this);
-
-                                corners.setCorner(CornerButtons.Corner.bottomRight, fixButton, 24, 24);
-
-                                if (repaired == instrument)
-                                {
-                                    repaired = null;
-
-                                    fixButton.setColor(1, 1, 1, 0);
-                                    fixButton.addAction(Actions.sequence(
-                                            Actions.delay(0.25f),
-                                            Actions.color(Color.WHITE)
-                                    ));
-                                }
-                            }
+                            TextButton repair = HubPanel.button("+", () -> BrainOutClient.ClientController.sendTCP(
+                                new ContentActionMsg(instrument, ContentActionMsg.Action.repair)));
+                            Tooltip.RegisterToolTip(repair, "Починить", this);
+                            corners.setCorner(CornerButtons.Corner.bottomRight, repair, 24, 24);
                         }
                     }
                 }
@@ -2070,58 +1902,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
 
     private boolean lockedItemClicked(SlotItem item)
     {
-        if (!item.hasTag("unique"))
-            return false;
-
-        ContentCard contentCard = BrainOutClient.ContentMgr.queryOneContentTpl(ContentCard.class,
-            check ->
-        {
-            ContentCardComponent cmp = check.getComponent(ContentCardComponent.class);
-
-            if (cmp == null)
-                return false;
-
-            return cmp.getOwnableContent() == item;
-        });
-
-        if (contentCard == null)
-        {
-            return false;
-        }
-
-        Case case_ = BrainOutClient.ContentMgr.queryOneContentTpl(Case.class,
-            check ->
-        {
-            for (Case.Card card : check.getCards())
-            {
-                if (card.getGroups().contains(contentCard.getGroup(), true))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        });
-
-        if (case_ == null)
-        {
-            return false;
-        }
-
-        if (BrainOutClient.Env.storeEnabled())
-        {
-            pushMenu(new StoreMenu(case_));
-        } else
-        {
-            if (Gdx.app.getNet().openURI("https://brainout.org/store"))
-            {
-                Gdx.app.postRunnable(() ->
-                    BrainOutClient.getInstance().topState().pushMenu(
-                        new AlertPopup(L.get("MENU_BROWSER_TAB"))));
-            }
-        }
-
-        return true;
+        return false;
     }
 
     private void selectItem(Slot slot, SlotItem.Selection selection)
@@ -2163,18 +1944,17 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                 case tech:
                 {
                     this.userPanel = BrainOutClient.Env.createTechUserPanel();
-                    this.userPanel.setOpenExchange(this::openExchange);
                     break;
                 }
                 case standard:
                 default:
                 {
                     this.userPanel = BrainOutClient.Env.createUserPanel(true);
-                    this.userPanel.setOpenExchange(this::openExchange);
                     break;
                 }
             }
 
+            userPanel.setOpenExchange(this::openExchange);
             playerInfo.add(userPanel).expandX().fillX().row();
 
         }
@@ -2756,7 +2536,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
 
                     break;
                 }
-                case slotKnife:
+                case slotSpecialTwo:
                 {
                     selectLayout(BrainOutClient.ContentMgr.get("layout-4", Layout.class));
 

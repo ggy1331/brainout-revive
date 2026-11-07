@@ -21,6 +21,8 @@ import com.desertkun.brainout.utils.RoomIDEncryption;
 
 public class ExitMenu extends Menu
 {
+    @Override public Object navigationKey() { return ExitMenu.class; }
+
     private final boolean enableActiveButtons;
     private Table data;
     private boolean onTop;
@@ -55,7 +57,17 @@ public class ExitMenu extends Menu
         {
             addButton(L.get("MENU_ENTER_PROMO_BTN"), this::promo);
         }
-        addButton(L.get("MENU_EXIT"), this::exit);
+        if (HomeHub.ENDPOINT != null)
+        {
+            if (BrainOutClient.ClientController.isLobby()) {
+                addButton("Свободная Зона",HomeHub::zone);
+                addButton("Подключение",() -> openHubPanel(true));
+                if (HomeHub.OWNER) addButton("Запуск матча",() -> openHubPanel(false));
+                else addButton("В свой хаб",()->HomeHub.changeHost("home"));
+                addButton("Закрыть игру",()->Gdx.app.exit());
+            } else addButton(BrainOutClient.ClientController.isFreePlay() ? "Выход в свой хаб" : "Вернуться в меню",HomeHub::back);
+        }
+        else addButton(L.get("MENU_EXIT"), this::exit);
 
         String currentRoom = BrainOutClient.Env.getCurrentRoom();
 
@@ -161,6 +173,12 @@ public class ExitMenu extends Menu
     {
         onTop = false;
         pop();
+    }
+
+    private void openHubPanel(boolean browser)
+    {
+        onTop = false;
+        popMeAndPushMenu(new HubPanel(browser));
     }
 
     private void settings()

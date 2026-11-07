@@ -180,17 +180,6 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
 
         final UserProfile userProfile = BrainOutClient.ClientController.getUserProfile();
 
-        int skillLevel = userProfile.getInt(info.instrument.getSkillStat(), 0);
-
-        Image weaponSkill = new Image(BrainOutClient.getRegion("weapon-skill-" + skillLevel + "-big"));
-        weaponSkill.setTouchable(Touchable.disabled);
-        weaponSkill.setScaling(Scaling.none);
-        weaponSkill.setFillParent(true);
-        weaponSkill.setAlign(Align.right | Align.top);
-        weaponSkill.setPosition(-32, 8);
-
-        instrument.addActor(weaponSkill);
-
         int kills = userProfile.getStats().get(info.instrument.getKillsStat(), 0.0f).intValue();
 
         if (kills > 0)

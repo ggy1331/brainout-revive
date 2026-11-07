@@ -104,16 +104,7 @@ public class RewardPlugin extends Plugin implements EventReceiver
 
     private void reward(PlayerClient client)
     {
-        if (getContent() instanceof Case)
-        {
-            Case asCase = ((Case) getContent());
-
-            if (!asCase.applicable(client.getProfile()))
-            {
-                return;
-            }
-        }
-
+        if (getContent() instanceof Case) return;
         client.gotOwnable(getContent(), "reward-plugin", ClientProfile.OnwAction.owned, 1);
 
         BrainOutServer.Controller.getClients().sendTCP(

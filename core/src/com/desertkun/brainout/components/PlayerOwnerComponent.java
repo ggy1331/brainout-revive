@@ -328,12 +328,38 @@ public class PlayerOwnerComponent extends Component implements Json.Serializable
 
                 InstrumentConsumableItem ici = ((InstrumentConsumableItem) record.getItem());
 
+                if (ici.getInstrumentData().secondSpecial) return "slot-special-extra".equals(slot.getID());
                 if (((Instrument) ici.getContent()).getSlot() != slot)
                     return false;
 
                 return true;
             }
         );
+
+        // Zone pickups have no loadout assignment. Split them by stable record
+        // ID, leaving additional items accessible by cycling the second key.
+        if ("slot-special-extra".equals(slot.getID()) && records.size == 0)
+        {
+            records = getConsumableContainer().queryRecords(record -> {
+                if (!(record.getItem() instanceof InstrumentConsumableItem)) return false;
+                InstrumentConsumableItem item = (InstrumentConsumableItem)record.getItem();
+                Slot original = ((Instrument)item.getContent()).getSlot();
+                return original != null && "slot-special".equals(original.getID());
+            });
+            records.sort(java.util.Comparator.comparingInt(ConsumableRecord::getId));
+            if (records.size > 0) records.removeIndex(0);
+        }
+        if ("slot-special".equals(slot.getID()) && records.size > 1)
+        {
+            boolean otherSlotEquipped = getConsumableContainer().queryRecords(record ->
+                record.getItem() instanceof InstrumentConsumableItem &&
+                ((InstrumentConsumableItem)record.getItem()).getInstrumentData().secondSpecial).size > 0;
+            if (!otherSlotEquipped)
+            {
+                records.sort(java.util.Comparator.comparingInt(ConsumableRecord::getId));
+                return records.first();
+            }
+        }
 
         if (records.size == 0)
             return null;

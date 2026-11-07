@@ -71,6 +71,8 @@ import org.json.JSONObject;
 
 public class ExchangeInventoryMenu extends Menu implements EventReceiver
 {
+    @Override public Object navigationKey() { return ExchangeInventoryMenu.class; }
+
     protected final PlayerData playerData;
     protected ActiveData placeInto;
     protected final ConsumableContainer inventory;

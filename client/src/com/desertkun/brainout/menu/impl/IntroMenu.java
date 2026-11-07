@@ -336,7 +336,7 @@ public class IntroMenu extends Menu implements EventReceiver
             pop();
             autoContinue.run();
         }
-        else if (BrainOutClient.AutoContinue)
+        else if (HomeHub.ENDPOINT != null || BrainOutClient.AutoContinue)
         {
             // revive: --auto-continue skips "click to continue" (testing the online flow unattended)
             BrainOutClient.AutoContinue = false;

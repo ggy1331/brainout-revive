@@ -36,6 +36,8 @@ import com.desertkun.brainout.playstate.PlayStateGame;
 
 public class PlayerListMenu extends Menu implements EventReceiver
 {
+    @Override public Object navigationKey() { return PlayerListMenu.class; }
+
     protected final ClickOverListener clicked;
     private ObjectMap<Team, Array<RemoteClient>> clients;
     private Array<RemoteClient> spectators;

@@ -918,6 +918,7 @@ public class FreePlaySummaryMenu extends Menu
 
     private void close()
     {
+        if (HomeHub.ENDPOINT != null) { HomeHub.back(); return; }
         if (!BrainOut.OnlineEnabled())
         {
             Gdx.app.exit();

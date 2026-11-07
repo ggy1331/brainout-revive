@@ -318,7 +318,7 @@ public abstract class ContentPackage implements Json.Serializable
         {
             try
             {
-                JsonValue value = READER.parse(new InputStreamReader(entryStream));
+                JsonValue value = READER.parse(new InputStreamReader(entryStream, java.nio.charset.StandardCharsets.UTF_8));
                 postProcess(value);
                 return value;
             }

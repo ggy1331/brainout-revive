@@ -58,7 +58,8 @@ class Handler(BaseHTTPRequestHandler):
         if isinstance(form, dict):
             args.update(form)
 
-        ctx = Ctx(self.server.app, method, parts, args, dict(self.headers), raw)
+        ctx = Ctx(self.server.app, method, parts, args, self.headers, raw)
+        self.server.app.interface.host = self.connection.getsockname()[0]
         status, payload, headers = 404, {"error": "not found"}, {}
         try:
             if not parts:
@@ -81,6 +82,8 @@ class Handler(BaseHTTPRequestHandler):
 
         short_args = {k: (v if len(str(v)) < 200 else str(v)[:200] + "...") for k, v in args.items()}
         level = logging.INFO if status < 400 else logging.WARNING
+        if parts == ["hub", "state"] and status == 200:
+            level = logging.DEBUG
         log.log(level, "%s %s %s -> %s", method, parsed.path, json.dumps(short_args, ensure_ascii=False), status)
 
         if isinstance(payload, (dict, list)):
@@ -133,6 +136,7 @@ class Handler(BaseHTTPRequestHandler):
 class App:
     def __init__(self, base_url, storage, public_host="127.0.0.1", repo=".", java="java",
                  server_dir=None, logs_dir=None):
+        self.interface = threading.local()
         self.base_url = base_url
         self.storage = storage
         self.lock = threading.RLock()
@@ -146,6 +150,8 @@ class App:
         self.sync_host = None
 
     def service_url(self, name):
+        if hasattr(self, "hub"):
+            return "http://%s:%s/%s" % (getattr(self.interface, "host", "127.0.0.1"), self.hub_port, name)
         return self.base_url + "/" + name
 
 
@@ -187,6 +193,10 @@ def main():
         if a.sync_only:
             return
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
+    if os.environ.get("BRAINOUT_HUB_KEY"):
+        from services.hub import Hub
+        app.hub_port = srv.server_port
+        app.hub = Hub(app, os.environ["BRAINOUT_HUB_NAME"], os.environ["BRAINOUT_HUB_KEY"])
     srv.app = app
     log.info("Anthill mock backend on %s:%d, public url %s, data %s", a.host, a.port, base_url, a.data)
     log.info("Services: %s", ", ".join(sorted(registry.names())))

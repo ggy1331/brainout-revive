@@ -44,6 +44,8 @@ import java.util.Comparator;
 
 public class FreePlayQuestsMenu extends Menu
 {
+    @Override public Object navigationKey() { return FreePlayQuestsMenu.class; }
+
     private final Array<Tree> trees;
     private final UserProfile userProfile;
     private final ClientController.RegionWrapper anyRegion;

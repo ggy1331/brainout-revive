@@ -271,6 +271,8 @@ public abstract class Menu extends Stage
 
     public boolean lockRender() { return false; }
 
+    public Object navigationKey() { return null; }
+
     public boolean lockInput() { return false; }
 
     public GameState getGameState()

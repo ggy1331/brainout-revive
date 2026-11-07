@@ -845,11 +845,7 @@ public class PlayerClient extends Client
             p.setStat(lk[1], max.score);
         }
 
-        p.setStat(Constants.User.SKILLPOINTS, 999999);
-        p.setStat(Constants.User.GEARS, 999999);
-        p.setStat(Constants.User.NUCLEAR_MATERIAL, 999999);
-
-        log("Offline unlock-all: added " + unlocked + " items, max levels, currencies.");
+        log("Offline unlock-all: added " + unlocked + " items and max levels.");
     }
 
     private void extend(String token)
@@ -1923,12 +1919,13 @@ public class PlayerClient extends Client
                 }
             }
 
-            Layout layout_ = BrainOut.ContentMgr.get(msg.layout, Layout.class);
+            Layout layout_ = Layout.resolve(msg.layout);
 
             if (layout_ != null)
             {
                 shopCart.setLayout(msg.layout);
                 profile.setLayout(layout_);
+                profile.setDirty();
             }
 
             GameMode gameMode = BrainOutServer.Controller.getGameMode();
@@ -2666,46 +2663,7 @@ public class PlayerClient extends Client
 
     private void openContent(Content content)
     {
-        if (content instanceof Case)
-        {
-            Case gameCase = ((Case) content);
-
-            int amount = profile.getItems().get(gameCase.getID(), 0);
-
-            if (amount > 0)
-            {
-                amount--;
-
-                if (!gameCase.applicable(profile))
-                {
-                    sendTCP(new CaseOpenResultMsg(CaseOpenResultMsg.Result.notApplicable, null));
-                    return;
-                }
-
-                resourceEvent(-1, "case", "case-open", gameCase.getID());
-                addStat("cases-opened", 1);
-                addStat(gameCase.getID() + "-opened", 1);
-
-                CaseData caseData = gameCase.getData();
-                caseData.init();
-
-                ServerCaseComponentData sccd = caseData.getComponent(ServerCaseComponentData.class);
-
-                if (sccd != null)
-                {
-                    sccd.generate(this, profile);
-                }
-
-                profile.getItems().put(gameCase.getID(), amount);
-
-                profile.setDirty();
-                profile.flush();
-
-                sendUserProfile();
-
-                sendTCP(new CaseOpenResultMsg(CaseOpenResultMsg.Result.success, caseData));
-            }
-        }
+        if (content instanceof Case) sendTCP(new CaseOpenResultMsg(CaseOpenResultMsg.Result.notApplicable, null));
     }
 
     private void repairContent(Content content)
@@ -2718,35 +2676,11 @@ public class PlayerClient extends Client
 
             if (dc.isEnoughtToFix(durability))
             {
-                int amount = profile.getInt(Constants.User.GEARS, 0);
-
-                if (amount > 0)
-                {
-                    resourceEvent(-1, Constants.User.GEARS, "repair", content.getID());
-                    designEvent(1, "gameplay", "repair-content", content.getID());
-
-                    addStat("weapon-repair", 1);
-                    addStat("weapon-action", 1);
-
-                    profile.setInt(Constants.User.GEARS, amount - 1);
-                    dc.setDurability(profile, durability + 1);
-
-                    String rewardId = "purchase-" + Constants.User.GEARS;
-                    float a = BrainOutServer.getInstance().getSettings().getPrice(rewardId);
-
-                    if (a != 0)
-                    {
-                        award(NotifyAward.techScore, a);
-                        notify(NotifyAward.techScore, a, NotifyReason.purchase, NotifyMethod.message, null);
-                    }
-
-                    profile.setDirty();
-
-                    PlayerClient.this.notify(NotifyAward.ownable, 1, NotifyReason.contentRepaired,
-                            NotifyMethod.fix, new ContentND(content));
-
-                    sendUserProfile();
-                }
+                addStat("weapon-repair", 1);
+                dc.setDurability(profile, durability + 1);
+                profile.setDirty();
+                notify(NotifyAward.ownable, 1, NotifyReason.contentRepaired, NotifyMethod.fix, new ContentND(content));
+                sendUserProfile();
             }
         }
     }
@@ -3308,7 +3242,7 @@ public class PlayerClient extends Client
     public void gotOwnable(OwnableContent ownableContent, String reason,
                            ClientProfile.OnwAction ownAction, int amount, boolean notify)
     {
-        if (profile == null) return;
+        if (profile == null || ownableContent instanceof Case) return;
 
         switch (ownAction)
         {
@@ -3556,10 +3490,6 @@ public class PlayerClient extends Client
 
         listenOnlineMessages();
 
-        if (!(getTeam() instanceof SpectatorTeam))
-        {
-            giveDailyContent();
-        }
 
         if (profile != null && profile.isParticipatingClan())
         {
@@ -3664,131 +3594,7 @@ public class PlayerClient extends Client
         autoKick = ServerConstants.Spawn.AUTO_KICK;
     }
 
-    private void giveDailyContent()
-    {
-        Map map = Map.GetDefault();
 
-        if (map == null)
-            return;
-
-        GameMode gameMode = BrainOutServer.Controller.getGameMode();
-        if (gameMode == null)
-            return;
-
-        switch (gameMode.getID())
-        {
-            case lobby:
-            case free:
-                return;
-        }
-
-        long lastDailyClaim = 0;
-
-        String dailyContainer = BrainOutServer.Settings.getDailyContainer();
-
-        if (dailyContainer == null || dailyContainer.isEmpty())
-            return;
-
-        if (profile == null)
-            return;
-
-        if (profile.getItems().get(dailyContainer, 0) > 0)
-        {
-            return;
-        }
-
-        if (profile.getStats().get(Constants.User.NUCLEAR_MATERIAL, 0.0f) >=
-                Constants.DailyReward.MAX_DAILY_CONTAINERS)
-        {
-            return;
-        }
-
-        lastDailyClaim = profile.getLastDailyClaim();
-
-        long now = System.currentTimeMillis() / 1000L;
-
-        if (now <= lastDailyClaim)
-            return;
-
-        OwnableContent dailyContainerContent = BrainOutServer.ContentMgr.get(
-            BrainOutServer.Settings.getDailyContainer(),  OwnableContent.class);
-
-        if (dailyContainerContent == null)
-            return;
-
-        String dailyContentId = "unlock-daily-content-drop-item";
-
-        Item item = BrainOutServer.ContentMgr.get(dailyContentId, Item.class);
-
-        if (item == null)
-            return;
-
-        Array<ConsumableRecord> records = new Array<>();
-
-        records.add(new ConsumableRecord(new OwnableConsumableItem(dailyContainerContent), 1, 0));
-
-        ActiveData activeData = map.getRandomActiveForTag(Constants.ActiveTags.SPAWNABLE);
-
-        if (activeData == null)
-            return;
-
-        boolean foundOne = false;
-
-        for (Map map_ : Map.All())
-        {
-            for (ObjectMap.Entry<Integer, ActiveData> active : map_.getActives())
-            {
-                ActiveData activeData_ = active.value;
-
-                if (!activeData_.getCreator().getID().equals(dailyContentId))
-                    continue;
-
-                ActiveFilterComponentData filter = activeData_.getComponent(ActiveFilterComponentData.class);
-
-                if (filter == null)
-                    continue;
-
-                if (filter.filters(getId()))
-                {
-                    foundOne = true;
-                    break;
-                }
-            }
-
-            if (foundOne)
-                break;
-        }
-
-        if (foundOne)
-            return;
-
-        ItemData itemData = ServerMap.dropItem(map.getDimension(), item, records,
-            getId(), activeData.getX(), activeData.getY(), activeData.getAngle(), 0);
-
-        if (itemData != null)
-        {
-            itemData.addComponent(new ActiveFilterComponentData(owner -> owner == getId()));
-
-            if (profile != null)
-            {
-                ServerPickupCallbackComponentData ci = itemData.getComponent(ServerPickupCallbackComponentData.class);
-
-                if (ci != null)
-                {
-                    ci.setCallback((Client client) ->
-                    {
-                        long until = System.currentTimeMillis() / 1000L + 64800;
-
-                        gotOwnable(dailyContainerContent, "pickup",
-                                ClientProfile.OnwAction.owned, 1);
-
-                        profile.setLastDailyClaim(until);
-                        profile.setDirty();
-                    });
-                }
-            }
-        }
-    }
 
     private void achievementCompleted(Achievement achievement)
     {
@@ -4330,37 +4136,10 @@ public class PlayerClient extends Client
                                 progressionEvent(1, "Complete", "level", kind, "level-" + next.number);
                             }
 
-                            if (level.skillpoints > 0)
-                            {
-                                resourceEvent(level.skillpoints, Constants.User.SKILLPOINTS,
-                                    "new-level", kind);
-                                profile.addStat(Constants.User.SKILLPOINTS, level.skillpoints, true);
-                            }
-                            if (level.gears > 0)
-                            {
-                                resourceEvent(level.gears, Constants.User.GEARS,
-                                    "new-level", kind);
-                                profile.addStat(Constants.User.GEARS, level.gears, true);
-                            }
-
                             profile.setStatTo(kind, next.number, true);
 
                             PlayerClient.this.notify(NotifyAward.level, next.number, NotifyReason.levelUp,
                                 NotifyMethod.message, new LevelND(kind), true);
-
-                            if (next.skillpoints > 0)
-                            {
-                                PlayerClient.this.notify(NotifyAward.skillpoints,
-                                        next.skillpoints, NotifyReason.skillPointsEarned,
-                                        NotifyMethod.message, null);
-                            }
-
-                            if (next.gears > 0)
-                            {
-                                PlayerClient.this.notify(NotifyAward.gears,
-                                        next.gears, NotifyReason.gearsEarned,
-                                        NotifyMethod.message, null);
-                            }
 
                             profile.setDirty(true);
                         }
@@ -4460,6 +4239,7 @@ public class PlayerClient extends Client
     public void notify(NotifyAward notifyAward, float amount, NotifyReason reason,
                        NotifyMethod method, NotifyData data, boolean priority)
     {
+        if (notifyAward == NotifyAward.skillpoints || notifyAward == NotifyAward.gears || notifyAward == NotifyAward.nuclearMaterial) return;
         if (!priority)
         {
             BrainOutServer.PostRunnable(() ->

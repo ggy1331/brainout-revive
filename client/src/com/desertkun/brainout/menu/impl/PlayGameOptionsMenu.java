@@ -252,7 +252,7 @@ public abstract class PlayGameOptionsMenu extends FormMenu
             if (map == null)
                 return L.get("MENU_ANY_MAP");
 
-            return map;
+            return L.get("MAP_" + map.toUpperCase(java.util.Locale.ROOT));
         }
     }
 

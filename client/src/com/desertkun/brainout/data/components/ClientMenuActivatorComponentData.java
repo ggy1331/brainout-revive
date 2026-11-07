@@ -78,8 +78,7 @@ public class ClientMenuActivatorComponentData extends ClientActiveActivatorCompo
             }
             case "clan":
             {
-                UserProfile userProfile = BrainOutClient.ClientController.getUserProfile();
-                return userProfile.isParticipatingClan();
+                return false;
             }
             case "workbench":
             {
@@ -114,8 +113,7 @@ public class ClientMenuActivatorComponentData extends ClientActiveActivatorCompo
             }
             case "clan":
             {
-                UserProfile userProfile = BrainOutClient.ClientController.getUserProfile();
-                return new ClanMenu(userProfile.getClanId());
+                return null;
             }
             case "top100players":
             {

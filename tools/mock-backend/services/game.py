@@ -99,7 +99,7 @@ class GameMaster:
         finally:
             s.close()
 
-    def _spawn(self, game, settings):
+    def _spawn(self, game, settings, capacity=None):
         cfg = GAMES[game]
         app = self.app
         room_id = str(self.next_room)
@@ -116,7 +116,7 @@ class GameMaster:
             "discovery_services": json.dumps(services),
             "room_id": room_id,
             "server_settings": json.dumps({"bots": cfg.get("bots", 0)}),
-            "game_max_players": str(cfg.get("max", 16)),
+            "game_max_players": str(capacity or cfg.get("max", 16)),
         })
         env.update(cfg.get("env", {}))
         room_settings = {k: v for k, v in (settings or {}).items() if k in ("mode", "map", "preset", "keep-mode")}
@@ -132,6 +132,7 @@ class GameMaster:
         proc = subprocess.Popen(cmd, cwd=app.server_dir, env=env, stdout=logf, stderr=subprocess.STDOUT,
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         room = Room(room_id, game, settings or {}, ports, proc, log_path)
+        room.capacity = capacity or cfg.get("max", 16)
         self.rooms[room_id] = room
         app.log.info("Room %s: started %s server on ports %s (pid %s), log %s",
                      room_id, game, ports, proc.pid, log_path)
@@ -181,10 +182,10 @@ class GameMaster:
     def room_out(self, room, with_key=True):
         out = {
             "id": room.id,
-            "location": {"host": self.app.public_host, "ports": room.ports},
+            "location": {"host": getattr(self.app.interface, "host", self.app.public_host) if hasattr(self.app, "hub") else self.app.public_host, "ports": room.ports},
             "settings": room.settings,
             "players": 0,
-            "max_players": GAMES[room.game].get("max", 16),
+            "max_players": room.capacity,
             "game_name": room.game,
             "game_version": "valpha2",
             "game_server": room.game,

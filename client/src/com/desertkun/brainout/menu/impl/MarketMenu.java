@@ -47,6 +47,8 @@ import java.util.List;
 public class MarketMenu extends Menu
 {
     private final String menuCategory;
+
+    @Override public Object navigationKey() { return "market-" + menuCategory; }
     private Table data;
     private Table leftPanel;
     private Table content;

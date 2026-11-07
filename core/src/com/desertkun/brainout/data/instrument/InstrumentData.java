@@ -71,12 +71,14 @@ public class InstrumentData extends Data implements Json.Serializable
         return super.getDimension();
     }
 
+    public boolean secondSpecial;
+
     @Override
     public void read(Json json, JsonValue jsonData)
     {
         super.read(json, jsonData);
 
-        // map.newInstrument
+        secondSpecial = jsonData.getBoolean("special2", false);
 
         if (jsonData.has("skin"))
         {
@@ -114,6 +116,7 @@ public class InstrumentData extends Data implements Json.Serializable
     @Override
     public void write(Json json)
     {
+        if (secondSpecial) json.writeValue("special2", true);
         json.writeValue("class", info.instrument.getID());
 
         if (info.skin != null)

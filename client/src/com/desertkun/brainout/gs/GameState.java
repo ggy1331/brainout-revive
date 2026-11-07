@@ -236,6 +236,23 @@ public class GameState
 
     public void pushMenu(Menu menu)
     {
+        Object key = menu.navigationKey();
+        if (key != null)
+        {
+            for (int i = menus.size() - 1; i >= 0; i--)
+            {
+                Menu existing = menus.get(i);
+                if (!key.equals(existing.navigationKey())) continue;
+                if (i != menus.size() - 1 && !menus.peek().stayOnTop())
+                {
+                    menus.peek().onFocusOut(existing);
+                    menus.remove(i);
+                    menus.push(existing);
+                    existing.onFocusIn();
+                }
+                return;
+            }
+        }
         menu.setGameState(this);
 
         if (!menus.empty())

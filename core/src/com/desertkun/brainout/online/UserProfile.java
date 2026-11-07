@@ -359,8 +359,14 @@ public class UserProfile
         }
     }
 
+    private boolean retiredCurrency(String id)
+    {
+        return Constants.User.SKILLPOINTS.equals(id) || Constants.User.GEARS.equals(id) || Constants.User.NUCLEAR_MATERIAL.equals(id);
+    }
+
     public void addItem(String item, int amount)
     {
+        if (BrainOut.ContentMgr != null && BrainOut.ContentMgr.get(item) instanceof com.desertkun.brainout.content.gamecase.Case) return;
         Integer have = items.get(item);
 
         if (have == null)
@@ -380,6 +386,7 @@ public class UserProfile
 
     public void setStatTo(String stat, int amount, boolean notify)
     {
+        if (retiredCurrency(stat)) return;
         float oldAmount = stats.get(stat, 0.0f);
         stats.put(stat, Math.max(oldAmount, amount));
 
@@ -391,6 +398,7 @@ public class UserProfile
 
     public float addStat(String stat, float amount, boolean notify)
     {
+        if (retiredCurrency(stat)) return 0;
         Float have = stats.get(stat);
         float a;
 
@@ -415,12 +423,14 @@ public class UserProfile
 
     public float setStat(String stat, float amount)
     {
+        if (retiredCurrency(stat)) return 0;
         stats.put(stat, Math.max(amount, 0.0f));
         return amount;
     }
 
     public float descreaseStat(String stat, float amount)
     {
+        if (retiredCurrency(stat)) return 0;
         Float have = stats.get(stat);
         float a;
 
@@ -542,6 +552,7 @@ public class UserProfile
 
     public void setInt(String stat, int value)
     {
+        if (retiredCurrency(stat)) return;
         getStats().put(stat, (float)value);
     }
 
@@ -552,6 +563,7 @@ public class UserProfile
 
     public boolean hasItem(OwnableContent item, boolean lockCheck)
     {
+        if (item instanceof com.desertkun.brainout.content.gamecase.Case) return false;
         if (item == null)
         {
             return false;
@@ -736,7 +748,7 @@ public class UserProfile
 
     public boolean isParticipatingClan()
     {
-        return clanId != null && !clanId.isEmpty();
+        return false;
     }
 
     public void setClan(String clanId, String avatar)
@@ -801,17 +813,28 @@ public class UserProfile
 
     public Layout getLayout()
     {
-        return BrainOut.ContentMgr.get(layout, Layout.class);
+        Layout selected = Layout.resolve(layout);
+        return selected != null && selected.getOrder() < getLayoutCount() ? selected : Layout.resolve("layout-1");
+    }
+
+    public int getLayoutCount()
+    {
+        String count = getSelection("loadout-count");
+        try { return Math.max(1, Integer.parseInt(count)); }
+        catch (NumberFormatException ignored) { return 1; }
     }
 
     public void setLayout(Layout layout)
     {
+        if (layout == null || layout.getOrder() > getLayoutCount()) return;
+        if (layout.getOrder() == getLayoutCount())
+            setSelection("loadout-count", Integer.toString(layout.getOrder() + 1));
         this.layout = layout.getID();
     }
 
     public void setLayout(String layout)
     {
-        this.layout = layout;
+        setLayout(Layout.resolve(layout));
     }
 
     public Weapon.ShootMode getPreferableShootMode(String weaponId)

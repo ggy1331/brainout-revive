@@ -2,7 +2,10 @@
 
 from . import environment, discovery, login, profile, stubs, market, game, message, social, leaderboard, static, revive
 
+from . import hub
+
 registry_map = {
+    "hub": hub.handle,
     "environment": environment.handle,
     "discovery": discovery.handle,
     "login": login.handle,

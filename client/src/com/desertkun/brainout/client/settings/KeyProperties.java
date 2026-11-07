@@ -31,6 +31,8 @@ public class KeyProperties extends Properties
         slotPrimary,
         slotSecondary,
         slotSpecial,
+        slotSpecialTwo,
+        slotKnifeAlt,
         slotKnife,
         slotBinoculars,
         slotFlashlight,
@@ -68,6 +70,30 @@ public class KeyProperties extends Properties
     public int getKeyCode(Keys keys, int def)
     {
         return this.codes.get(keys, def);
+    }
+
+    @Override
+    public void read(com.badlogic.gdx.utils.Json json, com.badlogic.gdx.utils.JsonValue data)
+    {
+        super.read(json, data);
+        com.badlogic.gdx.utils.JsonValue group = data.get(getName());
+        if (group == null) return;
+        for (Property property : getProperties())
+        {
+            if (!(property instanceof KeycodeProperty) || group.has(property.getName())) continue;
+            KeycodeProperty binding = (KeycodeProperty) property;
+            if (binding.getKey() == Keys.slotKnife && group.has("slot-4"))
+            {
+                int old = group.getInt("slot-4");
+                if (old != com.badlogic.gdx.Input.Keys.NUM_4) binding.setValue(old);
+            }
+            if (binding.getKey() == Keys.shootMode && group.has("shoot-mode"))
+            {
+                int old = group.getInt("shoot-mode");
+                if (old != com.badlogic.gdx.Input.Keys.V) binding.setValue(old);
+            }
+        }
+        update();
     }
 
     public void update()

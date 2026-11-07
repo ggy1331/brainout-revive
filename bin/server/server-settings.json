@@ -19,7 +19,7 @@
 		"dropBullets": "false",
 		"crow_damage": "false",
 		"crow_visibility": "false",
-		"crawl": "disabled"
+		"crawl": "enabled"
 	},
 
 	"presets": {

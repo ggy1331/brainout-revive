@@ -43,6 +43,8 @@ import java.util.List;
 
 public class MarketCraftingMenu extends MarketItemsCategoryMenu
 {
+    @Override public Object navigationKey() { return MarketCraftingMenu.class; }
+
     private final ButtonGroup<Button> buttons;
     private TextButton craft;
     private Table itemsToCraft;

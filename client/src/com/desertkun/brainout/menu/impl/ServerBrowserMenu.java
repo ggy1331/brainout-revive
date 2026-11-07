@@ -36,6 +36,8 @@ import java.util.List;
 
 public class ServerBrowserMenu extends FormMenu
 {
+    @Override public Object navigationKey() { return ServerBrowserMenu.class; }
+
     private final Callback callback;
     private Table content;
 

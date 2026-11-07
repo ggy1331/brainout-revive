@@ -261,6 +261,9 @@ def handle(ctx, rest):
     if rest[0] == "friends":
         return _friends(ctx, rest, me)
 
+    if hasattr(app, "hub") and rest[0] in ("group", "groups"):
+        raise HttpError(404, {"error": "groups disabled"})
+
     if rest[0] == "groups":
         sub = rest[1] if len(rest) > 1 else ""
         if sub == "create":

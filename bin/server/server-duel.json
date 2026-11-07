@@ -11,7 +11,7 @@
 		"minimapEnabled": "false",
 		"chat": "disabled",
 		"dropBullets": "false",
-		"crawl": "disabled",
+		"crawl": "enabled",
 		"grenades": "disabled",
 		"drill": "disabled"
 	},

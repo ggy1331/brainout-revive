@@ -55,6 +55,8 @@ import java.util.TimerTask;
 
 public class LobbyMenu extends PlayerSelectionMenu
 {
+    @Override public Object navigationKey() { return LobbyMenu.class; }
+
     private Table controls;
     private RoomSettings roomSettings;
     private float checkTimer;
@@ -269,32 +271,6 @@ public class LobbyMenu extends PlayerSelectionMenu
                     Tutorials.Done("fight");
                     checkBanners();
                 }
-            ));
-
-            return;
-        }
-
-        boolean containers = false;
-
-        if (BrainOutClient.ClientController.getUserProfile() != null)
-        {
-            float score = BrainOutClient.ClientController.getUserProfile().getStats().get(
-                    Constants.User.SCORE, 0f);
-
-            containers = score > 50;
-        }
-
-        if (containers && !Tutorials.IsFinished("container"))
-        {
-            pushMenu(new AnchorTutorialMenu(
-                    userPanel.getCaseButton(),
-                    "tutorial-hint-container", -232, -232,
-                    L.get("MENU_TUTORIAL_HINT_CONTAINERS"),
-                    28, 96, 200, 48,
-                    () -> {
-                        Tutorials.Done("container");
-                        checkBanners();
-                    }
             ));
 
             return;
@@ -555,12 +531,22 @@ public class LobbyMenu extends PlayerSelectionMenu
 
         controls.add(playersOnline).colspan(3).expandX().pad(8).padTop(0).fillX().row();
 
-        controls.add(base).colspan(3).expandX().height(32).fillX().row();
+
+        if (HomeHub.ENDPOINT != null)
+        {
+            HubPanel.add(controls,"Свободная Зона",HomeHub::zone);
+            HubPanel.add(controls,"Подключение",()->pushMenu(new HubPanel(true)));
+            if (HomeHub.OWNER) HubPanel.add(controls,"Запуск матча",()->pushMenu(new HubPanel(false)));
+            else HubPanel.add(controls,"В свой хаб",()->HomeHub.changeHost("home"));
+        }
+        else
+        {
         controls.add(globalConflict).colspan(3).expandX().height(32).fillX().row();
         controls.add(quickPlay).colspan(3).expandX().height(32).fillX().row();
         controls.add(freePlay).colspan(3).expandX().height(32).fillX().row();
         controls.add(findGame).colspan(3).expandX().height(32).fillX().row();
         controls.add(profile).colspan(3).expandX().height(32).fillX().row();
+        }
 
         {
             {
@@ -1008,38 +994,12 @@ public class LobbyMenu extends PlayerSelectionMenu
         Table buttons = new Table();
         buttons.align(Align.left);
 
-        custom.add(buttons).padBottom(8).bottom().height(138).expandX().left();
+        custom.add(buttons).padBottom(8).bottom().height(64).expandX().left();
 
         {
             Table buttonsGroup = new Table();
-            buttons.add(buttonsGroup).size(64, 138).padLeft(12).left();
+            buttons.add(buttonsGroup).size(64, 64).padLeft(8).left();
 
-            {
-                TextureRegion icon = BrainOutClient.getRegion("icon-wiki");
-                if (icon != null)
-                {
-                    TextButton chatButton = new TextButton("", BrainOutClient.Skin, "button-default");
-
-                    Image image = new Image(icon);
-                    image.setScaling(Scaling.none);
-                    image.setFillParent(true);
-                    image.setTouchable(Touchable.disabled);
-                    chatButton.addActor(image);
-
-                    chatButton.addListener(new ClickOverListener()
-                    {
-                        @Override
-                        public void clicked(InputEvent event, float x, float y)
-                        {
-                            Menu.playSound(MenuSound.select);
-
-                            openWiki();
-                        }
-                    });
-
-                    buttonsGroup.add(chatButton).size(64, 64).padBottom(10).row();
-                }
-            }
             {
                 TextureRegion icon = BrainOutClient.getRegion("icon-chat");
                 if (icon != null)
@@ -1074,77 +1034,6 @@ public class LobbyMenu extends PlayerSelectionMenu
 
                     chatButton.addActor(chatBadge);
                 }
-            }
-        }
-
-        {
-            Table buttonsGroup = new Table();
-            buttonsGroup.align(Align.bottom);
-            buttons.add(buttonsGroup).size(64, 138).padLeft(12).left();
-
-            /*
-            {
-                TextButton btn = new TextButton("", BrainOutClient.Skin, "button-default");
-
-                Image image = new Image(BrainOutClient.Skin, "icon-contracts");
-                image.setScaling(Scaling.none);
-                image.setFillParent(true);
-                image.setTouchable(Touchable.disabled);
-                btn.addActor(image);
-
-                btn.addListener(new ClickOverListener()
-                {
-                    @Override
-                    public void clicked(InputEvent event, float x, float y)
-                    {
-                        Menu.playSound(MenuSound.select);
-
-                        pushMenu(new ContractsMenu());
-                    }
-                });
-
-                contractsBadge = new Image(BrainOutClient.Skin, "badge");
-                contractsBadge.setScaling(Scaling.none);
-                contractsBadge.setAlign(Align.left | Align.top);
-                contractsBadge.setFillParent(true);
-                contractsBadge.setTouchable(Touchable.disabled);
-                contractsBadge.setVisible(false);
-
-                btn.addActor(contractsBadge);
-
-                buttonsGroup.add(btn).size(64, 64).padBottom(10).row();
-            }
-             */
-
-            TextureRegion icon = BrainOutClient.getRegion("icon-discord");
-            if (icon != null)
-            {
-                TextButton chatButton = new TextButton("", BrainOutClient.Skin, "button-default");
-
-                Image image = new Image(icon);
-                image.setScaling(Scaling.none);
-                image.setFillParent(true);
-                image.setTouchable(Touchable.disabled);
-                chatButton.addActor(image);
-
-                chatButton.addListener(new ClickOverListener()
-                {
-                    @Override
-                    public void clicked(InputEvent event, float x, float y)
-                    {
-                        Menu.playSound(MenuSound.select);
-
-                        boolean success = Gdx.net.openURI("https://discord.gg/brainout");
-
-                        if (success)
-                        {
-                            Gdx.app.postRunnable(() ->
-                                    BrainOutClient.getInstance().topState().pushMenu(new AlertPopup(L.get("MENU_BROWSER_TAB"))));
-                        }
-                    }
-                });
-
-                buttonsGroup.add(chatButton).size(64, 64).row();
             }
         }
 
@@ -1368,14 +1257,7 @@ public class LobbyMenu extends PlayerSelectionMenu
 
     private void openLobbyChat()
     {
-        if (BrainOutClient.SocialController.getMessages().haveUnreadMessages())
-        {
-            ChatWidget.Open("clan");
-        }
-        else
-        {
-            ChatWidget.Open();
-        }
+        ChatWidget.Open();
     }
 
     private void openWiki()

@@ -265,9 +265,13 @@ public abstract class ClientSettings extends CoreSettings
                 KeyProperties.Keys.slotPrimary);
         new KeycodeProperty("slot-2", "MENU_CONTROL_SLOT_2", Input.Keys.NUM_2, controls,
                 KeyProperties.Keys.slotSecondary);
-        new KeycodeProperty("slot-3", "MENU_CONTROL_SLOT_3", Input.Keys.NUM_3, controls,
+        new KeycodeProperty("slot-3", "CONTROL_SPECIAL_ONE", Input.Keys.NUM_3, controls,
                 KeyProperties.Keys.slotSpecial);
-        new KeycodeProperty("slot-4", "MENU_CONTROL_SLOT_4", Input.Keys.NUM_4, controls,
+        new KeycodeProperty("special-two", "CONTROL_SPECIAL_TWO", Input.Keys.NUM_4, controls,
+                KeyProperties.Keys.slotSpecialTwo);
+        new KeycodeProperty("knife-alt", "CONTROL_KNIFE_ALT", Input.Keys.V, controls,
+                KeyProperties.Keys.slotKnifeAlt);
+        new KeycodeProperty("knife", "CONTROL_KNIFE", Input.Keys.NUM_5, controls,
                 KeyProperties.Keys.slotKnife);
         new KeycodeProperty("slot-5", "ITEM_BINOCULARS", Input.Keys.B, controls,
                 KeyProperties.Keys.slotBinoculars);
@@ -293,7 +297,7 @@ public abstract class ClientSettings extends CoreSettings
                 KeyProperties.Keys.dropAmmo);
         new KeycodeProperty("team", "MENU_CONTROL_CHANGE_TEAM", Input.Keys.N, controls,
                 KeyProperties.Keys.changeTeam);
-        new KeycodeProperty("shoot-mode", "MENU_CONTROL_SHOOT_MODE", Input.Keys.V, controls,
+        new KeycodeProperty("fire-mode", "MENU_CONTROL_SHOOT_MODE", Input.Keys.H, controls,
                 KeyProperties.Keys.shootMode);
         new KeycodeProperty("unload-weapon", "MENU_CONTROL_UNLOAD_WEAPON", Input.Keys.T, controls,
                 KeyProperties.Keys.unloadWeapon);
@@ -309,7 +313,7 @@ public abstract class ClientSettings extends CoreSettings
                 KeyProperties.Keys.voiceChat);
         new KeycodeProperty("hide-interface", "MENU_CONTROL_HIDE_INTERFACE", Input.Keys.MINUS, controls,
                 KeyProperties.Keys.hideInterface);
-        new KeycodeProperty("sit-3", "MENU_CONTROL_SQUAT", Input.Keys.Z, controls,
+        new KeycodeProperty("sit-3", "CONTROL_PRONE", Input.Keys.Z, controls,
                 KeyProperties.Keys.squat);
         new KeycodeProperty("friendly", "MENU_CONTROL_FRIENDS_FP", Input.Keys.F1, controls,
                 KeyProperties.Keys.freePlayFriends);

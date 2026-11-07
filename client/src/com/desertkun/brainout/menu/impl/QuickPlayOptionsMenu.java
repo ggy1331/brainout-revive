@@ -75,7 +75,7 @@ public class QuickPlayOptionsMenu extends PlayGameOptionsMenu
 
         renderContent(content);
 
-        if (!extended)
+        if (!extended && hasExtendedOptions())
         {
             Table row = new Table();
 
@@ -150,6 +150,8 @@ public class QuickPlayOptionsMenu extends PlayGameOptionsMenu
 
         buttons.add(start).size(192, 32).pad(8);
     }
+
+    protected boolean hasExtendedOptions() { return true; }
 
     protected boolean enableRegionOption()
     {

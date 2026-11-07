@@ -93,13 +93,6 @@
     {
       "items": [
         {
-          "item": "consumable-case-standard"
-        }
-      ]
-    },
-    {
-      "items": [
-        {
           "item": "consumable-item-water",
           "amount": 1
         }

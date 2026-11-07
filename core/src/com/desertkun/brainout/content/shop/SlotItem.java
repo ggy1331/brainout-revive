@@ -13,6 +13,26 @@ import com.desertkun.brainout.online.UserProfile;
 
 public abstract class SlotItem extends OwnableContent
 {
+    private SlotItem original;
+
+    @Override
+    public boolean hasItem(UserProfile profile, boolean checkLock)
+    {
+        return original == null ? super.hasItem(profile, checkLock) : original.hasItem(profile, checkLock);
+    }
+
+    @Override
+    public boolean hasItem(UserProfile profile)
+    {
+        return hasItem(profile, true);
+    }
+
+    @Override
+    public boolean isLocked(UserProfile profile)
+    {
+        return original == null ? super.isLocked(profile) : original.isLocked(profile);
+    }
+
     private float price;
     protected Slot slot;
     private String category;
@@ -69,7 +89,7 @@ public abstract class SlotItem extends OwnableContent
 
         public void saveSelection(UserProfile profile, Selection selection, String layout)
         {
-            Layout layout_ = BrainOut.ContentMgr.get(layout, Layout.class);
+            Layout layout_ = Layout.resolve(layout);
             String key = layout_ != null && !layout_.getKey().isEmpty() ?
                     "-" + layout_.getKey() : "";
 
@@ -112,6 +132,7 @@ public abstract class SlotItem extends OwnableContent
     public void read(Json json, JsonValue jsonData)
     {
         super.read(json, jsonData);
+        if (jsonData.has("original")) original = BrainOut.ContentMgr.get(jsonData.getString("original"), SlotItem.class);
 
         if (jsonData.has("restrict"))
         {

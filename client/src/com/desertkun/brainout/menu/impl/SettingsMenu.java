@@ -44,6 +44,8 @@ import org.json.JSONObject;
 
 public class SettingsMenu extends Menu
 {
+    @Override public Object navigationKey() { return SettingsMenu.class; }
+
     private boolean onTop;
     private String originalLanguage;
     private boolean restartRequired;

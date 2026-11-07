@@ -56,7 +56,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     private String currentMode, previousMode;
     private CenterSprite hitSprite;
 
-    private boolean sitFlag, runFlag, squatFlag;
+
     private CenterSprite hitSpriteBody;
     private CenterSprite hitSpriteHead;
     private boolean controller;
@@ -260,81 +260,26 @@ public class MyPlayerComponent extends PlayerControllerComponentData
 
                     case beginSit:
                     {
-                        squatFlag = false;
-
-                        if (state == Player.State.run && runFlag)
-                        {
-                            setPositionMode(PositionMode.crouch);
-                        }
-                        else
-                        {
-                            setPositionMode(PositionMode.sit);
-                        }
-
-                        sitFlag = true;
-
+                        setPositionMode(state == Player.State.sit ? PositionMode.normal : PositionMode.sit);
                         return true;
                     }
-
                     case squat:
                     {
-                        if (BrainOutClient.ClientController.isFreePlay()) {
-                            if (state == Player.State.squat) {
-                                setPositionMode(PositionMode.normal);
-                                squatFlag = false;
-                            } else {
-                                setPositionMode(PositionMode.squat);
-                                squatFlag = true;
-                            }
-                        }
-
-
+                        setPositionMode(state == Player.State.crawl ? PositionMode.normal : PositionMode.crouch);
                         return true;
                     }
-
                     case endSit:
                     {
-                        squatFlag = false;
-
-                        setPositionMode(PositionMode.normal);
-                        sitFlag = false;
-
                         return true;
                     }
-
                     case beginRun:
                     {
-                        squatFlag = false;
-
-                        if (state == Player.State.sit)
-                        {
-                            setPositionMode(PositionMode.crouch);
-                        }
-                        else
-                        {
-                            setRun(true);
-                        }
-
-                        runFlag = true;
-
+                        setRun(true);
                         return true;
                     }
-
                     case endRun:
                     {
-                        squatFlag = false;
-
-                        if (state == Player.State.crawl && sitFlag)
-                        {
-                            setPositionMode(PositionMode.sit);
-                        }
-                        else
-                        {
-                            setRun(false);
-                        }
-
-                        runFlag = false;
-
+                        setRun(false);
                         return true;
                     }
 

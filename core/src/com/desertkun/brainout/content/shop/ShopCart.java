@@ -191,7 +191,7 @@ public class ShopCart
                 if (slotItem == null)
                     continue;
 
-                if (!shop.getSlots().contains(slotItem.getSlot(), true))
+                if (slotItem.getSlot() != slot || !shop.getSlots().contains(slot, true))
                     continue;
 
                 SlotItem.Selection selection = static_ ? slotItem.getStaticSelection() : slotItem.getSelection();

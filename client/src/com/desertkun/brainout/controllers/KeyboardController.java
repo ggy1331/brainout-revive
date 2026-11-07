@@ -231,6 +231,10 @@ public class KeyboardController extends GameController
 
                     return true;
                 }
+                case slotSpecialTwo:
+                    sendEvent(SelectSlotEvent.obtain(6));
+                    return true;
+                case slotKnifeAlt:
                 case slotKnife:
                 {
                     sendEvent(SelectSlotEvent.obtain(3));
@@ -443,9 +447,12 @@ public class KeyboardController extends GameController
         }
     }
 
+    private final com.badlogic.gdx.utils.IntSet stanceKeysHeld = new com.badlogic.gdx.utils.IntSet();
+
     @Override
     public boolean keyUp(int keycode)
     {
+        stanceKeysHeld.remove(keycode);
         return keyReleased(keycode);
     }
 
@@ -458,6 +465,9 @@ public class KeyboardController extends GameController
     @Override
     public boolean keyDown(int keyCode)
     {
+        KeyProperties.Keys action = BrainOutClient.ClientSett.getControls().getKey(keyCode);
+        if ((action == KeyProperties.Keys.sit || action == KeyProperties.Keys.squat) && !stanceKeysHeld.add(keyCode))
+            return true;
         return keyPressed(keyCode);
     }
 

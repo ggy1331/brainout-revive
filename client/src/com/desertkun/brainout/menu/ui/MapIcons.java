@@ -26,6 +26,15 @@ public final class MapIcons
             return new Image(BrainOutClient.Skin, "map-" + map);
         }
 
+        if ("duel".equals(map) || "halloween".equals(map) || "bunker_ctf".equals(map))
+        {
+            com.badlogic.gdx.graphics.Texture texture = new com.badlogic.gdx.graphics.Texture(
+                com.badlogic.gdx.Gdx.files.classpath("map-previews/" + map + ".png"));
+            BrainOutClient.Skin.add("map-" + map, texture, com.badlogic.gdx.graphics.Texture.class);
+            TextureRegion region = new TextureRegion(texture);
+            BrainOutClient.Skin.add("map-" + map, region, TextureRegion.class);
+            return new Image(region);
+        }
         return new Image();
     }
 }

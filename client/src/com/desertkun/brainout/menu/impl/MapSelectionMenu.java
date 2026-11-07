@@ -17,6 +17,8 @@ import com.desertkun.brainout.menu.ui.ClickOverListener;
 
 public class MapSelectionMenu extends Menu
 {
+    @Override public Object navigationKey() { return MapSelectionMenu.class; }
+
     private final String[] standardMaps;
     private SelectionCallback callback;
 
@@ -101,6 +103,7 @@ public class MapSelectionMenu extends Menu
             Table maps = new Table();
 
             int i = 0;
+            int columns = Math.max(1, Math.min(6, (BrainOutClient.getWidth() - 32) / 156));
 
             for (String map : standardMaps)
             {
@@ -118,6 +121,7 @@ public class MapSelectionMenu extends Menu
                 {
                     Label title = new Label(L.get("MAP_" + map.toUpperCase()),
                             BrainOutClient.Skin, "title-yellow");
+                    title.setWrap(true);
                     title.setAlignment(Align.bottom | Align.center);
                     title.setFillParent(true);
                     title.setTouchable(Touchable.disabled);
@@ -141,7 +145,7 @@ public class MapSelectionMenu extends Menu
                 maps.add(btn).size(140, 140).pad(8);
 
                 i++;
-                if (i % 6 == 0)
+                if (i % columns == 0)
                 {
                     maps.row();
                 }
@@ -257,7 +261,8 @@ public class MapSelectionMenu extends Menu
 
             {
                 Label title = new Label(item.getTitle(), BrainOutClient.Skin, "title-yellow");
-                title.setAlignment(Align.bottom | Align.center);
+                title.setWrap(true);
+                    title.setAlignment(Align.bottom | Align.center);
                 title.setFillParent(true);
                 title.setWrap(true);
                 title.setTouchable(Touchable.disabled);
@@ -305,6 +310,6 @@ public class MapSelectionMenu extends Menu
     @Override
     public boolean lockInput()
     {
-        return super.lockInput();
+        return true;
     }
 }

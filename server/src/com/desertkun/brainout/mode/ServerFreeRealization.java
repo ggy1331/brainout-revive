@@ -672,7 +672,8 @@ public class ServerFreeRealization extends ServerRealization<GameModeFree>
             bullet -> RandomWeightComponent.Get(bullet) != 0);
 
         containersPool = BrainOutServer.ContentMgr.queryContent(ConsumableToOwnableContent.class,
-            consumable -> RandomWeightComponent.Get(consumable) != 0);
+            consumable -> !(consumable.getOwnableContent() instanceof com.desertkun.brainout.content.gamecase.Case) &&
+                RandomWeightComponent.Get(consumable) != 0);
 
         consumables = BrainOutServer.ContentMgr.queryContent(ConsumableContent.class,
             consumable -> {

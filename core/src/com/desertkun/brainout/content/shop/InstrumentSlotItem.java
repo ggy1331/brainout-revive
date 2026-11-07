@@ -127,6 +127,7 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
                 }
             }
 
+            instrumentData.secondSpecial = "slot-special-extra".equals(slot.getID());
             instrumentData.setSkin(info.skin);
 
             if (profile != null)
@@ -150,7 +151,7 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
             {
                 Upgrade upgrade = upgradeSlot.value;
 
-                if (upgrade != null && (profile == null || upgrade.hasItem(profile)))
+                if (upgrade != null && upgrades.containsKey(upgradeSlot.key) && upgrades.get(upgradeSlot.key).contains(upgrade, true) && (profile == null || upgrade.hasItem(profile)))
                 {
                     instrumentData.getUpgrades().put(upgradeSlot.key, upgrade);
 
@@ -250,7 +251,7 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
             {
                 Upgrade upgrade = upgradeSlot.value;
 
-                if (upgrade != null && (profile == null || upgrade.hasItem(profile)))
+                if (upgrade != null && upgrades.containsKey(upgradeSlot.key) && upgrades.get(upgradeSlot.key).contains(upgrade, true) && (profile == null || upgrade.hasItem(profile)))
                 {
                     if (profile != null)
                     {
@@ -300,7 +301,7 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
 
         if (this.instrumentContent != null)
         {
-            this.instrumentContent.setSlotItem(this);
+            if (getSlot() == null || !"slot-special-extra".equals(getSlot().getID())) this.instrumentContent.setSlotItem(this);
         }
 
         if (instrument.has("skin"))

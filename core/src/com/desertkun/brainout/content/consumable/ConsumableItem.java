@@ -66,7 +66,12 @@ public abstract class ConsumableItem implements Json.Serializable
 
     public boolean isValid()
     {
-        return getContent() != null;
+        Content content = getContent();
+        if (content instanceof com.desertkun.brainout.content.gamecase.Case) return false;
+        if (content instanceof ConsumableToOwnableContent &&
+            ((ConsumableToOwnableContent)content).getOwnableContent() instanceof com.desertkun.brainout.content.gamecase.Case)
+            return false;
+        return content != null;
     }
 
     public void init() {}

@@ -596,6 +596,8 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         if (isWounded())
             return;
 
+        if (mode == PositionMode.normal && hasTopContact()) return;
+
         switch (mode)
         {
             case normal:
@@ -625,11 +627,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             }
         }
 
-        // in case we have something at top then we can't stand up
-        if ((mode == PositionMode.normal && hasTopContact()))
-        {
-            return;
-        }
+
 
         PlayerComponentData cpc = playerData.getComponentWithSubclass(PlayerComponentData.class);
 

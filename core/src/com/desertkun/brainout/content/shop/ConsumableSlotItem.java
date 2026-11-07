@@ -66,6 +66,7 @@ public class ConsumableSlotItem extends SlotItem
                 {
                     Instrument instrument = ((Instrument) content);
                     InstrumentData instrumentData = instrument.getData(playerData.getDimension());
+                    instrumentData.secondSpecial = "slot-special-extra".equals(slot.getID());
                     instrumentData.setSkin(instrument.getDefaultSkin());
 
                     ownerComponent.getConsumableContainer().putConsumable(amount,

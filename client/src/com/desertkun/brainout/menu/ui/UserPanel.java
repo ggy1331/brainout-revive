@@ -29,8 +29,8 @@ import org.anthillplatform.runtime.services.EnvironmentService;
 public class UserPanel extends Table
 {
     protected UserProfile user;
-    protected boolean enableCaseButton;
-    private BadgeButton caseButton;
+    protected boolean showBalance;
+
     private Runnable openExchange;
 
     public UserPanel()
@@ -40,7 +40,7 @@ public class UserPanel extends Table
     public UserPanel(boolean caseButton)
     {
         this.user = BrainOutClient.ClientController.getUserProfile();
-        this.enableCaseButton = caseButton;
+        this.showBalance = caseButton;
 
         fill();
     }
@@ -274,91 +274,21 @@ public class UserPanel extends Table
 
             add(group).top();
 
-            int casesAmount = user.getAmountOf(Case.class);
             renderCustomStats();
 
-            if (enableCaseButton)
+            if (showBalance)
             {
                 renderStats();
             }
 
             add().expandX();
 
-            if (enableCaseButton)
-            {
-                String caseIcon = "standard-case";
-
-                Object caseIcon_ = null;
-
-                if (EnvironmentService.Get() != null && EnvironmentService.Get().getEnvironmentVariables() != null)
-                {
-                    caseIcon_ = EnvironmentService.Get().getEnvironmentVariables().getOrDefault("case-icon", null);
-                }
-
-                if (caseIcon_ != null && !caseIcon_.toString().isEmpty())
-                {
-                    if (BrainOutClient.getRegion(caseIcon_.toString()) != null)
-                    {
-                        caseIcon = caseIcon_.toString();
-                    }
-                }
-
-                this.caseButton = new BadgeButton(caseIcon, casesAmount, false);
-
-                add(this.caseButton).size(128, 96);
-
-                this.caseButton.addListener(new ClickOverListener()
-                {
-                    @Override
-                    public void clicked(InputEvent event, float x, float y)
-                    {
-                        Menu.playSound(Menu.MenuSound.select);
-
-                        GameState topState = BrainOutClient.getInstance().topState();
-                        UserProfile profile = BrainOutClient.ClientController.getUserProfile();
-
-                        if (profile != null)
-                        {
-                            topState.pushMenu(new ContainersMenu(profile));
-                        }
-                    }
-                });
-
-                Object caseNotice = EnvironmentService.Get().getEnvironmentVariables().getOrDefault("case-notice", null);
-
-                if (caseNotice != null && !caseNotice.toString().isEmpty())
-                {
-                    Table noteTable = new Table();
-                    noteTable.setTouchable(Touchable.disabled);
-                    noteTable.align(Align.right | Align.bottom);
-                    noteTable.setFillParent(true);
-
-                    Label caseNote = new Label(caseNotice.toString(), BrainOutClient.Skin, "title-small");
-                    BorderActor noteBorder = new BorderActor(caseNote, "form-red");
-                    noteBorder.getCell().padBottom(1).padTop(-1);
-                    noteTable.add(noteBorder).size(56, 20);
-
-                    this.caseButton.addActor(noteTable);
-                }
-            }
         }
     }
 
     protected void renderStats()
     {
-        int skillPoints = user.getInt(Constants.User.SKILLPOINTS, 0);
-        int gears = user.getInt(Constants.User.GEARS, 0);
-        int nuclearMaterial = user.getInt(Constants.User.NUCLEAR_MATERIAL, 0);
         int ru = user.getInt("ru", 0);
-
-        addStat(String.valueOf(skillPoints), "skillpoints-big", -8, 68);
-        addStat(String.valueOf(gears), "icon-gears-big", 0, 68);
-
-        if (nuclearMaterial > 0)
-        {
-            addStat(String.valueOf(nuclearMaterial) + " / " + Constants.DailyReward.MAX_DAILY_CONTAINERS,
-                    "icon-nuclear-material-big", -6, 80);
-        }
 
         if (ru > 0)
         {
@@ -475,11 +405,6 @@ public class UserPanel extends Table
     {
         reset();
         fill();
-    }
-
-    public BadgeButton getCaseButton()
-    {
-        return caseButton;
     }
 
     public void disable(boolean disable)
