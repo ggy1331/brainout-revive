@@ -94,6 +94,7 @@ class Handler(BaseHTTPRequestHandler):
             body = str(payload if payload is not None else "").encode("utf-8")
             ctype = "text/plain; charset=utf-8"
 
+        ctype = headers.pop("Content-Type", ctype)
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))

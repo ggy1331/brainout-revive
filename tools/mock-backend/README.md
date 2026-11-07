@@ -24,6 +24,8 @@
 | game | регионы (`local`), поиск/создание комнат, комната по номеру, список комнат (браузер серверов). **Сам запускает игровые серверы** по запросу (`lobby`, `main`, `freeplay`, `duel`, `zombie`, `custom` — таблица `GAMES` в `services/game.py`), порты с 36600, логи `build/rooms/`. Одна комната на (игру, настройки) переиспользуется, пока процесс жив |
 | message | WebSocket `/message/listen` (JSON-RPC 2.0, свой минимальный WebSocket на stdlib — `services/websocket.py`): живая доставка пользователю (`user`) и группе (`social-group` = клан), `send_message` / `mark_as_read` / `delete_message` / `update_message`; история `/message/messages`, `/message/group/<класс>/<ключ>`. Рынок шлёт владельцу `order_completed` / `order_cancelled` |
 | social | **кланы** (группы): создание, поиск, вступление free/approve/invite, заявки и приглашения, права и роли, исключение, передача владения, профили клана/участника с `@func`, уведомления через message — как anthill-social. **Друзья** (наша добавка, в оригинале были только друзья Steam): `/social/friends` (список со статусом friend/incoming/outgoing, «в сети», комната), `add` по нику или аккаунту (взаимно = друзья), `remove`, `invite` в комнату (сообщение `friend_invite`) |
+| leaderboard | рейтинги: `top100` (игроки по K/D, присылает `PostLeaderboardPlugin` в конце матча при K/D ≥ 1,5; плюс все, у кого в профиле есть `kpd`), `clans100` (кланы), рейтинги событий; срок жизни записей |
+| static | загрузка аватаров клана/профиля (`PUT /static/upload`), раздача `/static/files/<id>` |
 | event, store, blog | заглушки: пустые списки |
 
 Проверка без игры: `build\pyenv\Scripts\python.exe tools\mock-backend\test_backend.py`.

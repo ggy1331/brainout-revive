@@ -768,6 +768,26 @@ public class LobbyMenu extends PlayerSelectionMenu
         return true;
     }
 
+    // revive: the chat keys (Y / U by default) open the hub chat too, not only the chat button
+    @Override
+    public boolean keyDown(int keyCode)
+    {
+        if (!(getKeyboardFocus() instanceof TextField))
+        {
+            com.desertkun.brainout.client.settings.KeyProperties.Keys action =
+                BrainOutClient.ClientSett.getControls().getKey(keyCode);
+
+            if (action == com.desertkun.brainout.client.settings.KeyProperties.Keys.chat ||
+                action == com.desertkun.brainout.client.settings.KeyProperties.Keys.teamChat)
+            {
+                openLobbyChat();
+                return true;
+            }
+        }
+
+        return super.keyDown(keyCode);
+    }
+
     private void globalConflict()
     {
         if (!BrainOut.OnlineEnabled())

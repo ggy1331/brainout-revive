@@ -291,10 +291,37 @@ def main():
         assert r["friends"] == [], r
         st, r = a.call("POST", "/social/friends/invite", account=acc_b, room="7")
         assert st == 406, "can invite only friends"
+
+        # leaderboards: top100 (players by K/D) and clans100 (posted with the clan id)
+        b.call("POST", "/profile/profile/me", data={"stats": {"kpd": 1.2}})  # only in the profile
+        st, r = a.call("POST", "/leaderboard/leaderboard/desc/top100", score=2.5, display_name="Alice",
+                       expire_in=604000, profile={"avatar": ""})
+        assert st == 200, r
+        st, r = a.call("GET", "/leaderboard/leaderboard/desc/top100", limit=100, offset=0)
+        names = [(e["display_name"], e["rank"]) for e in r["data"]]
+        assert names[0] == ("Alice", 1) and ("Bob", 2) in names, names
+        st, r = a.call("GET", "/leaderboard/leaderboard/desc/top100", limit=100, offset=0, arbitrary_account=acc_b)
+        assert len(r["data"]) == 1 and r["data"][0]["rank"] == 2, r
+        a.call("POST", "/leaderboard/leaderboard/desc/clans100", score=10, display_name="Dvor", expire_in=3600,
+               arbitrary_account="77", profile={})
+        a.call("POST", "/leaderboard/leaderboard/desc/clans100", score=5, display_name="Old", expire_in=-1,
+               arbitrary_account="78", profile={})
+        st, r = b.call("GET", "/leaderboard/leaderboard/desc/clans100", limit=3)
+        assert [e["account"] for e in r["data"]] == ["77", "78"], r
+
+        # static uploads (clan / profile avatars)
+        png = b"\x89PNG\r\n\x1a\nfake-avatar"
+        req = urllib.request.Request(base + "/static/upload?filename=clan.png&access_token=" + a.token,
+                                     data=png, method="PUT")
+        req.add_header("Content-Type", "application/octet-stream")
+        with urllib.request.urlopen(req) as resp:
+            url = json.loads(resp.read())["url"]
+        with urllib.request.urlopen(url) as resp:
+            assert resp.read() == png and resp.headers.get("Content-Type") == "image/png"
         print("OK: login, profile @func, stash, orders (escrow, fulfill, delete, expiry), "
               "messages (websocket push, market notifications, history), "
               "clans (create, search, request/approve, chat, profile @func, kick, leave), "
-              "friends (add by name, accept, online, invite, remove)")
+              "friends (add by name, accept, online, invite, remove), leaderboards (top100, clans100), static uploads")
     finally:
         proc.terminate()
 

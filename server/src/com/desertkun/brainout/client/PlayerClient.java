@@ -293,6 +293,9 @@ public class PlayerClient extends Client
         {
             String filtered = BrainOutServer.getInstance().validateText(msg.text);
 
+            // revive: chat goes to the server log (debugging "chat does not work" reports)
+            log("Chat [" + msg.mode + "]: " + filtered);
+
             chatLimit += 1;
 
             if (chatLimit > 30)

@@ -1,6 +1,6 @@
 """Service registry: maps the first URL path segment to a handler(ctx, rest_of_path)."""
 
-from . import environment, discovery, login, profile, stubs, market, game, message, social
+from . import environment, discovery, login, profile, stubs, market, game, message, social, leaderboard, static
 
 registry_map = {
     "environment": environment.handle,
@@ -14,6 +14,8 @@ registry_map = {
     "blog": stubs.blog,
     "message": message.handle,
     "social": social.handle,
+    "leaderboard": leaderboard.handle,
+    "static": static.handle,
 }
 
 
