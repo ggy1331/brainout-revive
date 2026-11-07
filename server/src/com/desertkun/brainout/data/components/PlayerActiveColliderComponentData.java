@@ -32,6 +32,9 @@ public class PlayerActiveColliderComponentData<T extends PlayerActiveColliderCom
     @Override
     protected ActiveData.LastHitInfo collide(CollideEvent collideEvent, float damage)
     {
+        com.desertkun.brainout.data.active.PlayerData shooter = collideEvent.bulletData.getPlayerData();
+        if (health.isImmortal() || (shooter != null && !shooter.canDealBulletDamage()))
+            return activeData.getLastHitInfo();
         PlayerOwnerComponent poc = activeData.getComponent(PlayerOwnerComponent.class);
 
         if (poc != null)

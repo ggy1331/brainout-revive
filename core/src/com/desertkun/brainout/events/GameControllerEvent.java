@@ -6,6 +6,7 @@ public class GameControllerEvent extends Event
 {
     public enum Action
     {
+        quickMelee,
         beginLaunch,
         endLaunch,
 

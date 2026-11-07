@@ -14,6 +14,7 @@ public class BulletLaunchMsg implements UdpMessage
     public float activeY;
     public float angles[];
 
+    public int playerId;
     public int recordId;
     public int bullets;
     public int random;
@@ -38,6 +39,7 @@ public class BulletLaunchMsg implements UdpMessage
         this.angles = angles;
         this.random = random;
 
+        this.playerId = active.getId();
         this.recordId = record.getId();
         this.bullet = bullet.getID();
         this.slot = slot;

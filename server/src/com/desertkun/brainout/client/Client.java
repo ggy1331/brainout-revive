@@ -421,15 +421,6 @@ public class Client extends ReflectionReceiver implements ActiveData.ComponentWr
             }
         }
 
-        if (spawnAt instanceof FlagData)
-        {
-            HealthComponentData hcd = playerData.getComponent(HealthComponentData.class);
-            if (hcd != null)
-            {
-                hcd.setImmortalTime(0);
-            }
-        }
-
         playerData.setPosition(spawnX, spawnY);
 
         updatePlayerSelection(shopCart);
@@ -467,6 +458,17 @@ public class Client extends ReflectionReceiver implements ActiveData.ComponentWr
         remoteComponent.setCurrentInstrument(ownerComponent.getCurrentInstrument());
         remoteComponent.setHookedInstrument(ownerComponent.getHookedInstrument());
 
+        if (this instanceof PlayerClient) {
+            Slot binoculars = BrainOut.ContentMgr.get("slot-binoculars", Slot.class);
+            if (binoculars != null && ownerComponent.getNextInstrumentForSlot(binoculars, null) == null) {
+                SlotItem.Selection selection = binoculars.getDefaultItem().getSelection();
+                selection.init(((PlayerClient)this).getProfile());
+                selection.apply(shopCart, playerData, ((PlayerClient)this).getProfile(), binoculars, selection);
+            }
+        }
+        HealthComponentData spawnHealth = playerData.getComponent(HealthComponentData.class);
+        if (spawnHealth != null) spawnHealth.setImmortalTime(0);
+        playerData.setSpawnProtection(3);
         beforeInit(playerData);
         playerData.init();
 

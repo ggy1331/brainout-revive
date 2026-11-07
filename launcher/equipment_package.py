@@ -29,6 +29,16 @@ def transform(data):
         components = value.get("components", [])
         if any(c.get("class") == "content.components.UnlockStoreItemComponent" and c.get("content") in cases for c in components):
             value["components"] = [c for c in components if c.get("class") not in ("content.components.UnlockStoreItemComponent", "content.components.ServerUnlockStoreItemComponent")]
+    content["slot-primary"]["categories"].insert(-1, {"id":"machineguns","title":"MENU_MACHINEGUNS"})
+    for model in "aek999 bar fnminimi hk21 kac-chainsaw l86 m134 m60 mg34 mg36 mg42 pecheneg pkm rpd rpk16 rpk74 tul1".split():
+        content["sl-pri-" + model]["category"] = "machineguns"
+    for model in "gm94 hk69 m79 rg6 rpg7 shield".split():
+        item = content["sl-pri-" + model]
+        item.update(slot="slot-special", category="special")
+        content[item["instrument"]["id"]]["slot"] = "slot-special"
+    content["instrument-binoculars"]["throwable"] = False
+    del content["sl-spc-binoculars"]
+    shop["items"].pop("sl-spc-binoculars", None)
     second = deepcopy(content["slot-special"])
     second.update(name="CONTROL_SPECIAL_TWO", default="sl-inst-none-slot2")
     content["slot-special-extra"] = second
@@ -59,11 +69,12 @@ def build(source, target):
                 else:
                     for key, ru, en in [("MAP_DUEL","Дуэль","Duel"), ("MAP_HALLOWEEN","Хэллоуин","Halloween"), ("MAP_BUNKER_CTF","Бункер (флаги)","Bunker (CTF)"), ("MODE_DUEL","Дуэль","Duel"), ("MODE_ZOMBIE","Зомби","Zombies")]:
                         obj["data"].setdefault(key, {"RU": ru, "EN": en})
+                    obj["data"]["MENU_MACHINEGUNS"]={"RU":"Пулемёты","EN":"Machine guns"}
                     obj["data"]["CONTROL_PRONE"]={"RU":"Лечь / встать","EN":"Toggle prone"}
                     obj["data"]["CONTROL_KNIFE"]={"RU":"Нож","EN":"Knife"}
                     obj["data"]["CONTROL_SPECIAL_ONE"]={"RU":"Спецоружие 1","EN":"Special equipment 1"}
                     obj["data"]["CONTROL_SPECIAL_TWO"]={"RU":"Спецоружие 2","EN":"Special equipment 2"}
-                    obj["data"]["CONTROL_KNIFE_ALT"]={"RU":"Нож (доп. клавиша)","EN":"Knife (alternate)"}
+                    obj["data"]["CONTROL_KNIFE_ALT"]={"RU":"Быстрый удар","EN":"Quick melee"}
                 raw=json.dumps(obj,ensure_ascii=True,separators=(",",":")).encode("utf8")
             result.writestr(entry,raw)
 

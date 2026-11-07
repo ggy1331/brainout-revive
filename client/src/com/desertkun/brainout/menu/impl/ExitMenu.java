@@ -62,10 +62,10 @@ public class ExitMenu extends Menu
             if (BrainOutClient.ClientController.isLobby()) {
                 addButton("Свободная Зона",HomeHub::zone);
                 addButton("Подключение",() -> openHubPanel(true));
-                if (HomeHub.OWNER) addButton("Запуск матча",() -> openHubPanel(false));
-                else addButton("В свой хаб",()->HomeHub.changeHost("home"));
+                addButton("Запуск матча", () -> HomeHub.openMatch(this, () -> openHubPanel(false)));
+                if (!HomeHub.OWNER) addButton("В свой хаб",()->HomeHub.changeHost("home"));
                 addButton("Закрыть игру",()->Gdx.app.exit());
-            } else addButton(BrainOutClient.ClientController.isFreePlay() ? "Выход в свой хаб" : "Вернуться в меню",HomeHub::back);
+            } else addButton((!HomeHub.OWNER || BrainOutClient.ClientController.isFreePlay()) ? "Выход в свой хаб" : "Вернуться в меню",HomeHub::back);
         }
         else addButton(L.get("MENU_EXIT"), this::exit);
 

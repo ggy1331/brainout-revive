@@ -536,8 +536,8 @@ public class LobbyMenu extends PlayerSelectionMenu
         {
             HubPanel.add(controls,"Свободная Зона",HomeHub::zone);
             HubPanel.add(controls,"Подключение",()->pushMenu(new HubPanel(true)));
-            if (HomeHub.OWNER) HubPanel.add(controls,"Запуск матча",()->pushMenu(new HubPanel(false)));
-            else HubPanel.add(controls,"В свой хаб",()->HomeHub.changeHost("home"));
+            HubPanel.add(controls,"Запуск матча", () -> HomeHub.openMatch(this, () -> pushMenu(new HubPanel(false))));
+            if (!HomeHub.OWNER) HubPanel.add(controls,"В свой хаб",()->HomeHub.changeHost("home"));
         }
         else
         {

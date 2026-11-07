@@ -62,7 +62,8 @@ public class HealthComponentData<T extends HealthComponent> extends Component<T>
 
     public void damage(DamageEvent e)
     {
-        if (isImmortal())
+        if (isImmortal() || (e.bulletData != null && e.bulletData.getPlayerData() != null &&
+            !e.bulletData.getPlayerData().canDealBulletDamage()))
         {
             return;
         }
@@ -185,7 +186,7 @@ public class HealthComponentData<T extends HealthComponent> extends Component<T>
     {
         json.writeValue("h", health);
         json.writeValue("ih", initHealth);
-        json.writeValue("imm", immortalTime);
+        json.writeValue("imm", immortalTime.value());
     }
 
     @Override
@@ -193,12 +194,14 @@ public class HealthComponentData<T extends HealthComponent> extends Component<T>
     {
         health = jsonData.getFloat("h");
         initHealth = jsonData.getFloat("ih");
-        immortalTime.setValue(jsonData.getFloat("imm", 0));
+        JsonValue immunity = jsonData.get("imm");
+        immortalTime.setValue(immunity != null && immunity.isNumber() ? immunity.asFloat() : 0);
     }
 
     public boolean isImmortal()
     {
-        return isGod() || !immortalTime.isGone();
+        return isGod() || !immortalTime.isGone() || (getComponentObject() instanceof com.desertkun.brainout.data.active.PlayerData &&
+            ((com.desertkun.brainout.data.active.PlayerData)getComponentObject()).hasSpawnProtection());
     }
 
     public void setImmortalTime(float immortalTime)

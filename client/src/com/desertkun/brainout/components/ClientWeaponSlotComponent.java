@@ -448,16 +448,9 @@ public class ClientWeaponSlotComponent extends WeaponSlotComponent
         if (angles == null)
             return;
 
-        if (BrainOutClient.ClientController.isFreePlay() && MisfireUtils.TestMisfire(getChamberedQuality(), random))
-        {
-            effect(Constants.Effects.STUCK_EFFECT);
-        }
-        else
-        {
-            BrainOut.EventMgr.sendDelayedEvent(owner,
-                LaunchBulletEvent.obtain(getBullet(), owner.getOwnerId(), slot,
-                    launchData.getX(), launchData.getY(), angles, silent));
-        }
+        BrainOut.EventMgr.sendDelayedEvent(owner,
+            LaunchBulletEvent.obtain(getBullet(), owner.getOwnerId(), slot,
+                launchData.getX(), launchData.getY(), angles, silent));
 
         BrainOutClient.ClientController.sendUDP(
             new BulletLaunchMsg(launchData, owner, angles, getRecord(), getBullet(),

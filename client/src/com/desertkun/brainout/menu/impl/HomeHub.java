@@ -35,7 +35,7 @@ public final class HomeHub {
     private static JSONObject request(String action, JSONObject body,String token) throws Exception {
         HttpURLConnection c=(HttpURLConnection)new URL("http://"+ENDPOINT+"/hub/"+action).openConnection(Proxy.NO_PROXY);
         try {
-            c.setConnectTimeout(1800); c.setReadTimeout(body==null ? 3500 : 100000);
+            c.setConnectTimeout(1800); c.setReadTimeout("leave".equals(action) ? 1500 : body==null ? 3500 : 100000);
             c.setRequestProperty("X-Token",token);
             if(OWNER) c.setRequestProperty("X-Hub-Key",System.getenv("BRAINOUT_OWNER_KEY"));
             if(body!=null) {
@@ -91,13 +91,27 @@ public final class HomeHub {
             }
         });
     }
+    public static void openMatch(Menu menu, Runnable open) {
+        if (OWNER) open.run();
+        else menu.pushMenu(new AlertPopup("Матч может запустить только хозяин хаба."));
+    }
     public static void zone(){query("zone",new JSONObject(),null);}
     public static void back(){
-        if(!OWNER && BrainOutClient.ClientController.isFreePlay())changeHost("home");
+        if(!OWNER)changeHost("home");
         else query("return",new JSONObject(),null);
     }
     public static void changeHost(String endpoint) {
         if(leaving)return;
+        if ("home".equals(endpoint) && !OWNER && System.currentTimeMillis()-lastSuccess < 12000) {
+            leaving=true;
+            String credential=token();
+            worker.execute(() -> {
+                try { request("leave",new JSONObject(),credential); } catch(Exception ignored) {}
+                Gdx.app.postRunnable(() -> switchEndpoint(endpoint));
+            });
+        } else switchEndpoint(endpoint);
+    }
+    private static void switchEndpoint(String endpoint) {
         try {
             Path file=Paths.get(System.getenv("BRAINOUT_HUB_NEXT"));
             Path temp=file.resolveSibling("next.tmp");
