@@ -35,5 +35,7 @@ description = ITEM_UPGRADE_SILENCER_DESC
 id = upgrade-ash12-silencer
 name = ITEM_UPGRADE_SILENCER
 properties = {
+    damage = "-3"
+    recoil = "+3"
     silent = "=1"
 }
