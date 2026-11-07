@@ -1,0 +1,39 @@
+access = byDefault
+class = content.upgrades.Upgrade
+components = [
+    {
+        class = content.components.SuppressBulletAttachmentsComponent
+        suppress = fire-bone
+        tag = client
+    }
+    {
+        class = content.components.ReplaceInstrumentEffectsComponent
+        replace = {
+            shoot = [
+                ash12-shoot-s-1, pistol-shoot-smoke
+                ash12-shoot-s-2, pistol-shoot-smoke
+                ash12-shoot-s-3, pistol-shoot-smoke
+            ]
+        }
+        tag = client
+    }
+    {
+        class = content.components.ReplaceSlotComponent
+        classToReplace = data.components.WeaponAnimationComponentData
+        replace = {
+            silencer = on
+        }
+        tag = client
+    }
+    {
+        big-icon = ash12-silencer
+        class = content.components.IconComponent
+        tag = client
+    }
+]
+description = ITEM_UPGRADE_SILENCER_DESC
+id = upgrade-ash12-silencer
+name = ITEM_UPGRADE_SILENCER
+properties = {
+    silent = "=1"
+}

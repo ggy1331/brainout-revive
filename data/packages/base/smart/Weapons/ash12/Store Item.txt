@@ -1,0 +1,28 @@
+access = byDefault
+class = content.shop.InstrumentSlotItem
+components = [
+    {
+        class = content.components.RandomWeightComponent
+        weight = 50
+    }
+]
+id = sl-pri-ash12
+instrument = {
+    id = weapon-ash12
+    skins = skin-weapon-ash12-default
+    upgrades = {
+        silencer = upgrade-ash12-silencer
+        scope = upgrade-ash12-collimator
+    }
+}
+items = [
+    {
+        amount = 30
+        id = bullet-12.7x55
+    }
+]
+name = ITEM_WEAP_ASH12
+slot = slot-primary
+category = assault
+tags = unique, ash12
+index = 182

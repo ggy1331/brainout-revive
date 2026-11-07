@@ -1,0 +1,30 @@
+{
+  "source": "User supplied MW2019 Oden sounds.zip / weapon_shak12.bnk",
+  "bank_sha256": "2e4665e0e178bad33f44f31b9932e7f9106c0637b6fabab04381ae3f410688f3",
+  "event_regular": "shak12_fire [suppressed=regular]",
+  "regular_wem_ids": [
+    370589041,
+    588980768,
+    133896818,
+    100686234,
+    140924713
+  ],
+  "event_suppressed": "shak12_fire [suppressed=suppressed_a]",
+  "suppressed_wem_ids": [
+    85182597,
+    137311004,
+    228973385
+  ],
+  "reload_events": {
+    "wp_shak12_clip_in": 472963915,
+    "wp_shak12_clip_in_place": 1059901871,
+    "wp_shak12_clip_out": 907653214,
+    "wp_shak12_grab_clip": 79455714,
+    "wp_shak12_grab_end": 756798118,
+    "wp_shak12_hand_release": 591225509,
+    "wp_shak12_lever_pull": 17865208,
+    "wp_shak12_lever_release": 283993142,
+    "wp_shak12_take_new": 891154560
+  },
+  "format": "PCM16 mono 44100 Hz; trailing near-silence trimmed on shots; gains 0.55 regular / 0.4 suppressed; staged reload 2.8 s and fetch 0.65 s"
+}

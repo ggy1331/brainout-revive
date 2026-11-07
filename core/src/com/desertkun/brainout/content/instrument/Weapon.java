@@ -20,6 +20,7 @@ public class Weapon extends Instrument
     {
         private float accuracy;
         private float recoil;
+        private float accuracyRecovery;
 
         private int clipSize;
         private float reloadTime;
@@ -83,6 +84,7 @@ public class Weapon extends Instrument
         {
             accuracy = jsonData.getFloat("accuracy", accuracy);
             recoil = jsonData.getFloat("recoil", recoil);
+            accuracyRecovery = jsonData.getFloat("accuracy-recovery", 0);
             shellAutoEject = jsonData.getBoolean("shell-auto-eject", shellAutoEject);
 
             autoSwitchSecondary = jsonData.getBoolean("autoSwitchSecondary", false);
@@ -275,6 +277,12 @@ public class Weapon extends Instrument
         public float getRecoil()
         {
             return recoil;
+        }
+
+        /** Spread recovered per second; zero keeps the recoil-based default. */
+        public float getAccuracyRecovery()
+        {
+            return accuracyRecovery;
         }
 
         public int getClipSize()

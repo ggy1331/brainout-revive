@@ -873,6 +873,12 @@ public abstract class WeaponSlotComponent extends Component
 
     public float calculateBreakdown()
     {
+        float recovery = weaponProperties.getAccuracyRecovery();
+        if (recovery > 0)
+        {
+            return recovery;
+        }
+
         return MathUtils.lerp(Constants.Weapon.RECOIL_BREAKDOWN_MIN,
                 Constants.Weapon.RECOIL_BREAKDOWN_MAX, calculateRecoil());
     }

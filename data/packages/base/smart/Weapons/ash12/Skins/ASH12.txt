@@ -1,0 +1,7 @@
+access = byDefault
+class = content.instrument.InstrumentSkin
+components = []
+data = weapon-default
+id = skin-weapon-ash12-default
+name = ITEM_WEAP_ASH12
+slot = sl-pri-ash12

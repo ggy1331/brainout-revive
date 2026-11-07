@@ -1,4 +1,54 @@
 {"content": {
+    "ash12-shoot-1": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-1.wav",
+        "tag": "client"
+    },
+    "ash12-shoot-2": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-2.wav",
+        "tag": "client"
+    },
+    "ash12-shoot-3": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-3.wav",
+        "tag": "client"
+    },
+    "ash12-shoot-4": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-4.wav",
+        "tag": "client"
+    },
+    "ash12-shoot-5": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-5.wav",
+        "tag": "client"
+    },
+    "ash12-shoot-s-1": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-s-1.wav",
+        "tag": "client"
+    },
+    "ash12-shoot-s-2": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-s-2.wav",
+        "tag": "client"
+    },
+    "ash12-shoot-s-3": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fire-s-3.wav",
+        "tag": "client"
+    },
+    "ash12-reload-snd": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/reload.wav",
+        "tag": "client"
+    },
+    "ash12-fetch-snd": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/ash12/fetch.wav",
+        "tag": "client"
+    },
     "explosion-tail-1": {
         "class": "content.effect.GunshotTailSoundEffect",
         "key": "explosion-tail",

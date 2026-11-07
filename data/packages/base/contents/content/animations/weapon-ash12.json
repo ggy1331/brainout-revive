@@ -1,0 +1,126 @@
+{
+ "skeleton": {
+  "hash": "ash12-approved-worn",
+  "spine": "4.0.36",
+  "x": -21.653750000000002,
+  "y": -4.5475,
+  "width": 40.6725,
+  "height": 14.7475,
+  "images": "../../../textures/GAME/",
+  "audio": ""
+ },
+ "bones": [
+  {
+   "name": "root",
+   "scaleX": 0.4,
+   "scaleY": 0.4
+  },
+  {
+   "name": "center-bone",
+   "parent": "root",
+   "x": -3.2937499999999997,
+   "y": 7.065625
+  },
+  {
+   "name": "fire-bone",
+   "parent": "root",
+   "x": -9.5625,
+   "y": 11.36875,
+   "length": 22.7375,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "shell-bone",
+   "parent": "root",
+   "x": -15.40625,
+   "y": 9.721874999999999,
+   "rotation": 90,
+   "length": 1.8,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "hook-bone",
+   "parent": "root",
+   "x": -7.4375,
+   "y": 14.184375,
+   "length": 5,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  }
+ ],
+ "slots": [
+  {
+   "name": "body",
+   "bone": "root",
+   "attachment": "body"
+  },
+  {
+   "name": "clip",
+   "bone": "root",
+   "attachment": "default"
+  },
+  {
+   "name": "silencer",
+   "bone": "root"
+  },
+  {
+   "name": "scope",
+   "bone": "root"
+  }
+ ],
+ "skins": [
+  {
+   "name": "weapon-default",
+   "attachments": {
+    "body": {
+     "body": {
+      "name": "ash12-skin",
+      "x": -3.0,
+      "y": 9.0,
+      "width": 102,
+      "height": 34
+     },
+     "rail": {
+      "name": "ash12-skin-rail",
+      "x": -3.0,
+      "y": 9.0,
+      "width": 102,
+      "height": 34
+     }
+    },
+    "clip": {
+     "default": {
+      "name": "ash12-clip-default",
+      "x": -18.0,
+      "y": -3.5,
+      "width": 14,
+      "height": 17
+     }
+    },
+    "silencer": {
+     "on": {
+      "name": "ash12-silencer",
+      "x": 52.0,
+      "y": 12.0,
+      "width": 26,
+      "height": 8
+     }
+    },
+    "scope": {
+     "aimpoint": {
+      "name": "g36c-scope-aimpoint",
+      "x": 1.5,
+      "y": 22.5,
+      "width": 21,
+      "height": 11
+     }
+    }
+   }
+  }
+ ],
+ "animations": {
+  "animation": {}
+ }
+}
