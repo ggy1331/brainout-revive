@@ -1,0 +1,5 @@
+animation = base:animations/weapon-gepard.json
+class = content.Animation
+id = anim-gepard
+states = []
+timeScale = 1

@@ -1,0 +1,7 @@
+access = byDefault
+class = content.instrument.InstrumentSkin
+components = []
+data = weapon-default
+id = skin-weapon-gepard-default
+name = ITEM_WEAP_GEPARD
+slot = sl-pri-gepard

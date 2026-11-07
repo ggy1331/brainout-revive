@@ -1,0 +1,107 @@
+{
+ "skeleton": {
+  "hash": "gepard-approved-concept",
+  "spine": "4.0.36",
+  "x": -20.450000000000003,
+  "y": -8.275,
+  "width": 41.625,
+  "height": 18.650000000000002,
+  "images": "../../../textures/GAME/",
+  "audio": ""
+ },
+ "bones": [
+  {
+   "name": "root",
+   "scaleX": 0.4,
+   "scaleY": 0.4
+  },
+  {
+   "name": "center-bone",
+   "parent": "root",
+   "x": 0.90625,
+   "y": 2.625
+  },
+  {
+   "name": "fire-bone",
+   "parent": "root",
+   "x": 5.3125,
+   "y": 15.25,
+   "length": 19.05,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "shell-bone",
+   "parent": "root",
+   "x": 8.4375,
+   "y": 17.0625,
+   "rotation": 90,
+   "length": 1.5,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "hook-bone",
+   "parent": "root",
+   "x": -0.9375,
+   "y": 21.875,
+   "length": 5,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  }
+ ],
+ "slots": [
+  {
+   "name": "butt",
+   "bone": "root",
+   "attachment": "default"
+  },
+  {
+   "name": "body",
+   "bone": "root",
+   "attachment": "body"
+  },
+  {
+   "name": "clip",
+   "bone": "root",
+   "attachment": "default"
+  }
+ ],
+ "skins": [
+  {
+   "name": "weapon-default",
+   "attachments": {
+    "body": {
+     "body": {
+      "name": "gepard-skin",
+      "x": 17.09375,
+      "y": 9.03125,
+      "width": 71.6875,
+      "height": 33.8125
+     }
+    },
+    "clip": {
+     "default": {
+      "name": "gepard-clip-default",
+      "x": -4.96875,
+      "y": -14.03125,
+      "width": 11.9375,
+      "height": 13.3125
+     }
+    },
+    "butt": {
+     "default": {
+      "name": "gepard-butt-default",
+      "x": -34.28125,
+      "y": 11.96875,
+      "width": 33.6875,
+      "height": 15.8125
+     }
+    }
+   }
+  }
+ ],
+ "animations": {
+  "animation": {}
+ }
+}

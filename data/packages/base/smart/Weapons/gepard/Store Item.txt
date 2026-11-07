@@ -1,0 +1,31 @@
+// Approved Gepard concept, direct image import. Initial gameplay values: MP5.
+access = byDefault
+class = content.shop.InstrumentSlotItem
+components = [
+    {
+        class = content.components.RandomWeightComponent
+        weight = 100
+    }
+]
+id = sl-pri-gepard
+instrument = {
+    id = weapon-gepard
+    skins = skin-weapon-gepard-default
+    upgrades = {
+        extra-mag = upgrade-common-extra-mag
+        accuracy = upgrade-gepard-accuracy
+        reload-time = upgrade-gepard-reload-time
+        recoil = upgrade-gepard-recoil
+    }
+}
+items = [
+    {
+        amount = 60
+        id = bullet-9mmx19
+    }
+]
+name = ITEM_WEAP_GEPARD
+slot = slot-primary
+category = submachine
+tags = unique, gepard
+index = 181
