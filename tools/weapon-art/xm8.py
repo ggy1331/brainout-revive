@@ -1,6 +1,7 @@
 """
 Pixel art of the XM8 (our new weapon), drawn from code so it can be tweaked and redrawn.
-Parts follow the G36 skeleton (same anchor points): body 89x39, magazine 13x17, stock 36x22.
+Slim XM8 silhouette, based on the approved side-profile concept.
+Parts keep the G36 skeleton anchors: body 89x39, magazine 13x17, stock 36x22.
 
 Run:  build\\pyenv\\Scripts\\python.exe tools\\weapon-art\\xm8.py
 Writes data/packages/base/textures/GAME/xm8-*.png
@@ -90,55 +91,65 @@ class Canvas:
 
 def body():
     c = Canvas(89, 39)
-    # --- olive shell: rear sight housing, top ridge (carry handle), front slope, rounded nose
-    c.poly([(4, 11), (6, 8), (8, 4), (10, 3), (21, 3), (23, 5), (24, 6), (58, 6), (61, 7),
-            (70, 12), (75, 13), (78, 15), (79, 17), (78, 20), (76, 22), (40, 22), (37, 24),
-            (36, 27), (22, 27), (21, 24), (4, 24)], "o")
-    # trigger guard loop under the receiver
+    # Low receiver and elongated, gently tapered fore-end. The muzzle axis,
+    # magazine well and grip stay where the existing animation expects them.
+    c.poly([(4, 17), (10, 15), (14, 14), (22, 14), (24, 16),
+            (49, 16), (53, 11), (61, 11), (70, 13), (76, 15), (79, 18),
+            (78, 22), (40, 22), (37, 24), (36, 27), (22, 27),
+            (21, 24), (4, 24)], "o")
+    c.shade(4, 21, 78, 24, -1)
+    c.line([(24, 20), (39, 20), (43, 18), (68, 18)], "o")
+    c.shade(24, 20, 39, 20, -1)
+
+    # Narrow carry-handle bridge, with open air underneath (not a tall shell).
+    c.poly([(21, 8), (49, 8), (61, 9), (70, 11), (75, 13),
+            (78, 17), (76, 19), (71, 15), (65, 13), (57, 11),
+            (23, 10)], "o")
+    c.line([(24, 8), (49, 8), (60, 9)], "o")
+    c.shade(24, 8, 60, 8, 1)
+    # Rear support for the compact integral sight, as on the real XM8.
+    c.poly([(11, 15), (14, 8), (14, 6), (23, 6), (23, 10),
+            (25, 16), (23, 19), (10, 19)], "o")
+    c.rect(12, 3, 24, 7, "o")
+    c.rect(11, 4, 12, 7, "k")
+    c.rect(24, 4, 25, 7, "k")
+    c.px(24, 4, "l", 3)
+    c.shade(14, 6, 23, 7, -1)
+    c.px(16, 11, "s", 1)
+    c.px(16, 10, "s", 4)
+
+    # Vents and shallow rubber insert follow the slim nose, rather than
+    # making the whole handguard a thick block.
+    for vx, vy in ((54, 13), (60, 13), (66, 14), (71, 15)):
+        c.rect(vx, vy, vx + 2, vy, "k")
+    c.poly([(43, 19), (74, 19), (77, 21), (76, 22), (41, 22)], "k")
+    for gx in range(45, 75, 3):
+        c.line([(gx, 20), (gx - 1, 21)], "k")
+        c.shade(gx, 20, gx, 20, 1)
+    c.rect(25, 17, 39, 18, "k")
+    c.rect(25, 17, 27, 18, "s")
+    c.px(26, 17, "s", 4)
+    c.px(15, 21, "k", 1)
+    c.px(16, 21, "s", 3)
+
+    # Olive raked pistol grip with the small black heel of the concept.
+    c.poly([(6, 24), (11, 24), (11, 26), (8, 32), (6, 37),
+            (3, 38), (1, 37), (3, 30), (5, 25)], "o")
+    c.poly([(2, 34), (7, 35), (6, 37), (3, 38), (1, 37)], "k")
+    c.shade(4, 28, 8, 31, -1)
+    # Trigger guard remains a separate readable opening.
     c.poly([(9, 23), (22, 23), (22, 27), (12, 27), (10, 26)], "o")
-    c.rect(12, 24, 20, 25, None)          # opening of the guard
-    c.rect(14, 24, 14, 25, "k")           # trigger
+    c.rect(12, 24, 20, 25, None)
+    c.rect(14, 24, 14, 25, "k")
     c.px(15, 24, "k", 1)
-    # opening under the carry handle
-    c.rect(27, 8, 47, 9, None)
-    c.shade(27, 10, 47, 10, -1)
-    # body lower half a bit darker (two-tone shell)
-    c.shade(4, 16, 78, 22, -1)
-    c.shade(36, 23, 40, 27, -1)
-    # side groove along the receiver
-    for x in range(24, 70):
-        c.adj[14][x] -= 2
-    for x in range(24, 70):
-        c.adj[15][x] += 1
-    # vents on the front of the handguard
-    for vx in (50, 55, 60, 65):
-        c.rect(vx, 10, vx + 2, 11, "k")
-    # black rubber strip on the lower handguard
-    c.poly([(41, 18), (73, 18), (75, 20), (74, 22), (40, 22), (39, 20)], "k")
-    for gx in range(43, 73, 3):
-        c.shade(gx, 19, gx, 21, 1)
-    # ejection port & bolt handle slot
-    c.rect(26, 12, 33, 12, "k")
-    c.px(26, 12, "k", 0)
-    # optic: lens at the front of the housing, rear aperture
-    c.rect(20, 4, 22, 7, "k")
-    c.px(21, 5, "l", 4)
-    c.px(21, 6, "l", 2)
-    c.rect(9, 4, 10, 6, "k")
-    # fire selector
-    c.px(11, 20, "k", 1)
-    c.px(12, 20, "k", 3)
-    # --- barrel & flash hider
+
+    # Keep the original muzzle endpoint and suppressor fit.
     c.rect(79, 16, 88, 17, "s")
-    c.rect(84, 15, 88, 18, "s")
-    c.px(88, 15, "s", 1)
+    c.rect(85, 16, 88, 18, "s")
+    c.px(88, 16, "s", 1)
     c.px(88, 18, "s", 1)
     c.px(86, 16, "s", 1)
     c.px(86, 17, "s", 1)
-    # --- black pistol grip, slanted like the G36 one
-    c.poly([(6, 24), (11, 24), (11, 26), (8, 32), (6, 37), (3, 38), (1, 37), (3, 30), (5, 25)], "k")
-    c.shade(2, 31, 9, 31, 1)
-    c.shade(1, 35, 7, 35, 1)
     return c.render()
 
 
@@ -156,18 +167,17 @@ def magazine():
 
 def stock():
     c = Canvas(36, 22)
-    # outer shape: thick top bar, slanted lower strut, butt pad
-    c.poly([(1, 4), (3, 3), (35, 3), (35, 9), (27, 9), (11, 15), (7, 20), (1, 20)], "k")
-    # cut-out
-    c.poly([(7, 7), (27, 7), (24, 8), (10, 13), (7, 14)], None)
-    # adjustment notches on the top bar
-    for x in range(10, 32, 4):
-        c.px(x, 4, "k", 4)
-    # rubber butt pad
-    c.rect(0, 3, 3, 21, "k")
+    # Slim telescoping stock, not the previous triangular G36 frame.
+    c.poly([(2, 6), (10, 7), (19, 7), (26, 6), (35, 3),
+            (35, 12), (9, 12), (6, 14), (5, 20), (2, 20)], "o")
+    c.poly([(15, 6), (24, 5), (30, 3), (35, 2), (35, 5),
+            (26, 8), (15, 8)], "k")
+    for x in (7, 10, 13):
+        c.line([(x, 8), (x + 1, 10)], "o")
+        c.shade(x, 8, x + 1, 10, -1)
+    c.poly([(0, 4), (2, 3), (3, 5), (5, 6), (4, 13),
+            (3, 21), (0, 21)], "k")
     c.shade(0, 3, 1, 21, -1)
-    # olive collar where it meets the receiver
-    c.rect(32, 2, 35, 10, "o")
     return c.render()
 
 

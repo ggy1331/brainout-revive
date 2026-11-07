@@ -2,10 +2,10 @@
  "skeleton": {
   "hash": "xm8-revive",
   "spine": "4.0.36",
-  "x": -14.89,
-  "y": -5.04,
-  "width": 48.41,
-  "height": 17.57,
+  "x": -15.682209,
+  "y": -4.356212,
+  "width": 49.168374,
+  "height": 16.110996,
   "images": "../../../textures/GAME/",
   "audio": ""
  },
@@ -87,35 +87,35 @@
     "body": {
      "body": {
       "name": "xm8-skin",
-      "x": 39.29,
-      "y": 11.82,
-      "width": 89,
-      "height": 39
+      "x": 38.925351,
+      "y": 11.262091,
+      "width": 90,
+      "height": 36
      }
     },
     "butt": {
      "default": {
       "name": "xm8-butt-default",
-      "x": -19.23,
-      "y": 8.3,
-      "width": 36,
-      "height": 22
+      "x": -18.992189,
+      "y": 10.03139,
+      "width": 40,
+      "height": 21
      }
     },
     "clip": {
      "default": {
       "name": "xm8-clip-default",
-      "x": 23.15,
-      "y": -4.1,
+      "x": 24.604465,
+      "y": -3.021501,
       "width": 13,
-      "height": 17
+      "height": 16
      }
     },
     "silencer": {
      "on": {
       "name": "g36c-silencer",
       "x": 87.8,
-      "y": 14.3,
+      "y": 13.648905,
       "width": 28,
       "height": 6
      }
