@@ -46,6 +46,7 @@ class Storage:
     def __init__(self, root):
         self.root = root
         self.lock = threading.RLock()
+        self.on_put = None  # callback(collection, key) after every put (progress sync marks)
         os.makedirs(root, exist_ok=True)
 
     def _path(self, collection, key):
@@ -69,6 +70,8 @@ class Storage:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(value, f, ensure_ascii=False, indent=2)
             os.replace(tmp, p)
+        if self.on_put is not None:
+            self.on_put(collection, key)
 
     def delete(self, collection, key):
         p = self._path(collection, key)

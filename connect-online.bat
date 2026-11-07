@@ -54,6 +54,9 @@ rem Client folder: friend package layout or the dev repo layout
 set "CLIENT=%~dp0client"
 if not exist "%CLIENT%\brainout-desktop.jar" set "CLIENT=%~dp0bin\client"
 
+rem progress of the solo PvE Zone (play-solo.bat) goes to the host first
+if exist "%~dp0solo-data\%NAME%" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0play-solo.ps1" -Name %NAME% -HostIp %IP% -SyncOnly
+
 echo Онлайн у %IP% как %NAME% ...
 echo Лог: %~dp0client-last.log
 cd /d "%CLIENT%"

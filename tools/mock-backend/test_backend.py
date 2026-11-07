@@ -63,13 +63,14 @@ class Client:
 class WsClient:
     """Tiny WebSocket client for /message/listen (masked frames, text only)."""
 
-    def __init__(self, port, token):
+    def __init__(self, port, token, path="/message/listen?"):
         import base64
         self.sock = socket.create_connection(("127.0.0.1", port), timeout=5)
         key = base64.b64encode(os.urandom(16)).decode()
-        self.sock.sendall(("GET /message/listen?access_token=%s HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\n"
+        sep = "" if path.endswith("?") else "&"
+        self.sock.sendall(("GET %s%saccess_token=%s HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\n"
                            "Connection: Upgrade\r\nSec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n"
-                           % (token, key)).encode())
+                           % (path, sep, token, key)).encode())
         head = b""
         while b"\r\n\r\n" not in head:
             head += self.sock.recv(1)
@@ -97,6 +98,13 @@ class WsClient:
             msg = json.loads(self._read(n).decode())
             if "method" in msg:
                 return msg
+
+    def recv_method(self, method):
+        """Params of the next server call with this method."""
+        while True:
+            msg = self.recv()
+            if msg.get("method") == method:
+                return msg.get("params") or {}
 
     def recv_type(self, message_type):
         """Next "message" of the given type (earlier notifications are skipped)."""

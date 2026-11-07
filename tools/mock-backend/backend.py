@@ -112,6 +112,9 @@ class Handler(BaseHTTPRequestHandler):
             if parsed.path.rstrip("/") == "/message/listen":
                 from services import message
                 message.serve_listen(self.server.app, self, query)
+            elif parsed.path.startswith("/game/party/"):
+                from services import party
+                party.serve_session(self.server.app, self, parsed.path, query)
             else:
                 self.send_error(404, "no websocket here")
             return
@@ -128,16 +131,19 @@ class Handler(BaseHTTPRequestHandler):
 
 
 class App:
-    def __init__(self, base_url, storage, public_host="127.0.0.1", repo=".", java="java"):
+    def __init__(self, base_url, storage, public_host="127.0.0.1", repo=".", java="java",
+                 server_dir=None, logs_dir=None):
         self.base_url = base_url
         self.storage = storage
         self.lock = threading.RLock()
         self.public_host = public_host
         self.repo = repo
         self.java = java
-        self.server_dir = os.path.join(repo, "bin", "server")
-        self.logs_dir = os.path.join(repo, "build", "rooms")
+        self.server_dir = server_dir or os.path.join(repo, "bin", "server")
+        self.logs_dir = logs_dir or os.path.join(repo, "build", "rooms")
         self.log = log
+        self.solo_name = None  # solo PvE backend of one player (progress synced with sync_host)
+        self.sync_host = None
 
     def service_url(self, name):
         return self.base_url + "/" + name
@@ -154,12 +160,32 @@ def main():
     default_java = r"C:\Program Files\Java\jdk-17\bin\java.exe"
     ap.add_argument("--java", default=default_java if os.path.exists(default_java) else "java",
                     help="java used to start game servers on demand")
+    ap.add_argument("--server-dir", default=None, help="folder with brainout-server.jar (default bin/server)")
+    ap.add_argument("--logs-dir", default=None)
+    ap.add_argument("--solo", metavar="NICK", default=None,
+                    help="single player PvE: the hub is replaced with the Conflict Zone for one player")
+    ap.add_argument("--sync-host", default=None,
+                    help="host backend url (http://IP:9511) to sync the solo progress with")
+    ap.add_argument("--sync-only", action="store_true", help="sync the solo progress with --sync-host and exit")
     a = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                         handlers=[logging.StreamHandler(sys.stdout)])
     base_url = "http://%s:%d" % (a.public_host, a.port)
-    app = App(base_url, Storage(a.data), public_host=a.public_host, repo=repo, java=a.java)
+    app = App(base_url, Storage(a.data), public_host=a.public_host, repo=repo, java=a.java,
+              server_dir=a.server_dir, logs_dir=a.logs_dir)
+    from services import revive, game
+    app.storage.on_put = lambda collection, key: revive.on_put(app, collection, key)
+    if a.solo:
+        app.solo_name = a.solo
+        app.sync_host = (a.sync_host or "").rstrip("/") or None
+        solo = dict(game.GAMES["freeplay"], max=1, env={"game_max_players": "1"})
+        game.GAMES["freeplay"] = solo
+        game.GAMES["lobby"] = solo
+        if app.sync_host:
+            log.info("Sync with %s: %s", app.sync_host, revive.sync_with_host(app, a.solo, app.sync_host))
+        if a.sync_only:
+            return
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     srv.app = app
     log.info("Anthill mock backend on %s:%d, public url %s, data %s", a.host, a.port, base_url, a.data)

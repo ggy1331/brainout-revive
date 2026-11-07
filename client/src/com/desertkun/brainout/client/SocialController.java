@@ -162,6 +162,24 @@ public class SocialController implements EventReceiver
         if (room == null || room.isEmpty() || room.equals(BrainOutClient.Env.getCurrentRoom()))
             return;
 
+        // revive: invitation into a Conflict Zone party ("play with a partner")
+        if (room.startsWith("--free-play-join "))
+        {
+            String partyId = room.substring("--free-play-join ".length()).trim();
+
+            BrainOutClient.getInstance().topState().pushMenu(
+                new com.desertkun.brainout.menu.popups.ConfirmationPopup(
+                    name + " зовёт вас в Зону конфликта напарником. Присоединиться?")
+            {
+                @Override
+                public void yes()
+                {
+                    com.desertkun.brainout.online.Matchmaking.JoinFreePlay(partyId);
+                }
+            });
+            return;
+        }
+
         BrainOutClient.getInstance().topState().pushMenu(
             new com.desertkun.brainout.menu.popups.ConfirmationPopup(name + " зовёт вас в игру. Присоединиться?")
         {

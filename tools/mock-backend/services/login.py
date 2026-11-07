@@ -81,6 +81,9 @@ def handle(ctx, rest):
                 rec = {"account": _next_account(st), "key": key, "created": int(time.time()),
                        "credential": credential}
                 st.put("credentials", credential, rec)
+                if getattr(app, "solo_name", None):
+                    from .revive import adopt_pending
+                    adopt_pending(app, rec["account"])
             elif rec.get("key") and key and rec["key"] != key:
                 raise HttpError(403, {"error": "wrong key"})
         token = issue_token(app, rec["account"], credential, scopes, gamespace)

@@ -26,12 +26,20 @@
 | social | **кланы** (группы): создание, поиск, вступление free/approve/invite, заявки и приглашения, права и роли, исключение, передача владения, профили клана/участника с `@func`, уведомления через message — как anthill-social. **Друзья** (наша добавка, в оригинале были только друзья Steam): `/social/friends` (список со статусом friend/incoming/outgoing, «в сети», комната), `add` по нику или аккаунту (взаимно = друзья), `remove`, `invite` в комнату (сообщение `friend_invite`) |
 | leaderboard | рейтинги: `top100` (игроки по K/D, присылает `PostLeaderboardPlugin` в конце матча при K/D ≥ 1,5; плюс все, у кого в профиле есть `kpd`), `clans100` (кланы), рейтинги событий; срок жизни записей |
 | static | загрузка аватаров клана/профиля (`PUT /static/upload`), раздача `/static/files/<id>` |
+| game: party | **пати** (игра с напарником в Зоне): WebSocket `/game/party/create/...` и `/game/party/<id>/session` (JSON-RPC, как `GameService.PartySession`), вход, выход, автостарт, `game_started` с комнатой каждому — `services/party.py` |
+| revive | **синхронизация одиночной Зоны с хостом** (наша добавка, `services/revive.py`): `/revive/snapshot`, `/revive/apply`; профиль — побеждает изменённая сторона, тайник/рубли — трёхстороннее слияние (локальное + (хост − база)) |
 | event, store, blog | заглушки: пустые списки |
 
 Проверка без игры: `build\pyenv\Scripts\python.exe tools\mock-backend\test_backend.py`.
 
+## Одиночный режим (`--solo НИК`)
+`play-solo.bat` поднимает этот же бэкенд локально (порт 9521, данные `solo-data/<ник>/`) с флагом `--solo`:
+«хаб» заменён Зоной конфликта на одного игрока, `--sync-host http://IP:9511` — синхронизация прогресса
+с хостом при старте, `--sync-only` — только синхронизация. Первый аккаунт локального бэкенда получает прогресс,
+скачанный с хоста (`adopt_pending`). Тест: `python tools\mock-backend	est_sync.py`.
+
 ## Дальше
-message (`/message/listen` — WebSocket, сейчас 404), game (хаб, подбор игр), social (кланы, друзья), event (события, боевой пропуск), store, leaderboard…
+event (события, боевой пропуск), store, недвижимость…
 
 ## Как добавлять сервис
 1. Посмотреть, какие запросы шлёт игра: `build/backend-out.log` (неизвестные → 404 с путём).
