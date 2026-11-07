@@ -116,7 +116,12 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
         {
             Table upgrades = new Table();
             upgrades.align(Align.top);
-            data.add(upgrades).pad(10).expandX().right().top();
+            // revive: many attachments per weapon -> rows per slot, scrollable
+            ScrollPane upgradesPane = new ScrollPane(upgrades, BrainOutClient.Skin, "scroll-default");
+            upgradesPane.setFadeScrollBars(false);
+            upgradesPane.setScrollingDisabled(true, false);
+            data.add(upgradesPane).pad(10).expandX().right().top().maxHeight(
+                Math.max(320, BrainOutClient.getHeight() - 160));
             data.add(main).pad(10).expandX().left().top().row();
             upgrades.add(new BorderActor(new Label(L.get("MENU_UPGRADES"),
                 BrainOutClient.Skin, "title-level"), "form-gray")).width(192).row();
@@ -522,6 +527,12 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
         {
             final String key = entry.key;
 
+            // revive: one row per slot; slots with several parts get compact buttons in a row
+            Table slotRow = new Table();
+            slotRow.align(Align.left);
+            sideButtons.add(slotRow).left().row();
+            boolean compactRow = entry.value.size > 1;
+
             boolean collapsable = true;
 
             for (final Upgrade upgrade : entry.value)
@@ -558,7 +569,8 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
 
                 if (required != null)
                 {
-                    Button upgradeButton = addUpgradeButton(key, required, null, false, false, sideButtons);
+                    buttonW = 192; buttonH = 64; compactButtons = false;
+                    Button upgradeButton = addUpgradeButton(key, required, null, false, false, slotRow);
 
                     if (upgradeButton != null)
                         Tooltip.RegisterToolTip(upgradeButton,
@@ -579,13 +591,17 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
                         groups.put(key, group);
                     }
 
-                    Button upgradeButton = addUpgradeButton(key, upgrade, group, true, true, sideButtons);
+                    buttonW = compactRow ? 112 : 192; buttonH = compactRow ? 48 : 64; compactButtons = compactRow;
+                    Button upgradeButton = addUpgradeButton(key, upgrade, group, true, true, slotRow);
                     if (upgradeButton != null)
                         UnlockTooltip.show(upgradeButton, upgrade, userProfile, this);
                 }
             }
         }
     }
+
+    private float buttonW = 192, buttonH = 64;
+    private boolean compactButtons = false;
 
     private Button addUpgradeButton(
             String key, Upgrade upgrade,
@@ -803,8 +819,15 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
                 Image icon = new Image(region);
                 icon.setScaling(Scaling.none);
                 icon.setTouchable(Touchable.disabled);
-                icon.setScale(2.0f);
-                icon.setBounds(0, 0, 192, 64);
+                float iconScale = 2.0f;
+                if (compactButtons)
+                {
+                    iconScale = Math.min(2.0f, Math.min((buttonW - 8) / region.getRegionWidth(),
+                        (buttonH - 6) / region.getRegionHeight()));
+                    iconScale = Math.max(1.0f, (float)Math.floor(iconScale));
+                }
+                icon.setScale(iconScale);
+                icon.setBounds(0, 0, buttonW, buttonH);
                 icon.setOrigin(Align.center);
 
                 final Actor iconActor;
@@ -818,7 +841,7 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
                     iconActor = icon;
                 }
 
-                iconActor.setBounds(0, 0, 192, 64);
+                iconActor.setBounds(0, 0, buttonW, buttonH);
                 upgradeButton.addActor(iconActor);
             }
             else
@@ -827,7 +850,9 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
             }
         }
 
-        sideButtons.add(upgradeButton).size(192, 64).row();
+        Cell<Button> cell = sideButtons.add(upgradeButton).size(buttonW, buttonH);
+        if (!compactButtons || sideButtons.getCells().size % 4 == 0)
+            cell.row();
 
         MenuBadge.apply(upgradeButton, upgrade);
 

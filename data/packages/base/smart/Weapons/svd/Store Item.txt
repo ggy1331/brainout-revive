@@ -15,7 +15,10 @@ instrument = {
         clip = upgrade-svd-clip-extended
         recoil = upgrade-svd-recoil
         reload-time = upgrade-svd-reload-time
-        scope = upgrade-svd-scope-pso
+        scope = upgrade-svd-scope-pso, gs-svd-scope-1p86, gs-svd-scope-po4x34, gs-svd-scope-pkas, gs-svd-scope-sv98, gs-svd-scope-vssk
+        silencer = gs-svd-silencer-long, gs-svd-silencer-short
+        bipod = gs-svd-bipod-on
+        tactical = gs-svd-tactical-laser
     }
 }
 items = [

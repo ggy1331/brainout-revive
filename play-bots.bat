@@ -3,6 +3,8 @@ rem Regular modes (random map/mode rotation from bin\server\maps-set.json) offli
 rem Usage: play-bots.bat [number_of_bots]   (default 8)
 rem Logs: build\server-last.log, build\client-last.log
 setlocal
+rem Full arsenal: do not inherit a restricted test preset from the caller.
+set "room_settings="
 set "JAVA=java"
 if exist "C:\Program Files\Java\jdk-17\bin\java.exe" set "JAVA=C:\Program Files\Java\jdk-17\bin\java.exe"
 set BOTS=%1

@@ -12,10 +12,13 @@ instrument = {
     upgrades = {
         extra-mag = upgrade-common-extra-mag
         accuracy = upgrade-m4a1-accuracy
-        holder = upgrade-m4a1-holder, upgrade-m4a1-gl-m203
-        scope = upgrade-m4a1-scope-truglo, upgrade-m4a1-scope-acog
+        holder = upgrade-m4a1-holder, upgrade-m4a1-gl-m203, gs-m4a1-holder-angled, gs-m4a1-holder-angled-tan, gs-m4a1-holder-stubby, upgrade-m4a1-gl-m203
+        scope = upgrade-m4a1-scope-truglo, upgrade-m4a1-scope-acog, gs-m4a1-scope-eot, gs-m4a1-scope-aimpoint, gs-m4a1-scope-susat, gs-m4a1-scope-redfield
         shoot-time = upgrade-m4a1-shoot-time
         wear-resistance = upgrade-m4a1-wear-reistance
+        silencer = gs-m4a1-silencer-sig, gs-m4a1-silencer-scar, gs-m4a1-silencer-colt
+        tactical = gs-m4a1-tactical-light, gs-m4a1-tactical-light2, gs-m4a1-tactical-laser, gs-m4a1-tactical-laser2
+        clip = gs-m4a1-clip-mag40, gs-m4a1-clip-cmag
     }
 }
 items = [

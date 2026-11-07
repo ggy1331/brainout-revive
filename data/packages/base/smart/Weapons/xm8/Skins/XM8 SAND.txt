@@ -1,0 +1,12 @@
+class = content.instrument.InstrumentSkin
+components = [
+    {
+        class = content.components.IconComponent
+        icon = icon-weapon-xm8-sand
+        tag = client
+    }
+]
+data = weapon-sand
+id = skin-weapon-xm8-sand
+name = ITEM_WEAP_XM8_SAND
+slot = sl-pri-xm8

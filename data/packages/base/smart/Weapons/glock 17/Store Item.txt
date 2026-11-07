@@ -13,9 +13,9 @@ instrument = {
     upgrades = {
         extra-mag = upgrade-common-extra-mag
         clip = upgrade-pistol-clip-extended
-        light = upgrade-pistol-laser
-        barrel = upgrade-pistol-silencer, upgrade-pistol-barrel
-	scope = upgrade-pistol-scope
+        light = upgrade-pistol-laser, gs-pistol-light-light, gs-pistol-light-light2, gs-pistol-light-laser2
+        barrel = upgrade-pistol-silencer, upgrade-pistol-barrel, gs-pistol-barrel-s57, gs-pistol-barrel-colt
+	scope = upgrade-pistol-scope, gs-pistol-scope-truglo, gs-pistol-scope-micro
 	butt = upgrade-pistol-butt
     }
 }

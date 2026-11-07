@@ -11,13 +11,16 @@ components = [
 ]
 instrument = {
     id = weapon-xm8
-    skins = skin-weapon-xm8-default
+    skins = skin-weapon-xm8-default, skin-weapon-xm8-sand
     upgrades = {
         extra-mag = upgrade-common-extra-mag
         accuracy = upgrade-xm8-accuracy
-        recoil = upgrade-xm8-recoil
         reload-time = upgrade-xm8-reload-time
-        silencer = upgrade-xm8-silencer
+        silencer = upgrade-xm8-silencer, gs-xm8-silencer-scar, gs-xm8-silencer-colt, gs-xm8-silencer-long
+        scope = gs-xm8-scope-aimpoint, gs-xm8-scope-eot, gs-xm8-scope-acog, gs-xm8-scope-susat, gs-xm8-scope-elcan, gs-xm8-scope-redfield
+        grip = gs-xm8-grip-angled, gs-xm8-grip-vertical, gs-xm8-grip-stubby
+        tactical = gs-xm8-tactical-light, gs-xm8-tactical-light2, gs-xm8-tactical-laser, gs-xm8-tactical-laser2
+        clip = gs-xm8-clip-mag40, gs-xm8-clip-cmag
     }
 }
 items = [

@@ -16,8 +16,11 @@ instrument = {
         butt = upgrade-mp5-butt-extended
         holder = upgrade-mp5-holder
         reload-time = upgrade-mp5-reload-time
-        scope = upgrade-mp5-scope-eot
+        scope = upgrade-mp5-scope-eot, gs-mp5-scope-aimpoint, gs-mp5-scope-truglo, gs-mp5-scope-holo, gs-mp5-scope-acog
         shoot-time = upgrade-mp5-shoot-time
+        silencer = gs-mp5-silencer-mp7, gs-mp5-silencer-long, gs-mp5-silencer-short
+        tactical = gs-mp5-tactical-light, gs-mp5-tactical-light2, gs-mp5-tactical-laser
+        clip = gs-mp5-clip-mag40, gs-mp5-clip-mag50
     }
 }
 items = [

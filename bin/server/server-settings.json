@@ -58,6 +58,16 @@
 				]
 			}
 		},
+		"gepard-only": {
+			"defines": {},
+			"limit-tags": {"slot-primary": ["gepard"]},
+			"limit-slots": ["slot-player-skin", "slot-primary", "slot-secondary", "slot-melee"]
+		},
+		"xm8-gepard": {
+			"defines": {},
+			"limit-tags": {"slot-primary": ["xm8", "gepard"]},
+			"limit-slots": ["slot-player-skin", "slot-primary", "slot-secondary", "slot-melee"]
+		},
 		"xm8-only": {
 			"defines": {
 			},

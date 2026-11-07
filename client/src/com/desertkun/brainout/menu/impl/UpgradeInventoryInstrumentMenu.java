@@ -122,7 +122,12 @@ public class UpgradeInventoryInstrumentMenu extends Menu
 
         data.add().colspan(2).expandY().row();
 
-        data.add(upgrades).pad(10).expandX().right().top();
+        // revive: many attachments per weapon -> rows per slot, scrollable
+        ScrollPane upgradesPane = new ScrollPane(upgrades, BrainOutClient.Skin, "scroll-default");
+        upgradesPane.setFadeScrollBars(false);
+        upgradesPane.setScrollingDisabled(true, false);
+        data.add(upgradesPane).pad(10).expandX().right().top().maxHeight(
+            Math.max(320, BrainOutClient.getHeight() - 160));
         data.add(main).pad(10).expandX().left().top().row();
 
         data.add().colspan(2).expandY().row();
@@ -560,6 +565,11 @@ public class UpgradeInventoryInstrumentMenu extends Menu
             final String key = entry.key;
             Array<Upgrade> upgrades_ = entry.value;
 
+            Table slotRow = new Table();
+            slotRow.align(Align.left);
+            upgrades.add(slotRow).left().row();
+            boolean compactRow = upgrades_.size > 1;
+
             boolean collapsable = true;
 
             for (final Upgrade upgrade : entry.value)
@@ -619,7 +629,8 @@ public class UpgradeInventoryInstrumentMenu extends Menu
 
                 if (required != null)
                 {
-                    Button upgradeButton = addUpgradeButton(key, required, false, upgrades);
+                    buttonW = 192; buttonH = 64; compactButtons = false;
+                    Button upgradeButton = addUpgradeButton(key, required, false, slotRow);
 
                     Tooltip.RegisterToolTip(upgradeButton,
                         new ChainedUpgradeUnlockTooltipCreator(key, required, upgrades_, info), this);
@@ -629,7 +640,8 @@ public class UpgradeInventoryInstrumentMenu extends Menu
             {
                 for (final Upgrade upgrade : upgrades_)
                 {
-                    Button upgradeButton = addUpgradeButton(key, upgrade, true, upgrades);
+                    buttonW = compactRow ? 112 : 192; buttonH = compactRow ? 48 : 64; compactButtons = compactRow;
+                    Button upgradeButton = addUpgradeButton(key, upgrade, true, slotRow);
 
                     if (upgradeButton == null)
                         continue;
@@ -640,6 +652,9 @@ public class UpgradeInventoryInstrumentMenu extends Menu
             }
         }
     }
+
+    private float buttonW = 192, buttonH = 64;
+    private boolean compactButtons = false;
 
     private Button addUpgradeButton(
             String key, Upgrade upgrade,
@@ -748,14 +763,23 @@ public class UpgradeInventoryInstrumentMenu extends Menu
             Image icon = new Image(region);
             icon.setScaling(Scaling.none);
             icon.setTouchable(Touchable.disabled);
-            icon.setScale(2.0f);
-            icon.setBounds(0, 0, 192, 64);
+            float iconScale = 2.0f;
+            if (compactButtons)
+            {
+                iconScale = Math.min(2.0f, Math.min((buttonW - 8) / region.getRegionWidth(),
+                    (buttonH - 6) / region.getRegionHeight()));
+                iconScale = Math.max(1.0f, (float)Math.floor(iconScale));
+            }
+            icon.setScale(iconScale);
+            icon.setBounds(0, 0, buttonW, buttonH);
             icon.setOrigin(Align.center);
 
             upgradeButton.addActor(icon);
         }
 
-        sideButtons.add(upgradeButton).size(192, 64).row();
+        Cell<Button> cell = sideButtons.add(upgradeButton).size(buttonW, buttonH);
+        if (!compactButtons || sideButtons.getCells().size % 4 == 0)
+            cell.row();
 
         return upgradeButton;
     }

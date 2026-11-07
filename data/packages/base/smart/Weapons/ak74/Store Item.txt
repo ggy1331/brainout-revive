@@ -12,11 +12,15 @@ instrument = {
     upgrades = {
         extra-mag = upgrade-common-extra-mag
         butt = upgrade-ak74-butt-old
-        clip = upgrade-ak74-doubleclip
+        clip = upgrade-ak74-doubleclip, gs-ak74-clip-rpk45, gs-ak74-clip-drum95
         recoil = upgrade-ak74-recoil
         reload-time = upgrade-ak74-reload-time
-        scope = upgrade-ak74-scope-pso, upgrade-ak74-scope-cobra
+        scope = upgrade-ak74-scope-pso, upgrade-ak74-scope-cobra, gs-ak74-scope-pkas, gs-ak74-scope-elcan, gs-ak74-scope-eot, gs-ak74-scope-po4x34, gs-ak74-scope-1p86
         wear-resistance = upgrade-ak74-wear-reistance
+        silencer = gs-ak74-silencer-pbs1, gs-ak74-silencer-tgp, gs-ak74-silencer-dtk
+        grip = gs-ak74-grip-angled, gs-ak74-grip-vertical, gs-ak74-grip-rk
+        tactical = gs-ak74-tactical-light, gs-ak74-tactical-light2, gs-ak74-tactical-laser, gs-ak74-tactical-laser2
+        gl = gs-ak74-gl-gp30
     }
 }
 items = [
