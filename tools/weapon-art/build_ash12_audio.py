@@ -22,6 +22,18 @@ REGULAR=[370589041,588980768,133896818,100686234,140924713]
 SUPPRESSED=[85182597,137311004,228973385]
 RELOAD={'clip_in':472963915,'clip_in_place':1059901871,'clip_out':907653214,'grab_clip':79455714,'grab_end':756798118,'hand_release':591225509,'lever_pull':17865208,'lever_release':283993142,'take_new':891154560}
 RATE=44100
+# Pitch factors (1.0 = original). Pitch is changed by resampling each source
+# sound, so a shot gets slightly shorter/longer; every reload event keeps its
+# start time, so the reload stays in sync with the animation (2.8 s / 0.65 s).
+# Override for experiments: env ASH12_SHOT_PITCH / ASH12_RELOAD_PITCH.
+import os
+SHOT_PITCH=float(os.environ.get('ASH12_SHOT_PITCH', 2**(1.5/12)))    # +1.5 semitones
+RELOAD_PITCH=float(os.environ.get('ASH12_RELOAD_PITCH', 2**(-1.5/12)))  # -1.5 semitones
+
+
+def pitched(samples, factor):
+    if factor==1:return samples
+    return array.array('h',audioop.ratecv(samples.tobytes(),2,1,round(RATE*factor),RATE,None)[0])
 
 
 def read_pcm(key):
@@ -40,7 +52,7 @@ def write_pcm(name, samples):
 
 
 def shot(key,gain):
-    samples=read_pcm(key);step=int(RATE*.02);end=0
+    samples=pitched(read_pcm(key),SHOT_PITCH);step=int(RATE*.02);end=0
     for i in range(0,len(samples),step):
         block=samples[i:i+step]
         rms=math.sqrt(sum(v*v for v in block)/max(1,len(block)))
@@ -53,14 +65,16 @@ def shot(key,gain):
 def sequence(duration,events):
     result=[0]*round(duration*RATE)
     for time,name,gain in events:
-        samples=read_pcm(RELOAD[name]);start=round(time*RATE)
+        samples=pitched(read_pcm(RELOAD[name]),RELOAD_PITCH);start=round(time*RATE)
         for i,v in enumerate(samples[:max(0,len(result)-start)]):result[start+i]+=int(v*gain)
     assert max(map(abs,result))<32767,'Reload mix would clip'
     return array.array('h',result)
 
 
 def main():
-    decoder=Path(sys.argv[1]).resolve();OUT.mkdir(parents=True,exist_ok=True);GAME.mkdir(parents=True,exist_ok=True)
+    # Decoding needs vgmstream-cli (argument); without it the WAVs already
+    # decoded into build/ash12/audio are reused.
+    decoder=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else None;OUT.mkdir(parents=True,exist_ok=True);GAME.mkdir(parents=True,exist_ok=True)
     raw=BANK.read_bytes();chunks={};pos=0
     while pos+8<=len(raw):
         tag=raw[pos:pos+4];n=struct.unpack_from('<I',raw,pos+4)[0];chunks[tag]=raw[pos+8:pos+8+n];pos+=8+n
@@ -68,13 +82,17 @@ def main():
     for pos in range(0,len(chunks[b'DIDX']),12):
         key,start,size=struct.unpack_from('<III',chunks[b'DIDX'],pos);entries[key]=chunks[b'DATA'][start:start+size]
     for key in set(REGULAR+SUPPRESSED+list(RELOAD.values())):
-        wem=OUT/f'{key}.wem';wem.write_bytes(entries[key])
+        wem=OUT/f'{key}.wem'
+        if decoder is None:
+            assert wem.with_suffix('.wav').exists(), 'pass the vgmstream-cli path to decode %s' % key
+            continue
+        wem.write_bytes(entries[key])
         subprocess.run([str(decoder),'-i','-o',str(wem.with_suffix('.wav')),str(wem)],check=True,capture_output=True)
     for i,key in enumerate(REGULAR,1):write_pcm(f'fire-{i}',shot(key,.55))
     for i,key in enumerate(SUPPRESSED,1):write_pcm(f'fire-s-{i}',shot(key,.4))
     write_pcm('reload',sequence(2.8,[(.08,'grab_clip',.7),(.48,'clip_out',.7),(1.15,'take_new',.7),(1.65,'clip_in',.7),(2.08,'clip_in_place',.65),(2.24,'grab_end',.6),(2.58,'hand_release',.6)]))
     write_pcm('fetch',sequence(.65,[(.02,'lever_pull',.75),(.3,'lever_release',.75)]))
-    (ROOT/'tools/weapon-art/reference/ash12-audio-provenance.json').write_text(json.dumps({'source':'User supplied MW2019 Oden sounds.zip / weapon_shak12.bnk','bank_sha256':hashlib.sha256(raw).hexdigest(),'event_regular':'shak12_fire [suppressed=regular]','regular_wem_ids':REGULAR,'event_suppressed':'shak12_fire [suppressed=suppressed_a]','suppressed_wem_ids':SUPPRESSED,'reload_events':{'wp_shak12_'+k:v for k,v in RELOAD.items()},'format':'PCM16 mono 44100 Hz; trailing near-silence trimmed on shots; gains 0.55 regular / 0.4 suppressed; staged reload 2.8 s and fetch 0.65 s'},indent=2)+'\n',encoding='utf-8')
+    (ROOT/'tools/weapon-art/reference/ash12-audio-provenance.json').write_text(json.dumps({'source':'User supplied MW2019 Oden sounds.zip / weapon_shak12.bnk','bank_sha256':hashlib.sha256(raw).hexdigest(),'event_regular':'shak12_fire [suppressed=regular]','regular_wem_ids':REGULAR,'event_suppressed':'shak12_fire [suppressed=suppressed_a]','suppressed_wem_ids':SUPPRESSED,'reload_events':{'wp_shak12_'+k:v for k,v in RELOAD.items()},'format':'PCM16 mono 44100 Hz; trailing near-silence trimmed on shots; gains 0.55 regular / 0.4 suppressed; staged reload 2.8 s and fetch 0.65 s','pitch':{'shots':round(SHOT_PITCH,4),'reload_and_fetch':round(RELOAD_PITCH,4)}},indent=2)+'\n',encoding='utf-8')
     print('Built 5 regular shots, 3 suppressed shots, reload and fetch WAVs.')
 
 

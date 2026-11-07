@@ -26,5 +26,9 @@
     "wp_shak12_lever_release": 283993142,
     "wp_shak12_take_new": 891154560
   },
-  "format": "PCM16 mono 44100 Hz; trailing near-silence trimmed on shots; gains 0.55 regular / 0.4 suppressed; staged reload 2.8 s and fetch 0.65 s"
+  "format": "PCM16 mono 44100 Hz; trailing near-silence trimmed on shots; gains 0.55 regular / 0.4 suppressed; staged reload 2.8 s and fetch 0.65 s",
+  "pitch": {
+    "shots": 1.0905,
+    "reload_and_fetch": 0.917
+  }
 }
