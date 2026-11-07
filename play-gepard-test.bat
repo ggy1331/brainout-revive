@@ -1,5 +1,7 @@
 @echo off
-rem Gepard concept test: deathmatch, Gepard-only primary weapons, default 4 bots.
+rem Deathmatch with the FULL arsenal (all weapons incl. XM8 and Gepard), default 4 bots.
+rem Usage: play-gepard-test.bat [bots]
+rem Restricted tests: play-match.bat deathmatch - xm8-gepard or xm8-only or gepard-only [bots]
 set "B=%~1"
 if "%B%"=="" set B=4
-call "%~dp0play-match.bat" deathmatch - gepard-only %B%
+call "%~dp0play-match.bat" deathmatch - - %B%
