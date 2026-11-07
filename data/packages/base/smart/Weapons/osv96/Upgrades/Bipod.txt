@@ -1,0 +1,23 @@
+access = byDefault
+class = content.upgrades.Upgrade
+components = [
+    {
+        class = content.components.ReplaceSlotComponent
+        classToReplace = data.components.WeaponAnimationComponentData
+        replace = {
+            bipod = on
+        }
+        tag = client
+    }
+    {
+        big-icon = osv96-bipod
+        class = content.components.IconComponent
+        tag = client
+    }
+]
+description = ITEM_UPGRADE_OSV96_BIPOD_DESC
+id = upgrade-osv96-bipod
+name = ITEM_UPGRADE_BIPOD
+properties = {
+    accuracy = "+10"
+}

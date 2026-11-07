@@ -1,0 +1,30 @@
+// OSV-96 - our own weapon (brainout-revive), not from the original game.
+// Sprites and skeleton: tools/weapon-art/import_osv96_concept.py; strings: osv96_names.py.
+class = content.shop.InstrumentSlotItem
+id = sl-pri-osv96
+access = byDefault
+components = [
+    {
+        class = content.components.RandomWeightComponent
+        weight = 15
+    }
+]
+instrument = {
+    id = weapon-osv96
+    skins = skin-weapon-osv96-default
+    upgrades = {
+        scope = upgrade-osv96-scope-optical
+        bipod = upgrade-osv96-bipod
+    }
+}
+items = [
+    {
+        amount = 10
+        id = bullet-12.7x108
+    }
+]
+name = ITEM_WEAP_OSV96
+slot = slot-primary
+category = sniper
+tags = unique, osv96
+index = 365

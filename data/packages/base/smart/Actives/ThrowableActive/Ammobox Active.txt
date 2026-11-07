@@ -110,6 +110,11 @@ components = [
                 deliverAtTime = 5
                 minToHave = 20
             }
+            bullet-12.7x108 = {
+                amount = 10
+                deliverAtTime = 5
+                minToHave = 10
+            }
         }
         distance = 8
         effect = ammo-delivered-effect

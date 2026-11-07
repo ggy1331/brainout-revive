@@ -1,0 +1,127 @@
+{
+ "skeleton": {
+  "hash": "osv96-approved",
+  "spine": "4.0.45",
+  "x": -16.8,
+  "y": -2.8000000000000003,
+  "width": 76.80000000000001,
+  "height": 13.600000000000001,
+  "images": "../../../textures/GAME/",
+  "audio": ""
+ },
+ "bones": [
+  {
+   "name": "root",
+   "scaleX": 0.4,
+   "scaleY": 0.4
+  },
+  {
+   "name": "center-bone",
+   "parent": "root",
+   "x": 54.5,
+   "y": 9.5
+  },
+  {
+   "name": "fire-bone",
+   "parent": "root",
+   "length": 32.4,
+   "x": 68.5,
+   "y": 10.5,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "hook-bone",
+   "parent": "root",
+   "length": 43.9,
+   "rotation": -0.95,
+   "x": -3.63,
+   "y": 21.15
+  },
+  {
+   "name": "laser-bone",
+   "parent": "root",
+   "length": 3.3,
+   "x": 58.5,
+   "y": 5.5,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "shell-bone",
+   "parent": "root",
+   "length": 3.75,
+   "rotation": 90,
+   "x": 24.5,
+   "y": 10.5,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  }
+ ],
+ "slots": [
+  {
+   "name": "clip",
+   "bone": "root",
+   "attachment": "default"
+  },
+  {
+   "name": "body",
+   "bone": "root",
+   "attachment": "body"
+  },
+  {
+   "name": "scope",
+   "bone": "root"
+  },
+  {
+   "name": "bipod",
+   "bone": "root"
+  }
+ ],
+ "skins": [
+  {
+   "name": "weapon-default",
+   "attachments": {
+    "scope": {
+     "optical": {
+      "name": "osv96-scope-optical",
+      "x": 15.5,
+      "y": 21.0,
+      "width": 47,
+      "height": 12
+     }
+    },
+    "clip": {
+     "default": {
+      "name": "osv96-clip-default",
+      "x": 15.5,
+      "y": 1.5,
+      "width": 31,
+      "height": 7
+     }
+    },
+    "bipod": {
+     "on": {
+      "name": "osv96-bipod",
+      "x": 53.5,
+      "y": 4.5,
+      "width": 27,
+      "height": 7
+     }
+    },
+    "body": {
+     "body": {
+      "name": "osv96-skin",
+      "x": 54.0,
+      "y": 5.5,
+      "width": 192,
+      "height": 25
+     }
+    }
+   }
+  }
+ ],
+ "animations": {
+  "animation": {}
+ }
+}
