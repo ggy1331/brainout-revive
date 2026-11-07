@@ -1,0 +1,5 @@
+animation = base:animations/weapon-xm8.json
+class = content.Animation
+id = anim-xm8
+states = []
+timeScale = 1

@@ -1,0 +1,33 @@
+// XM8 - our own weapon (brainout-revive), not from the original game.
+// Sprites: tools/weapon-art/xm8.py, skeleton: animations/weapon-xm8.json (G36 bones).
+class = content.shop.InstrumentSlotItem
+id = sl-pri-xm8
+access = byDefault
+components = [
+    {
+        class = content.components.RandomWeightComponent
+        weight = 80
+    }
+]
+instrument = {
+    id = weapon-xm8
+    skins = skin-weapon-xm8-default
+    upgrades = {
+        extra-mag = upgrade-common-extra-mag
+        accuracy = upgrade-xm8-accuracy
+        recoil = upgrade-xm8-recoil
+        reload-time = upgrade-xm8-reload-time
+        silencer = upgrade-xm8-silencer
+    }
+}
+items = [
+    {
+        amount = 60
+        id = bullet-5.56x45
+    }
+]
+name = ITEM_WEAP_XM8
+slot = slot-primary
+category = assault
+tags = unique, xm8
+index = 180

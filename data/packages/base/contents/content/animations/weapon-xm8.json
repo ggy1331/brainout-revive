@@ -1,0 +1,129 @@
+{
+ "skeleton": {
+  "hash": "xm8-revive",
+  "spine": "4.0.36",
+  "x": -14.89,
+  "y": -5.04,
+  "width": 48.41,
+  "height": 17.57,
+  "images": "../../../textures/GAME/",
+  "audio": ""
+ },
+ "bones": [
+  {
+   "name": "root",
+   "scaleX": 0.4,
+   "scaleY": 0.4
+  },
+  {
+   "name": "center-bone",
+   "parent": "root",
+   "x": 21.87,
+   "y": 10.57
+  },
+  {
+   "name": "fire-bone",
+   "parent": "root",
+   "length": 31.06,
+   "x": 3.77,
+   "y": 13.58,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "hook-bone",
+   "parent": "root",
+   "length": 5.41,
+   "x": 0.97,
+   "y": 19.68,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "laser-bone",
+   "parent": "root",
+   "length": 4.02,
+   "x": 52.12,
+   "y": 9.92,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "shell-bone",
+   "parent": "root",
+   "length": 2.32,
+   "rotation": 90,
+   "x": 21.15,
+   "y": 10.19,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  }
+ ],
+ "slots": [
+  {
+   "name": "body",
+   "bone": "root",
+   "attachment": "body"
+  },
+  {
+   "name": "clip",
+   "bone": "root",
+   "attachment": "default"
+  },
+  {
+   "name": "butt",
+   "bone": "root",
+   "attachment": "default"
+  },
+  {
+   "name": "silencer",
+   "bone": "root"
+  }
+ ],
+ "skins": [
+  {
+   "name": "weapon-default",
+   "attachments": {
+    "body": {
+     "body": {
+      "name": "xm8-skin",
+      "x": 39.29,
+      "y": 11.82,
+      "width": 89,
+      "height": 39
+     }
+    },
+    "butt": {
+     "default": {
+      "name": "xm8-butt-default",
+      "x": -19.23,
+      "y": 8.3,
+      "width": 36,
+      "height": 22
+     }
+    },
+    "clip": {
+     "default": {
+      "name": "xm8-clip-default",
+      "x": 23.15,
+      "y": -4.1,
+      "width": 13,
+      "height": 17
+     }
+    },
+    "silencer": {
+     "on": {
+      "name": "g36c-silencer",
+      "x": 87.8,
+      "y": 14.3,
+      "width": 28,
+      "height": 6
+     }
+    }
+   }
+  }
+ ],
+ "animations": {
+  "animation": {}
+ }
+}
