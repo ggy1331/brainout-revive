@@ -65,8 +65,21 @@ public class DesktopLauncher
         {
             Graphics.DisplayMode desktopMode = Lwjgl3ApplicationConfiguration.getDisplayMode();
 
+            // A borderless OpenGL window exactly the size of the monitor is promoted by Windows / the GPU
+            // driver to direct "fullscreen" presentation that bypasses the desktop compositor: OBS display
+            // capture and screenshots get a black frame. One extra pixel of height (off screen, invisible)
+            // keeps it a normal composited window. -1 would show the taskbar on top.
+            // env BRAINOUT_WINDOW_HEIGHT_DELTA overrides it (0 = exactly the monitor size).
+            int heightDelta = 1;
+            try
+            {
+                String d = System.getenv("BRAINOUT_WINDOW_HEIGHT_DELTA");
+                if (d != null) heightDelta = Integer.parseInt(d.trim());
+            }
+            catch (NumberFormatException ignored) {}
+
             cfg.setDecorated(false);
-            cfg.setWindowedMode(desktopMode.width, desktopMode.height);
+            cfg.setWindowedMode(desktopMode.width, desktopMode.height + heightDelta);
             cfg.setWindowPosition(0, 0);
         }
         else if (settings.getFullscreen().getValue())
