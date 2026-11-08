@@ -6,6 +6,7 @@ import threading
 import time
 from pathlib import Path
 
+from .lan_visit import Visit
 from . import game
 from .common import HttpError
 from .login import token_from
@@ -22,6 +23,7 @@ class Hub:
         self.uid = secrets.token_hex(12)
         self.lock = threading.RLock()
         self.transition = threading.Lock()
+        self.visits = {}
         self.seen = {}
         self.pending = {}
         self.owner = None
@@ -83,6 +85,42 @@ class Hub:
         account = str(token_from(ctx)["account"])
         master = game._master(self.app)
         owner = secrets.compare_digest(ctx.headers.get("X-Hub-Key", ""), self.secret)
+        if action in ("visit", "unvisit"):
+            if not owner or ctx.method != "POST":
+                raise HttpError(403)
+            with self.transition:
+                visit = self.visits.get(account)
+                if action == "visit":
+                    if visit:
+                        raise HttpError(409)
+                    try:
+                        visit = Visit(self.app, account, ctx.arg("endpoint", required=True))
+                        result = visit.enter()
+                    except (ValueError, OSError) as exc:
+                        raise HttpError(503) from exc
+                    self.visits[account] = visit
+                    return result
+                if visit:
+                    try:
+                        visit.sync()
+                        visit.request("/hub/leave", {}, 2)
+                    except (HttpError, ValueError, OSError):
+                        pass  # Last local checkpoint survives an unavailable host.
+                    self.visits.pop(account, None)
+                lobby = master.find_or_create("lobby", {})
+                return {"target": lobby.id}
+        visit = self.visits.get(account) if owner else None
+        if visit:
+            if action not in ("state", "maps", "zone"):
+                raise HttpError(403)
+            try:
+                result = visit.request("/hub/" + action, {} if ctx.method == "POST" else None,
+                                       90 if action == "zone" else 3)
+                if action == "state" and time.monotonic() - visit.last_read > 3:
+                    visit.sync()
+                return result
+            except OSError as exc:
+                raise HttpError(503) from exc
         with self.lock:
             if owner:
                 self.owner = account

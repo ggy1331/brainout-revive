@@ -1115,6 +1115,14 @@ public class ActionPhaseMenu extends Menu implements EventReceiver
                             return true;
                         }
 
+                        if (HomeHub.ENDPOINT != null && BrainOutClient.ClientController.isLobby())
+                        {
+                            CSGame game = BrainOutClient.ClientController.getState(CSGame.class);
+                            if (game != null) {
+                                pushMenu(new LobbyMenu(game.getShopCart()));
+                                return true;
+                            }
+                        }
                         pushMenu(new ExitMenu());
 
                         return true;

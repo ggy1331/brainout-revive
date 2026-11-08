@@ -563,12 +563,9 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     {
         if (isWounded() || !playerData.canRun() ||
             !"player-fast".equals(playerData.getPlayer().getID())) return false;
-        com.desertkun.brainout.components.PlayerOwnerComponent owner =
-            playerData.getComponent(com.desertkun.brainout.components.PlayerOwnerComponent.class);
-        if (owner != null && owner.getConsumableContainer().queryRecords(record ->
-            record.getItem().getContent() instanceof com.desertkun.brainout.content.instrument.Weapon &&
-            ((com.desertkun.brainout.content.instrument.Weapon)record.getItem().getContent()).isPaired()).size > 0)
-            return false;
+        InstrumentData held = playerData.getCurrentInstrument();
+        if (held instanceof com.desertkun.brainout.data.instrument.WeaponData &&
+            ((com.desertkun.brainout.data.instrument.WeaponData)held).getWeapon().isPaired()) return false;
         sprintRemaining = SPRINT_SECONDS;
 
         return true;

@@ -80,7 +80,9 @@ class Handler(BaseHTTPRequestHandler):
             traceback.print_exc()
             status, payload = 500, {"error": "internal error"}
 
-        short_args = {k: (v if len(str(v)) < 200 else str(v)[:200] + "...") for k, v in args.items()}
+        private_args = {"access_token", "token", "extend", "key", "password"}
+        short_args = {k: ("[redacted]" if k in private_args else
+                          v if len(str(v)) < 200 else str(v)[:200] + "...") for k, v in args.items()}
         level = logging.INFO if status < 400 else logging.WARNING
         if parts == ["hub", "state"] and status == 200:
             level = logging.DEBUG

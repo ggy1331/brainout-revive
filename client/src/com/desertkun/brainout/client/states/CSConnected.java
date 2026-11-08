@@ -178,7 +178,7 @@ public class CSConnected extends ControllerState
 
             // revive: always send the access token too. Self-hosted servers have no game-controller
             // (it used ZeroMQ ipc sockets) to validate the room key, so they authenticate by token.
-            String token = loginService.getCurrentAccessToken().get();
+            String token = com.desertkun.brainout.menu.impl.HomeHub.roomToken(loginService.getCurrentAccessToken().get());
 
             getController().sendTCP(new HelloMsg(Version.VERSION, key, token, reconnect));
         }

@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 
 public final class HomeHub {
     public static final String ENDPOINT = System.getenv("BRAINOUT_HUB_ENDPOINT");
-    public static final boolean OWNER = System.getenv("BRAINOUT_OWNER_KEY") != null;
+    public static boolean OWNER = System.getenv("BRAINOUT_OWNER_KEY") != null;
     private static final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
         Thread t=new Thread(r,"hub-control"); t.setDaemon(true); return t;
     });
@@ -26,6 +26,13 @@ public final class HomeHub {
     private static long nextPoll, lastSuccess=System.currentTimeMillis();
     private static String lastTarget="";
     private static long retryAt;
+
+    private static String guestRoomToken;
+    private static int generation;
+
+    public static String roomToken(String localToken) {
+        return guestRoomToken != null ? guestRoomToken : localToken;
+    }
 
     private static String token() {
         LoginService login=LoginService.Get();
@@ -37,7 +44,7 @@ public final class HomeHub {
         try {
             c.setConnectTimeout(1800); c.setReadTimeout("leave".equals(action) ? 1500 : body==null ? 3500 : 100000);
             c.setRequestProperty("X-Token",token);
-            if(OWNER) c.setRequestProperty("X-Hub-Key",System.getenv("BRAINOUT_OWNER_KEY"));
+            if(System.getenv("BRAINOUT_OWNER_KEY") != null) c.setRequestProperty("X-Hub-Key",System.getenv("BRAINOUT_OWNER_KEY"));
             if(body!=null) {
                 c.setRequestMethod("POST"); c.setDoOutput(true);
                 c.setRequestProperty("Content-Type","application/json");
@@ -57,11 +64,13 @@ public final class HomeHub {
         String credential=token();
         if(credential.isEmpty())return;
         nextPoll=System.currentTimeMillis()+900;
+        int epoch = generation;
         polling=true;
         worker.execute(() -> {
             try {
                 JSONObject state=request("state",null,credential);
                 Gdx.app.postRunnable(() -> {
+                    if (epoch != generation) return;
                     polling=false; lastSuccess=System.currentTimeMillis();
                     String target=state.optString("target","");
                     if(!leaving && !target.isEmpty() && BrainOutClient.ClientController.getState(CSGame.class)!=null &&
@@ -72,6 +81,7 @@ public final class HomeHub {
                     if(target.isEmpty())lastTarget="";
                 });
             } catch(Exception e) { Gdx.app.postRunnable(() -> {
+                if (epoch != generation) return;
                 polling=false;
                 if(!OWNER && System.currentTimeMillis()-lastSuccess>12000) changeHost("home");
             }); }
@@ -101,15 +111,50 @@ public final class HomeHub {
         else query("return",new JSONObject(),null);
     }
     public static void changeHost(String endpoint) {
-        if(leaving)return;
-        if ("home".equals(endpoint) && !OWNER && System.currentTimeMillis()-lastSuccess < 12000) {
-            leaving=true;
-            String credential=token();
-            worker.execute(() -> {
-                try { request("leave",new JSONObject(),credential); } catch(Exception ignored) {}
-                Gdx.app.postRunnable(() -> switchEndpoint(endpoint));
-            });
-        } else switchEndpoint(endpoint);
+        if (leaving || waiting) return;
+        boolean home = "home".equals(endpoint);
+        if (home && OWNER) return;
+        leaving = true;
+        generation++;
+        polling = false;
+        String localToken = token();
+        Runnable switchRoom = () -> worker.execute(() -> {
+            boolean detached = false;
+            try {
+                JSONObject result = null;
+                if (!OWNER) {
+                    result = request("unvisit", new JSONObject(), localToken);
+                    detached = true;
+                }
+                if (!home) result = request("visit", new JSONObject().put("endpoint",endpoint), localToken);
+                final String target = result.getString("target");
+                final String ticket = home ? null : result.getString("roomToken");
+                Gdx.app.postRunnable(() -> {
+                    OWNER = home;
+                    guestRoomToken = ticket;
+                    lastTarget = "";
+                    nextPoll = retryAt = 0;
+                    lastSuccess = System.currentTimeMillis();
+                    leaving = false;
+                    BrainOutClient.ClientController.setState(new CSJoinRoom(target));
+                });
+            } catch(Exception ex) {
+                final boolean returnHome = detached;
+                Gdx.app.postRunnable(() -> {
+                    leaving = false;
+                    if (returnHome) {
+                        guestRoomToken = null;
+                        OWNER = true;
+                        BrainOutClient.ClientController.setState(new com.desertkun.brainout.client.states.CSFindLobby());
+                    }
+                    Menu m = BrainOutClient.getInstance().topState().topMenu();
+                    if (m != null) m.pushMenu(new AlertPopup("Не удалось перейти в хаб: "+ex.getMessage()));
+                });
+            }
+        });
+        if (!OWNER && BrainOutClient.ClientController.isConnected())
+            BrainOutClient.ClientController.disconnect(DisconnectReason.leave, switchRoom);
+        else switchRoom.run();
     }
     static void installUpdate() { switchEndpoint("install-update"); }
 

@@ -85,6 +85,12 @@ def run():
                     endpoint = "%s:%d" % (ipaddress.IPv4Address(addr),int(number))
     finally:
         time.sleep(4)
+        for visit in list(app.hub.visits.values()):
+            try:
+                visit.sync()
+                visit.request("/hub/leave", {}, 2)
+            except Exception:
+                logging.warning("LAN host unavailable during final profile checkpoint")
         if hasattr(app,"game_master"):
             app.game_master.shutdown()
         http.shutdown()

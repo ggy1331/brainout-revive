@@ -223,6 +223,11 @@ def handle(ctx, rest):
     if call in ("join", "create") and len(rest) >= 3:
         player = token_from(ctx)
         game = rest[2]
+        visit = getattr(getattr(app, "hub", None), "visits", {}).get(str(player["account"]))
+        if visit:
+            if call != "join" or game != "lobby":
+                raise HttpError(403)
+            return visit.request("/game/join/brainout/lobby", {}, 90)
         settings = ctx.json_arg("create_settings", None) or ctx.json_arg("settings", {}) or {}
         if not isinstance(settings, dict):
             settings = {}
@@ -236,6 +241,11 @@ def handle(ctx, rest):
 
     if call == "room" and len(rest) >= 4 and rest[3] == "join":
         player = token_from(ctx)
+        visit = getattr(getattr(app, "hub", None), "visits", {}).get(str(player["account"]))
+        if visit:
+            if not rest[2].isdigit():
+                raise HttpError(400)
+            return visit.request("/game/room/brainout/" + rest[2] + "/join", {}, 90)
         gm.cleanup()
         room = gm.rooms.get(rest[2])
         if room is None:
