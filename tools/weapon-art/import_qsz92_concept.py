@@ -33,6 +33,10 @@ HOLE_MIN = 1500     # px of a closed background-coloured hole
 BORE_Y = 205        # bore axis inside the slide
 CHAMBER_X = 560     # where the fire bone starts (behind the ejection port)
 PORT = (760, 150)   # ejection port, where the cases fly out
+LASER_FRONT = (1385, 352)  # front of the dust cover and the bottom of the frame rail
+MAG_KEEP = 6        # sprite rows at the bottom of the grip taken for the long magazine
+MAG_BASE = 2        # of them, the baseplate
+MAG_EXTRA = 4       # sprite rows added: 30 rounds instead of 20
 
 
 def cutout(src):
@@ -88,6 +92,33 @@ def hand_point(alpha, width, height):
             xs = [x for x in range(width) if a[x, row]]
             return (min(xs) + max(xs) + 1) / 2, row
     raise RuntimeError('grip not found')
+
+
+def extended_mag(sprite, w, h):
+    """Bottom of the grip, MAG_EXTRA rows longer: the rows just above the baseplate
+    are repeated, each repeat shifted along the grip's tilt; the baseplate stays at
+    the bottom. Returns the piece and its top-left corner in sprite pixels."""
+    a = sprite.getchannel('A').load()
+    grip = int(w * 0.45)
+    centres = []
+    for y in range(h - 10, h - 2):
+        xs = [x for x in range(grip) if a[x, y]]
+        if xs:
+            centres.append((y, (min(xs) + max(xs)) / 2))
+    n = len(centres)
+    my = sum(y for y, _ in centres) / n
+    mx = sum(x for _, x in centres) / n
+    slope = sum((y - my) * (x - mx) for y, x in centres) / sum((y - my) ** 2 for y, _ in centres)
+    src = sprite.crop((0, h - MAG_KEEP, grip, h))
+    body_rows = MAG_KEEP - MAG_BASE  # rows of magazine body kept above the baseplate
+    piece = Image.new('RGBA', (grip + MAG_EXTRA, MAG_KEEP + MAG_EXTRA))
+    piece.alpha_composite(src.crop((0, 0, grip, body_rows)), (0, 0))
+    row = src.crop((0, body_rows - 1, grip, body_rows))
+    for k in range(MAG_EXTRA):
+        piece.alpha_composite(row, (max(0, round(slope * (k + 1))), body_rows + k))
+    piece.alpha_composite(src.crop((0, body_rows, grip, MAG_KEEP)), (max(0, round(slope * MAG_EXTRA)), body_rows + MAG_EXTRA))
+    bb = piece.getbbox()
+    return piece.crop(bb), (bb[0], h - MAG_KEEP + bb[1])
 
 
 def beretta_hand():
@@ -148,6 +179,17 @@ def main():
     muzzle_x = left + w
     fire_x, bore = unit(CHAMBER_X, BORE_Y)
     shell = unit(*PORT)
+
+    # 30-round magazine: the bottom of the grip lengthened along the grip's tilt
+    mag, mag_box = extended_mag(q, w, h)
+    mag.save(GAME / 'qsz92-clip-extended.png')
+    mw, mh = mag.size
+    clip_att = {'name': 'qsz92-clip-extended', 'x': left + mag_box[0] + mw / 2, 'y': top - mag_box[1] - mh / 2,
+                'width': mw, 'height': mh}
+    # laser: the FNX-45 unit (12x6) under the dust cover, front flush with the frame
+    lx = round(unit(LASER_FRONT[0], 0)[0]) - 12
+    ly = round(unit(0, LASER_FRONT[1])[1])
+    laser_att = {'name': 'fnx45-laser', 'x': lx + 6, 'y': ly - 3, 'width': 12, 'height': 6}
     skeleton = {
         'skeleton': {'hash': 'qsz92-approved', 'spine': '4.0.36', 'x': left * .4, 'y': (top - h) * .4,
                      'width': w * .4, 'height': h * .4, 'images': '../../../textures/GAME/', 'audio': ''},
@@ -156,14 +198,18 @@ def main():
             {'name': 'center-bone', 'parent': 'root', 'x': left + w / 2, 'y': top - h / 2},
             {'name': 'fire-bone', 'parent': 'root', 'length': round((muzzle_x - fire_x) / 2.5, 3),
              'x': round(fire_x, 3), 'y': round(bore, 3), 'scaleX': 2.5, 'scaleY': 2.5},
-            {'name': 'laser-bone', 'parent': 'root', 'length': 4.06, 'x': round(muzzle_x - 6, 3),
-             'y': round(bore - 4, 3), 'scaleX': 2.5, 'scaleY': 2.5},
+            {'name': 'laser-bone', 'parent': 'root', 'length': 3.54, 'x': lx + 11,
+             'y': ly - 3, 'scaleX': 2, 'scaleY': 2},
             {'name': 'shell-bone', 'parent': 'root', 'length': 1.8, 'rotation': 91.36,
              'x': round(shell[0], 3), 'y': round(shell[1], 3), 'scaleX': 2.5, 'scaleY': 2.5},
         ],
-        'slots': [{'name': 'body', 'bone': 'root', 'attachment': 'default'}],
+        # clip and laser are empty until an attachment switches them on
+        'slots': [{'name': 'body', 'bone': 'root', 'attachment': 'default'},
+                  {'name': 'clip', 'bone': 'root'}, {'name': 'laser', 'bone': 'root'}],
         'skins': [{'name': 'weapon-default', 'attachments': {
-            'body': {'default': {'name': 'qsz92-skin', 'x': left + w / 2, 'y': top - h / 2, 'width': w, 'height': h}}}}],
+            'body': {'default': {'name': 'qsz92-skin', 'x': left + w / 2, 'y': top - h / 2, 'width': w, 'height': h}},
+            'clip': {'extended': clip_att},
+            'laser': {'on': laser_att}}}],
         'animations': {'animation': {}},
     }
     (ANIM / 'weapon-qsz92.json').write_text(json.dumps(skeleton, indent=1) + '\n', encoding='utf-8')

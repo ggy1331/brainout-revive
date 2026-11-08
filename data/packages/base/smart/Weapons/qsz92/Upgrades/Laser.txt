@@ -1,0 +1,28 @@
+access = byDefault
+class = content.upgrades.Upgrade
+components = [
+    {
+        class = content.components.ReplaceSlotComponent
+        classToReplace = data.components.WeaponAnimationComponentData
+        replace = {
+            laser = on
+        }
+        tag = client
+    }
+    {
+        class = content.components.LaserComponent
+        tag = client
+    }
+    {
+        big-icon = fnx45-laser
+        class = content.components.IconComponent
+        tag = client
+    }
+]
+id = upgrade-qsz92-laser
+name = ITEM_UPGRADE_LASER
+// the FNX-45 laser; attachments add weight: movement speed x0.99
+properties = {
+    accuracy = "+10"
+    speed-coef = "*0.99"
+}

@@ -12,6 +12,10 @@ components = [
 instrument = {
     id = weapon-qsz92
     skins = skin-weapon-qsz92-default
+    upgrades = {
+        clip = upgrade-qsz92-clip-extended
+        laser = upgrade-qsz92-laser
+    }
 }
 items = [
     {
