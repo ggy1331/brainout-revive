@@ -1,0 +1,26 @@
+// QSZ-92 - our own weapon (brainout-revive), the first Chinese pistol in the game.
+// Sprite and skeleton: tools/weapon-art/import_qsz92_concept.py; name: qsz92_names.py.
+class = content.shop.InstrumentSlotItem
+id = sl-sec-qsz92
+access = byDefault
+components = [
+    {
+        class = content.components.RandomWeightComponent
+        weight = 30
+    }
+]
+instrument = {
+    id = weapon-qsz92
+    skins = skin-weapon-qsz92-default
+}
+items = [
+    {
+        amount = 40
+        id = bullet-5.7x28
+    }
+]
+name = ITEM_WEAP_QSZ92
+slot = slot-secondary
+category = pistol
+tags = unique, qsz92
+index = 200

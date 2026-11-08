@@ -52198,5 +52198,30 @@
         "EL": "Optical scope. Heavy: +3 kg",
         "SR": "Optical scope. Heavy: +3 kg",
         "PT": "Optical scope. Heavy: +3 kg"
+    },
+    "ITEM_WEAP_QSZ92": {
+        "EN": "QSZ-92",
+        "CS": "QSZ-92",
+        "NL": "QSZ-92",
+        "DE": "QSZ-92",
+        "IT": "QSZ-92",
+        "KO": "QSZ-92",
+        "PL": "QSZ-92",
+        "RO": "QSZ-92",
+        "RU": "QSZ-92",
+        "ZH": "QSZ-92",
+        "ES": "QSZ-92",
+        "TR": "QSZ-92",
+        "UA": "QSZ-92",
+        "FR": "QSZ-92",
+        "LT": "QSZ-92",
+        "HR": "QSZ-92",
+        "BE": "QSZ-92",
+        "HU": "QSZ-92",
+        "LV": "QSZ-92",
+        "SL": "QSZ-92",
+        "EL": "QSZ-92",
+        "SR": "QSZ-92",
+        "PT": "QSZ-92"
     }
 }
