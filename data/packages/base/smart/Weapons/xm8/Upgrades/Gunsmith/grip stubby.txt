@@ -22,4 +22,5 @@ name = ITEM_UPGRADE_GS_GRIP_STUBBY
 properties = {
     recoil = "-6"
     accuracy = "+6"
+    speed-coef = "*0.99"
 }

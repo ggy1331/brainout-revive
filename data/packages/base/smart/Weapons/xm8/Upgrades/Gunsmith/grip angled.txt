@@ -22,4 +22,5 @@ name = ITEM_UPGRADE_GS_GRIP_ANGLED
 properties = {
     recoil = "-8"
     accuracy = "+4"
+    speed-coef = "*0.99"
 }

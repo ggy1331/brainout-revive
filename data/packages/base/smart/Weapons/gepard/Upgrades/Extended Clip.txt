@@ -1,0 +1,25 @@
+access = byDefault
+class = content.upgrades.Upgrade
+components = [
+    {
+        class = content.components.ReplaceSlotComponent
+        classToReplace = data.components.WeaponAnimationComponentData
+        replace = {
+            clip = extended
+        }
+        tag = client
+    }
+    {
+        big-icon = gepard-clip-extended
+        class = content.components.IconComponent
+        tag = client
+    }
+]
+description = ITEM_UPGRADE_EXTENDED_CLIP_DESC
+id = upgrade-gepard-clip-extended
+name = ITEM_UPGRADE_EXTENDED_CLIP
+// 45 rounds instead of 30; attachments add weight: movement speed x0.97
+properties = {
+    clip-size = "+15"
+    speed-coef = "*0.97"
+}

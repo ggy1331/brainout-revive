@@ -23,4 +23,5 @@ name = ITEM_UPGRADE_SCOPE_EOT
 properties = {
     accuracy = "+14"
     aim-distance = "+6"
+    speed-coef = "*0.98"
 }

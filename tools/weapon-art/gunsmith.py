@@ -42,6 +42,9 @@ SILENCED_SHOTS = """[
 # kind: scope | silencer | grip | light | laser | clip | bipod | plain
 # props: game upgrade properties ("+N" add, "=N" set)
 
+# XM8 silencers (v0.11.1 balance): -3 damage, +3 recoil, heavier
+XM8_SILENCER = {"damage": "-3", "recoil": "+3", "speed-coef": "*0.98"}
+
 GUNS = {
     "ak74": {
         "folder": "ak74", "skeleton": "weapon-ak74",
@@ -154,25 +157,27 @@ GUNS = {
         "slots_after": {"grip": "body", "tactical": "body", "scope": "body"},
         "body_for_scopes": ("rail", "xm8-skin-rail"),
         "remove": ["recoil"],  # balance: no recoil chain, like the M4A1 (base recoil 35 in Weapon.txt)
+        # balance (v0.11.1): attachments add weight (speed-coef multiplies, so they stack);
+        # a silencer costs 3 damage and adds 3 recoil, nothing else - same rule as the Gepard and the ASh-12
         "parts": [
-            ("scope", "aimpoint", "g36c-scope-aimpoint", "rail", "ITEM_UPGRADE_SCOPE_AIMPOINT", "scope", {"accuracy": "+12", "aim-distance": "+5"}),
-            ("scope", "eot", "m4a1-scope-eot", "rail", "ITEM_UPGRADE_SCOPE_EOT", "scope", {"accuracy": "+14", "aim-distance": "+6"}),
-            ("scope", "acog", "sig552-scope-acog", "rail", "ITEM_UPGRADE_SCOPE_ACOG", "scope", {"accuracy": "+15", "aim-distance": "+18"}),
-            ("scope", "susat", "lr300-scope-susat", "rail", "ITEM_UPGRADE_SCOPE_SUSAT", "scope", {"accuracy": "+15", "aim-distance": "+22"}),
-            ("scope", "elcan", "ak12-scope-elcan", "rail", "ITEM_UPGRADE_SCOPE_ELCAN", "scope", {"accuracy": "+14", "aim-distance": "+18"}),
-            ("scope", "redfield", "m14-scope-redfield", "rail", "ITEM_UPGRADE_SCOPE_REDFIELD", "scope", {"accuracy": "+18", "aim-distance": "+32", "speed-coef": "=0.95"}),
-            ("silencer", "scar", "scarl-silencer", "muzzle", "ITEM_UPGRADE_GS_SILENCER_QD", "silencer", {"damage": "-4", "accuracy": "+4"}),
-            ("silencer", "colt", "colt-silencer", "muzzle", "ITEM_UPGRADE_GS_SILENCER_HEAVY", "silencer", {"damage": "-3", "recoil": "-5"}),
-            ("silencer", "long", "mp9-silencer", "muzzle", "ITEM_UPGRADE_GS_SILENCER_LONG", "silencer", {"damage": "-3", "accuracy": "+5"}),
-            ("grip", "angled", "ak12-holder", "grip", "ITEM_UPGRADE_GS_GRIP_ANGLED", "grip", {"recoil": "-8", "accuracy": "+4"}),
-            ("grip", "vertical", "tar21-holder", "grip", "ITEM_UPGRADE_HOLDER", "grip", {"recoil": "-12"}),
-            ("grip", "stubby", "qbs-holder", "grip", "ITEM_UPGRADE_GS_GRIP_STUBBY", "grip", {"recoil": "-6", "accuracy": "+6"}),
-            ("tactical", "light", "ar57-light", "tac", "ITEM_UPGRADE_LIGHT", "light", {"accuracy": "+3"}),
-            ("tactical", "light2", "sigsauer-light", "tac", "ITEM_UPGRADE_GS_LIGHT_COMPACT", "light", {"accuracy": "+2"}),
-            ("tactical", "laser", "sr47-laser", "tac", "ITEM_UPGRADE_LASER", "laser", {"accuracy": "+10"}),
-            ("tactical", "laser2", "kiparis-laser", "tac", "ITEM_UPGRADE_GS_LASER_IR", "laser", {"accuracy": "+8", "aim-distance": "+4"}),
-            ("clip", "mag40", "m16a3-clip-extended", "clip", "ITEM_UPGRADE_GS_MAG40", "clip", {"clip-size": "+10", "reload-time": "+0.15"}),
-            ("clip", "cmag", "g36-clip-extended", "clip", "ITEM_UPGRADE_GS_CMAG", "clip", {"clip-size": "+70", "reload-time": "+1", "speed-coef": "=0.92"}),
+            ("scope", "aimpoint", "g36c-scope-aimpoint", "rail", "ITEM_UPGRADE_SCOPE_AIMPOINT", "scope", {"accuracy": "+12", "aim-distance": "+5", "speed-coef": "*0.98"}),
+            ("scope", "eot", "m4a1-scope-eot", "rail", "ITEM_UPGRADE_SCOPE_EOT", "scope", {"accuracy": "+14", "aim-distance": "+6", "speed-coef": "*0.98"}),
+            ("scope", "acog", "sig552-scope-acog", "rail", "ITEM_UPGRADE_SCOPE_ACOG", "scope", {"accuracy": "+15", "aim-distance": "+18", "speed-coef": "*0.98"}),
+            ("scope", "susat", "lr300-scope-susat", "rail", "ITEM_UPGRADE_SCOPE_SUSAT", "scope", {"accuracy": "+15", "aim-distance": "+22", "speed-coef": "*0.98"}),
+            ("scope", "elcan", "ak12-scope-elcan", "rail", "ITEM_UPGRADE_SCOPE_ELCAN", "scope", {"accuracy": "+14", "aim-distance": "+18", "speed-coef": "*0.98"}),
+            ("scope", "redfield", "m14-scope-redfield", "rail", "ITEM_UPGRADE_SCOPE_REDFIELD", "scope", {"accuracy": "+18", "aim-distance": "+32", "speed-coef": "*0.96"}),
+            ("silencer", "scar", "scarl-silencer", "muzzle", "ITEM_UPGRADE_GS_SILENCER_QD", "silencer", XM8_SILENCER),
+            ("silencer", "colt", "colt-silencer", "muzzle", "ITEM_UPGRADE_GS_SILENCER_HEAVY", "silencer", XM8_SILENCER),
+            ("silencer", "long", "mp9-silencer", "muzzle", "ITEM_UPGRADE_GS_SILENCER_LONG", "silencer", XM8_SILENCER),
+            ("grip", "angled", "ak12-holder", "grip", "ITEM_UPGRADE_GS_GRIP_ANGLED", "grip", {"recoil": "-8", "accuracy": "+4", "speed-coef": "*0.99"}),
+            ("grip", "vertical", "tar21-holder", "grip", "ITEM_UPGRADE_HOLDER", "grip", {"recoil": "-12", "speed-coef": "*0.99"}),
+            ("grip", "stubby", "qbs-holder", "grip", "ITEM_UPGRADE_GS_GRIP_STUBBY", "grip", {"recoil": "-6", "accuracy": "+6", "speed-coef": "*0.99"}),
+            ("tactical", "light", "ar57-light", "tac", "ITEM_UPGRADE_LIGHT", "light", {"accuracy": "+3", "speed-coef": "*0.99"}),
+            ("tactical", "light2", "sigsauer-light", "tac", "ITEM_UPGRADE_GS_LIGHT_COMPACT", "light", {"accuracy": "+2", "speed-coef": "*0.99"}),
+            ("tactical", "laser", "sr47-laser", "tac", "ITEM_UPGRADE_LASER", "laser", {"accuracy": "+10", "speed-coef": "*0.99"}),
+            ("tactical", "laser2", "kiparis-laser", "tac", "ITEM_UPGRADE_GS_LASER_IR", "laser", {"accuracy": "+8", "aim-distance": "+4", "speed-coef": "*0.99"}),
+            ("clip", "mag40", "m16a3-clip-extended", "clip", "ITEM_UPGRADE_GS_MAG40", "clip", {"clip-size": "+10", "reload-time": "+0.15", "speed-coef": "*0.98"}),
+            ("clip", "cmag", "g36-clip-extended", "clip", "ITEM_UPGRADE_GS_CMAG", "clip", {"clip-size": "+70", "reload-time": "+1", "speed-coef": "*0.92"}),
         ],
     },
 }

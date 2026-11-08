@@ -37,6 +37,7 @@ id = gs-xm8-silencer-long
 name = ITEM_UPGRADE_GS_SILENCER_LONG
 properties = {
     damage = "-3"
-    accuracy = "+5"
+    recoil = "+3"
+    speed-coef = "*0.98"
     silent = "=1"
 }

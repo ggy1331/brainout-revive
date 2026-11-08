@@ -23,4 +23,5 @@ name = ITEM_UPGRADE_SCOPE_SUSAT
 properties = {
     accuracy = "+15"
     aim-distance = "+22"
+    speed-coef = "*0.98"
 }

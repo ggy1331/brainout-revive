@@ -26,4 +26,5 @@ name = ITEM_UPGRADE_GS_LASER_IR
 properties = {
     accuracy = "+8"
     aim-distance = "+4"
+    speed-coef = "*0.99"
 }

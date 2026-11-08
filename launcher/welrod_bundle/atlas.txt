@@ -1,0 +1,87 @@
+welrod-blued.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+welrod-blued
+  rotate: false
+  xy: 0, 0
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+
+welrod-blued-layers.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+welrod-blued-body
+  rotate: false
+  xy: 0, 0
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+welrod-blued-bolt
+  rotate: false
+  xy: 0, 32
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+welrod-blued-grip
+  rotate: false
+  xy: 0, 64
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+
+welrod-matte.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+welrod-matte
+  rotate: false
+  xy: 0, 0
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+
+welrod-matte-layers.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+welrod-matte-body
+  rotate: false
+  xy: 0, 0
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+welrod-matte-bolt
+  rotate: false
+  xy: 0, 32
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+welrod-matte-grip
+  rotate: false
+  xy: 0, 64
+  size: 88, 32
+  orig: 88, 32
+  offset: 0, 0
+  index: -1
+
+welrod-carry-magazine.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+welrod-carry-magazine
+  rotate: false
+  xy: 0, 0
+  size: 15, 29
+  orig: 15, 29
+  offset: 0, 0
+  index: -1

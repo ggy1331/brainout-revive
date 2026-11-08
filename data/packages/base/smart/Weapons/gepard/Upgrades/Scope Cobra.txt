@@ -1,0 +1,25 @@
+access = byDefault
+class = content.upgrades.Upgrade
+components = [
+    {
+        class = content.components.ReplaceSlotComponent
+        classToReplace = data.components.WeaponAnimationComponentData
+        replace = {
+            scope = cobra
+        }
+        tag = client
+    }
+    {
+        big-icon = bizon-scope-cobra
+        class = content.components.IconComponent
+        tag = client
+    }
+]
+description = ITEM_UPGRADE_SCOPE_COBRA_DESC
+id = upgrade-gepard-scope-cobra
+name = ITEM_UPGRADE_SCOPE_COBRA
+// same as the Cobra of the AKM; attachments add weight: movement speed x0.98
+properties = {
+    accuracy = "+10"
+    speed-coef = "*0.98"
+}

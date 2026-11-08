@@ -23,4 +23,5 @@ name = ITEM_UPGRADE_SCOPE_AIMPOINT
 properties = {
     accuracy = "+12"
     aim-distance = "+5"
+    speed-coef = "*0.98"
 }

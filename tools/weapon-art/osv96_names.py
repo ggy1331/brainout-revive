@@ -14,7 +14,8 @@ LANGS = ['EN', 'CS', 'NL', 'DE', 'IT', 'KO', 'PL', 'RO', 'RU', 'ZH', 'ES', 'TR',
 CYRILLIC = {'RU', 'UA', 'BE'}
 NAMES = {
     'ITEM_WEAP_OSV96': ('ОСВ-96', 'OSV-96'),
-    'ITEM_BULLET_12_108MM': ('12,7×108 мм', '12.7x108mm'),
+    # same style as the stock calibres ("12.7x55мм"); the game font has no "×"
+    'ITEM_BULLET_12_108MM': ('12.7x108мм', '12.7x108mm'),
     'ITEM_UPGRADE_OSV96_BIPOD_DESC': ('Повышает точность', "Improves the weapon's accuracy"),
     'ITEM_UPGRADE_OSV96_SCOPE_DESC': ('Оптический прицел. Тяжёлый: +3 кг', 'Optical scope. Heavy: +3 kg'),
 }

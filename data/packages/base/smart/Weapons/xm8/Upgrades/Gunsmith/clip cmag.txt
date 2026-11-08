@@ -22,5 +22,5 @@ name = ITEM_UPGRADE_GS_CMAG
 properties = {
     clip-size = "+70"
     reload-time = "+1"
-    speed-coef = "=0.92"
+    speed-coef = "*0.92"
 }

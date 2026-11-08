@@ -65,6 +65,14 @@
    "name": "clip",
    "bone": "root",
    "attachment": "default"
+  },
+  {
+   "name": "scope",
+   "bone": "root"
+  },
+  {
+   "name": "silencer",
+   "bone": "root"
   }
  ],
  "skins": [
@@ -74,28 +82,53 @@
     "body": {
      "body": {
       "name": "gepard-skin",
-      "x": 17.09375,
-      "y": 9.03125,
-      "width": 71.6875,
-      "height": 33.8125
+      "x": 17.5,
+      "y": 9.0,
+      "width": 71,
+      "height": 34
      }
     },
     "clip": {
      "default": {
       "name": "gepard-clip-default",
-      "x": -4.96875,
-      "y": -14.03125,
-      "width": 11.9375,
-      "height": 13.3125
+      "x": -5.5,
+      "y": -14.0,
+      "width": 11,
+      "height": 14
+     },
+     "extended": {
+      "name": "gepard-clip-extended",
+      "x": -7.0,
+      "y": -17.5,
+      "width": 14,
+      "height": 21
      }
     },
     "butt": {
      "default": {
       "name": "gepard-butt-default",
-      "x": -34.28125,
-      "y": 11.96875,
-      "width": 33.6875,
-      "height": 15.8125
+      "x": -34.0,
+      "y": 12.0,
+      "width": 34,
+      "height": 16
+     }
+    },
+    "scope": {
+     "cobra": {
+      "name": "bizon-scope-cobra",
+      "x": -3.5,
+      "y": 21.5,
+      "width": 21,
+      "height": 21
+     }
+    },
+    "silencer": {
+     "on": {
+      "name": "bizon-silencer",
+      "x": 57,
+      "y": 16,
+      "width": 34,
+      "height": 8
      }
     }
    }

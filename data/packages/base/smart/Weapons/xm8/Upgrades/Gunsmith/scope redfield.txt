@@ -23,5 +23,5 @@ name = ITEM_UPGRADE_SCOPE_REDFIELD
 properties = {
     accuracy = "+18"
     aim-distance = "+32"
-    speed-coef = "=0.95"
+    speed-coef = "*0.96"
 }

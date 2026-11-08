@@ -37,6 +37,7 @@ id = gs-xm8-silencer-colt
 name = ITEM_UPGRADE_GS_SILENCER_HEAVY
 properties = {
     damage = "-3"
-    recoil = "-5"
+    recoil = "+3"
+    speed-coef = "*0.98"
     silent = "=1"
 }

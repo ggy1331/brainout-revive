@@ -16,6 +16,9 @@ instrument = {
         accuracy = upgrade-gepard-accuracy
         reload-time = upgrade-gepard-reload-time
         recoil = upgrade-gepard-recoil
+        clip = upgrade-gepard-clip-extended
+        scope = upgrade-gepard-scope-cobra
+        silencer = upgrade-gepard-silencer
     }
 }
 items = [

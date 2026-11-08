@@ -36,7 +36,8 @@ description = ITEM_UPGRADE_SILENCER_DESC
 id = gs-xm8-silencer-scar
 name = ITEM_UPGRADE_GS_SILENCER_QD
 properties = {
-    damage = "-4"
-    accuracy = "+4"
+    damage = "-3"
+    recoil = "+3"
+    speed-coef = "*0.98"
     silent = "=1"
 }

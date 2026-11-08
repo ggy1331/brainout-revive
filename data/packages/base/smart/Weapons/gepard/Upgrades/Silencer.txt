@@ -1,0 +1,44 @@
+access = byDefault
+class = content.upgrades.Upgrade
+components = [
+    {
+        class = content.components.SuppressBulletAttachmentsComponent
+        suppress = fire-bone
+        tag = client
+    }
+    {
+        class = content.components.ReplaceInstrumentEffectsComponent
+        replace = {
+            shoot = [
+                pistol-shoot-s-1, pistol-shoot-smoke
+                pistol-shoot-s-2, pistol-shoot-smoke
+                pistol-shoot-s-3, pistol-shoot-smoke
+            ]
+        }
+        tag = client
+    }
+    {
+        class = content.components.ReplaceSlotComponent
+        classToReplace = data.components.WeaponAnimationComponentData
+        replace = {
+            silencer = on
+        }
+        tag = client
+    }
+    {
+        big-icon = bizon-silencer
+        class = content.components.IconComponent
+        tag = client
+    }
+]
+description = ITEM_UPGRADE_SILENCER_DESC
+id = upgrade-gepard-silencer
+name = ITEM_UPGRADE_SILENCER
+// PBS of the Bizon. Silence costs 3 damage and 3 recoil (as on the ASh-12);
+// attachments add weight: movement speed x0.98
+properties = {
+    damage = "-3"
+    recoil = "+3"
+    silent = "=1"
+    speed-coef = "*0.98"
+}

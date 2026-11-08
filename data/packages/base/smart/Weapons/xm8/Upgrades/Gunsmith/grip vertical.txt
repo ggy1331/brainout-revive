@@ -21,4 +21,5 @@ id = gs-xm8-grip-vertical
 name = ITEM_UPGRADE_HOLDER
 properties = {
     recoil = "-12"
+    speed-coef = "*0.99"
 }

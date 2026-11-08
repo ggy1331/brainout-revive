@@ -30,4 +30,5 @@ id = gs-xm8-tactical-light
 name = ITEM_UPGRADE_LIGHT
 properties = {
     accuracy = "+3"
+    speed-coef = "*0.99"
 }

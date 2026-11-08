@@ -22,4 +22,5 @@ name = ITEM_UPGRADE_GS_MAG40
 properties = {
     clip-size = "+10"
     reload-time = "+0.15"
+    speed-coef = "*0.98"
 }

@@ -23,4 +23,5 @@ name = ITEM_UPGRADE_SCOPE_ELCAN
 properties = {
     accuracy = "+14"
     aim-distance = "+18"
+    speed-coef = "*0.98"
 }

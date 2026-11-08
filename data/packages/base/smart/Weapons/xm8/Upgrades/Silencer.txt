@@ -34,9 +34,12 @@ components = [
 description = ITEM_UPGRADE_SILENCER_DESC
 id = upgrade-xm8-silencer
 name = ITEM_UPGRADE_SILENCER
+// v0.11.1 balance: a silencer costs 3 damage and 3 recoil; attachments add weight
 properties = {
-    damage = "-5"
+    damage = "-3"
+    recoil = "+3"
     silent = "=1"
+    speed-coef = "*0.98"
 }
 
 
