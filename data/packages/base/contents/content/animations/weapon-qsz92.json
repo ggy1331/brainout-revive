@@ -2,10 +2,10 @@
  "skeleton": {
   "hash": "qsz92-approved",
   "spine": "4.0.36",
-  "x": -3.2,
-  "y": -4.4,
-  "width": 13.200000000000001,
-  "height": 9.200000000000001,
+  "x": -3.6,
+  "y": -4.800000000000001,
+  "width": 14.4,
+  "height": 10.0,
   "images": "../../../textures/GAME/",
   "audio": ""
  },
@@ -18,15 +18,15 @@
   {
    "name": "center-bone",
    "parent": "root",
-   "x": 8.5,
+   "x": 9.0,
    "y": 0.5
   },
   {
    "name": "fire-bone",
    "parent": "root",
-   "length": 8.632,
-   "x": 3.419,
-   "y": 8.613,
+   "length": 9.417,
+   "x": 3.457,
+   "y": 9.305,
    "scaleX": 2.5,
    "scaleY": 2.5
   },
@@ -34,7 +34,7 @@
    "name": "laser-bone",
    "parent": "root",
    "length": 3.54,
-   "x": 24,
+   "x": 26,
    "y": 2,
    "scaleX": 2,
    "scaleY": 2
@@ -44,8 +44,8 @@
    "parent": "root",
    "length": 1.8,
    "rotation": 91.36,
-   "x": 8.551,
-   "y": 10.024,
+   "x": 9.056,
+   "y": 10.844,
    "scaleX": 2.5,
    "scaleY": 2.5
   }
@@ -72,17 +72,17 @@
     "body": {
      "default": {
       "name": "qsz92-skin",
-      "x": 8.5,
+      "x": 9.0,
       "y": 0.5,
-      "width": 33,
-      "height": 23
+      "width": 36,
+      "height": 25
      }
     },
     "clip": {
      "extended": {
       "name": "qsz92-clip-extended",
-      "x": -2.5,
-      "y": -10.0,
+      "x": -3.5,
+      "y": -11.0,
       "width": 11,
       "height": 10
      }
@@ -90,7 +90,7 @@
     "laser": {
      "on": {
       "name": "fnx45-laser",
-      "x": 19,
+      "x": 21,
       "y": 2,
       "width": 12,
       "height": 6

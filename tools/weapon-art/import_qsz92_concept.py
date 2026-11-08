@@ -22,10 +22,10 @@ GAME = ROOT / 'data/packages/base/textures/GAME'
 OUT = ROOT / 'build/qsz92'
 ANIM = ROOT / 'data/packages/base/contents/content/animations'
 
-WIDTH = 33          # QSZ-92 is 190 mm long; the Beretta 92 (217 mm) is 37 px
+WIDTH = 36          # the size of the stock pistols (CZ75 33, FNX-45 35, Five-seveN 36, Beretta 37 px)
 COLORS = 24
-CONTRAST = 1.35
-OUTLINE = (16, 17, 20, 255)  # dark 1 px outline, as on the stock pistols
+CONTRAST = 1.0      # 1 = off
+OUTLINE = None      # e.g. (16, 17, 20, 255) for a dark 1 px outline
 ALPHA_CUT = 120
 BG_TOLERANCE = 10
 HOLE_MIN = 1500     # px of a closed background-coloured hole
@@ -143,11 +143,12 @@ def main():
     scale = WIDTH / hires.width
     size = (WIDTH, round(hires.height * scale))
     im = reduce(hires, size)
-    # at 1/39 the concept turns grey and soft; the stock pistols are crisp, so
-    # lift the contrast before the palette and draw their 1 px dark outline after
-    a = im.getchannel('A')
-    im = ImageEnhance.Contrast(im.convert('RGB')).enhance(CONTRAST).convert('RGBA')
-    im.putalpha(a)
+    # optional contrast lift and 1 px dark outline (tried; GGY preferred the
+    # softer look without them, so both are off by default)
+    if CONTRAST != 1:
+        a = im.getchannel('A')
+        im = ImageEnhance.Contrast(im.convert('RGB')).enhance(CONTRAST).convert('RGBA')
+        im.putalpha(a)
     # shared look with the other new guns: one palette, no lone pixels
     pal = im.convert('RGB').quantize(colors=COLORS, method=Image.Quantize.MEDIANCUT)
     q = im.convert('RGB').quantize(palette=pal, dither=Image.Dither.NONE).convert('RGBA')
@@ -161,7 +162,7 @@ def main():
     edge = [(x, y) for y in range(size[1]) for x in range(size[0]) if qp[x, y][3] and any(
         not (0 <= x + dx < size[0] and 0 <= y + dy < size[1]) or not qp[x + dx, y + dy][3]
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
-    for x, y in edge:
+    for x, y in (edge if OUTLINE else []):
         qp[x, y] = OUTLINE
     q = q.crop(q.getbbox())
     q.save(GAME / 'qsz92-skin.png')
