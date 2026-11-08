@@ -16,6 +16,19 @@ import com.desertkun.brainout.reflection.ReflectAlias;
 @Reflect("content.instrument.Weapon")
 public class Weapon extends Instrument
 {
+    private boolean looseCylinder, groupEjection;
+    public boolean hasGroupEjection() { return groupEjection; }
+
+    public boolean hasLooseCylinder()
+    {
+        return looseCylinder;
+    }
+
+    public boolean isPaired()
+    {
+        return getID().startsWith("paired-");
+    }
+
     public static class WeaponProperties extends InstrumentProperties
     {
         private float accuracy;
@@ -443,6 +456,8 @@ public class Weapon extends Instrument
     {
         super.read(json, jsonData);
 
+        groupEjection = jsonData.getBoolean("groupEjection", false);
+        looseCylinder = jsonData.getBoolean("looseCylinder", false);
         noWeaponStats = jsonData.getBoolean("noWeaponStats", false);
 
     }

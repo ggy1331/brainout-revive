@@ -1,5 +1,7 @@
 package com.desertkun.brainout.content.shop;
 
+import com.desertkun.brainout.content.bullet.Bullet;
+import com.desertkun.brainout.content.instrument.Weapon;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
@@ -65,6 +67,7 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
         @Override
         public void init(UserProfile userProfile)
         {
+            info.upgrades.clear();
             for (String slot : upgrades.keys())
             {
                 String key = getKey(slot);
@@ -113,7 +116,15 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
 
             PlayerOwnerComponent ownerComponent = playerData.getComponent(PlayerOwnerComponent.class);
 
-            InstrumentData instrumentData = instrumentContent.getData(playerData.getDimension());
+            Instrument equipped = shopCart.equippedInstrument(InstrumentSlotItem.this);
+            Upgrade conversion = info.upgrades.get("conversion");
+            if (conversion != null && conversion.getConversion() != null && upgrades.containsKey("conversion") &&
+                upgrades.get("conversion").contains(conversion, true) && (profile == null || conversion.hasItem(profile)))
+            {
+                Instrument target = BrainOut.ContentMgr.get(conversion.getConversion(), Instrument.class);
+                if (target != null) equipped = target;
+            }
+            InstrumentData instrumentData = equipped.getData(playerData.getDimension());
 
             DurabilityComponentData dcd = instrumentData.getComponentWithSubclass(DurabilityComponentData.class);
 
@@ -128,7 +139,7 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
             }
 
             instrumentData.secondSpecial = "slot-special-extra".equals(slot.getID());
-            instrumentData.setSkin(info.skin);
+            instrumentData.setSkin(conversion == null || equipped == instrumentContent ? info.skin : equipped.getDefaultSkin());
 
             if (profile != null)
             {
@@ -166,6 +177,21 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
                     new InstrumentConsumableItem(instrumentData, playerData.getDimension()));
 
             super.apply(shopCart, playerData, profile, slot, selection);
+        }
+
+        @Override
+        protected int cargoAmount(ItemCargo cargo, ShopCart cart, Slot slot)
+        {
+            Instrument equipped = cart.equippedInstrument(InstrumentSlotItem.this);
+            if (!(cargo.getContent() instanceof Bullet) || !(equipped instanceof Weapon) ||
+                !"slot-secondary".equals(slot.getID())) return super.cargoAmount(cargo,cart,slot);
+            Weapon weapon = (Weapon)equipped;
+            if (weapon.getPrimaryProperties().property(Constants.Properties.BULLET).asContent(Bullet.class) != cargo.getContent())
+                return super.cargoAmount(cargo,cart,slot);
+            com.desertkun.brainout.content.upgrades.UpgradableProperty capacity =
+                new com.desertkun.brainout.content.upgrades.UpgradableProperty(
+                    weapon.getPrimaryProperties().property(Constants.Properties.CLIP_SIZE),info.upgrades.values());
+            return capacity.asInt() * (weapon.isPaired() ? 6 : 3);
         }
 
         public ObjectMap<String, Upgrade> getSelectedUpgrades()

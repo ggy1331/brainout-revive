@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.Scaling;
 import com.desertkun.brainout.BrainOut;
 import com.desertkun.brainout.BrainOutClient;
 import com.desertkun.brainout.ClientConstants;
+import com.desertkun.brainout.Constants;
 import com.desertkun.brainout.L;
 import com.desertkun.brainout.client.ClientController;
 import com.desertkun.brainout.client.settings.ClientSettings;
@@ -695,6 +696,21 @@ public class ActionPhaseMenu extends Menu implements EventReceiver
         if (poc == null)
             return;
 
+        MyWeaponComponent weapon = weaponData.getComponent(MyWeaponComponent.class);
+        if (weapon != null && weapon.isPaired())
+        {
+            WeaponSlotComponent left = weapon.getSlot(Constants.Properties.SLOT_PRIMARY);
+            WeaponSlotComponent right = weapon.getSlot(Constants.Properties.SLOT_SECONDARY);
+            if (left != null && right != null)
+            {
+                int reserve = poc.getConsumableContainer().getAmount(left.getBullet());
+                weaponInfo.setText((Math.max(0,left.getRounds()) + Math.max(0,left.getChambered())) + " | " +
+                    (Math.max(0,right.getRounds()) + Math.max(0,right.getChambered())) +
+                    " / " + reserve);
+                return;
+            }
+        }
+
         int stateId;
 
         switch (state)
@@ -774,7 +790,8 @@ public class ActionPhaseMenu extends Menu implements EventReceiver
             stateId = ClientConstants.WeaponState.DETACHED;
         }
 
-        if (previousWeaponState != stateId)
+        if (previousWeaponState != stateId || stateId == ClientConstants.WeaponState.NORMAL ||
+            stateId == ClientConstants.WeaponState.DETACHED || stateId == ClientConstants.WeaponState.ADDING_ROUNDS)
         {
             previousWeaponState = stateId;
 
@@ -884,7 +901,7 @@ public class ActionPhaseMenu extends Menu implements EventReceiver
 
                     int amount = record != null ? record.getAmount() : 0;
 
-                    value = Integer.toString(slot.getRounds() + slot.getChambered()) + "/" + amount;
+                    value = Integer.toString(Math.max(0,slot.getRounds()) + Math.max(0,slot.getChambered())) + "/" + amount;
                     notice = false;
                 }
             }

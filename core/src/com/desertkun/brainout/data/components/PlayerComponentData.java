@@ -167,6 +167,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         }
     }
 
+    private int cylinderCount;
+
     private void updateHandAnimations(
             InstrumentAnimationStates.State state,
             boolean loop,
@@ -190,6 +192,28 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         {
             String animationName = states.getAnimation(state);
 
+            InstrumentData held = playerData.getCurrentInstrument();
+            if (held instanceof WeaponData)
+            {
+                WeaponData weapon = (WeaponData)held;
+                boolean reload = state == InstrumentAnimationStates.State.reload || state == InstrumentAnimationStates.State.reloadSecondary;
+                boolean cock = state == InstrumentAnimationStates.State.cock || state == InstrumentAnimationStates.State.cockSecondary;
+                boolean fetch = state == InstrumentAnimationStates.State.fetch || state == InstrumentAnimationStates.State.fetchSecondary;
+                if (reload || cock || fetch)
+                {
+                    boolean paired = weapon.getWeapon().isPaired();
+                    if (paired) animationName = states.getAnimation(reload ? InstrumentAnimationStates.State.reload : fetch ? InstrumentAnimationStates.State.fetch : InstrumentAnimationStates.State.cock);
+                    if (reload && weapon.usesLooseCylinder() && cylinderCount > 0)
+                        animationName = (weapon.getWeapon().hasGroupEjection() ? "rsh-cylinder-" : "cylinder-") + cylinderCount;
+                    if (paired)
+                    {
+                        boolean right = state == InstrumentAnimationStates.State.reloadSecondary || state == InstrumentAnimationStates.State.cockSecondary || state == InstrumentAnimationStates.State.fetchSecondary;
+                        String name = "pair-" + (right ? "right-" : "left-") + animationName;
+                        if (animation.getSkeleton().getData().findAnimation(name) != null)
+                            animationName = name;
+                    }
+                }
+            }
             if (animationName != null)
             {
                 switch (state)
@@ -295,6 +319,14 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         return false;
     }
 
+    public boolean isPlayingHitAnimation()
+    {
+        if (topAnimationState != InstrumentAnimationStates.State.hit &&
+            topAnimationState != InstrumentAnimationStates.State.aimHit) return false;
+        AnimationState.TrackEntry track = animation.getState().getCurrent(ANIMATION_TOP);
+        return track != null && !track.getLoop() && !track.isComplete();
+    }
+
     private void processAction(InstrumentActionEvent action)
     {
         if (isPlayingCustomAnimation())
@@ -318,6 +350,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
             }
             case reload:
             {
+                cylinderCount = (int)action.data1;
                 animateReload(InstrumentAnimationStates.State.reload, action.data0, true);
                 break;
             }
@@ -328,6 +361,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
             }
             case reloadSecondary:
             {
+                cylinderCount = (int)action.data1;
                 animateReload(InstrumentAnimationStates.State.reloadSecondary, action.data0, true);
                 break;
             }
@@ -831,6 +865,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
     public void setAim(boolean aim)
     {
         if (topAnimationState == InstrumentAnimationStates.State.reload ||
+            topAnimationState == InstrumentAnimationStates.State.reloadSecondary ||
+            topAnimationState == InstrumentAnimationStates.State.fetchSecondary ||
             topAnimationState == InstrumentAnimationStates.State.fetch ||
             topAnimationState == InstrumentAnimationStates.State.addRound ||
             topAnimationState == InstrumentAnimationStates.State.custom)
@@ -872,6 +908,12 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
     public void updateAim()
     {
+        if (animation != null && (topAnimationState == InstrumentAnimationStates.State.reload ||
+            topAnimationState == InstrumentAnimationStates.State.reloadSecondary))
+        {
+            AnimationState.TrackEntry current = animation.getState().getCurrent(ANIMATION_TOP);
+            if (current != null && !current.isComplete() && !isWounded()) return;
+        }
         setDisplayAim(forceDisplayAim);
 
         if (isWounded())
@@ -920,6 +962,22 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
         if (isWounded())
             return;
+
+        InstrumentData held = playerData.getCurrentInstrument();
+        if (held instanceof WeaponData && ((WeaponData)held).getWeapon().isPaired() && animation != null && states != null)
+        {
+            String name = states.getAnimation(InstrumentAnimationStates.State.cock);
+            Animation clip = animation.getSkeleton().getData().findAnimation("pair-" + (primary ? "left-" : "right-") + name);
+            if (clip != null)
+            {
+                // Separate tracks let both thumbs cock their revolvers at the same time.
+                AnimationState.TrackEntry track = animation.getState().setAnimation(primary ? 2 : 3, clip, false);
+                track.setTrackEnd(clip.getDuration());
+                if (time > 0)
+                    track.setTimeScale(clip.getDuration() / (time * animation.getContentComponent().getAnimation().getTimeScale()));
+                return;
+            }
+        }
 
         if (primary)
         {
@@ -977,7 +1035,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         {
             case ANIMATION_TOP:
             {
-                if (lastInterruptedTop == entry)
+                if (lastInterruptedTop == entry || animation.getState().getCurrent(ANIMATION_TOP) != entry)
                 {
                     return;
                 }
@@ -1002,6 +1060,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
                             break;
                         }
+                        case fetchSecondary:
                         case reloadSecondary:
                         case reloadBoth:
                         case reload:

@@ -9,6 +9,7 @@ import com.desertkun.brainout.Constants;
 import com.desertkun.brainout.content.Content;
 import com.desertkun.brainout.content.OwnableContent;
 import com.desertkun.brainout.content.Layout;
+import com.desertkun.brainout.content.shop.Slot;
 import com.desertkun.brainout.content.instrument.Weapon;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -822,6 +823,30 @@ public class UserProfile
         String count = getSelection("loadout-count");
         try { return Math.max(1, Integer.parseInt(count)); }
         catch (NumberFormatException ignored) { return 1; }
+    }
+
+    public boolean removeLoadout(int number, int expectedCount)
+    {
+        int count = getLayoutCount();
+        if (count != expectedCount || number <= 1 || number > count) return false;
+
+        int selected = getLayout().getOrder() + 1;
+        for (int i = number; i <= count; i++)
+        {
+            String target = Layout.resolve("layout-" + i).getKey();
+            String source = i < count ? Layout.resolve("layout-" + (i + 1)).getKey() : null;
+            BrainOut.ContentMgr.queryContentGen(Slot.class, slot ->
+            {
+                String key = slot.getID() + "-" + target;
+                String value = source == null ? null : getSelection(slot.getID() + "-" + source);
+                if (value == null) removeSelection(key);
+                else setSelection(key, value);
+            });
+        }
+        setSelection("loadout-count", Integer.toString(count - 1));
+        if (selected > number || selected == count) selected--;
+        setLayout("layout-" + selected);
+        return true;
     }
 
     public void setLayout(Layout layout)

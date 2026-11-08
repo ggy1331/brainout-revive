@@ -62,6 +62,18 @@ public class InstrumentCharacteristics extends CharacteristicsPanel
         this.hover = new HoverUpgrade(upgradeClass, upgrade);
     }
 
+    private Instrument effectiveInstrument(InstrumentInfo info)
+    {
+        Upgrade conversion = hover != null && "conversion".equals(hover.upgradeClass)
+            ? hover.upgrade : info.upgrades.get("conversion");
+        if (conversion != null && conversion.getConversion() != null)
+        {
+            Instrument target = BrainOutClient.ContentMgr.get(conversion.getConversion(), Instrument.class);
+            if (target != null) return target;
+        }
+        return info.instrument;
+    }
+
     public float getProperty(InstrumentInfo info, String key)
     {
         return getProperty(info, key, 0);
@@ -69,7 +81,7 @@ public class InstrumentCharacteristics extends CharacteristicsPanel
 
     public String getPropertyString(InstrumentInfo info, String key, String def)
     {
-        Instrument.InstrumentProperties properties = info.instrument.getPrimaryProperties();
+        Instrument.InstrumentProperties properties = effectiveInstrument(info).getPrimaryProperties();
 
         UpgradableProperty property = properties.property(key);
 
@@ -114,7 +126,7 @@ public class InstrumentCharacteristics extends CharacteristicsPanel
 
     public float getProperty(InstrumentInfo info, String key, float def)
     {
-        Instrument.InstrumentProperties properties = info.instrument.getPrimaryProperties();
+        Instrument.InstrumentProperties properties = effectiveInstrument(info).getPrimaryProperties();
 
         UpgradableProperty property = properties.property(key);
 
@@ -151,7 +163,13 @@ public class InstrumentCharacteristics extends CharacteristicsPanel
                 }
             }
 
-            return Float.valueOf(value);
+            float result = Float.parseFloat(value);
+            if (info.instrument.getID().startsWith("paired-"))
+            {
+                if (Constants.Properties.ACCURACY.equals(key)) return result * 0.5f;
+                if (Constants.Properties.RECOIL.equals(key)) return result * 2f;
+            }
+            return result;
         }
 
         return 0;
@@ -238,7 +256,7 @@ public class InstrumentCharacteristics extends CharacteristicsPanel
 
         if (item != null && item.getWeight() != 0)
         {
-            add("char-weight", "CHAR_WEIGHT", item::getWeight,
+            add("char-weight", "CHAR_WEIGHT", () -> effectiveInstrument(info).getComponent(ItemComponent.class).getWeight(),
                 new CharacteristicsPanel.SimpleView("CHAR_SUFFIX_KG"));
         }
 

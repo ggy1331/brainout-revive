@@ -46,11 +46,8 @@ import com.desertkun.brainout.online.UserProfile;
 import com.desertkun.brainout.utils.VersionCompare;
 import org.anthillplatform.runtime.requests.Request;
 import org.anthillplatform.runtime.services.*;
-import org.json.JSONObject;
 
-import java.text.DateFormat;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.TimerTask;
 
 public class LobbyMenu extends PlayerSelectionMenu
@@ -67,7 +64,6 @@ public class LobbyMenu extends PlayerSelectionMenu
     private TextButton quickPlay;
     private Image chatBadge;
     private Image contractsBadge;
-    private TextButton blogButton;
 
     public LobbyMenu(ShopCart shopCart)
     {
@@ -334,32 +330,6 @@ public class LobbyMenu extends PlayerSelectionMenu
         checkFreePlay();
         setupWatcher();
 
-        if (checkBlogs())
-        {
-            openBlogs();
-        }
-    }
-
-    private boolean checkBlogs()
-    {
-        BlogService.BlogEntriesList blogEntries = BrainOutClient.ClientController.getBlogEntries();
-        if (blogEntries == null || blogEntries.isEmpty())
-            return false;
-
-        BlogService.BlogEntry fistEntry = blogEntries.getFirst();
-        int id = fistEntry.id;
-
-        Preferences pref = Gdx.app.getPreferences("blog");
-
-        if (!pref.contains("id") || pref.getInteger("id", 0) != id)
-        {
-            pref.putInteger("id", id);
-            pref.flush();
-
-            return true;
-        }
-
-        return false;
     }
 
     private void setupWatcher()
@@ -1037,20 +1007,17 @@ public class LobbyMenu extends PlayerSelectionMenu
             }
         }
 
-        if (!BrainOut.OnlineEnabled())
-            return;
-
         {
-
             TextureRegion icon = BrainOutClient.getRegion("icon-blog");
             if (icon != null)
             {
-                blogButton = new TextButton("", BrainOutClient.Skin, "button-checkable");
-
-                if (getOpenWindowMode() == OpenWindowMode.blog)
-                {
-                    blogButton.setChecked(true);
-                }
+                TextButton blogButton = new TextButton("", BrainOutClient.Skin, "button-default");
+                blogButton.setName("project-news");
+                blogButton.addListener(event -> {
+                    if (event instanceof com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent)
+                        event.cancel();
+                    return false;
+                });
 
                 Image image = new Image(icon);
                 image.setScaling(Scaling.none);
@@ -1065,194 +1032,66 @@ public class LobbyMenu extends PlayerSelectionMenu
                     {
                         Menu.playSound(MenuSound.select);
 
-                        openBlogs();
+                        if (!Gdx.net.openURI("https://github.com/ggy1331/brainout-revive"))
+                            pushMenu(new AlertPopup("Не удалось открыть GitHub в браузере."));
                     }
                 });
 
                 buttons.add(blogButton).expandY().bottom().size(64, 64).padLeft(12).left();
+                if (System.getenv("BRAINOUT_HUB_NEXT") != null)
+                {
+                    updateButton = HubPanel.button(checkingUpdate ? "Проверяю…" : "Обновить игру", this::checkForGameUpdate);
+                    buttons.add(updateButton).height(32).bottom().padLeft(4);
+                }
+
             }
 
         }
     }
 
-    @Override
-    protected void cleanUpWindowMode()
+    private static boolean checkingUpdate;
+    private TextButton updateButton;
+
+    private void checkForGameUpdate()
     {
-        super.cleanUpWindowMode();
-
-        if (getOpenWindowMode() == OpenWindowMode.blog)
-        {
-            blogButton.setChecked(false);
-        }
-    }
-
-    private void openBlogs()
-    {
-        getMainContent().clear();
-
-        if (getOpenWindowMode() == OpenWindowMode.blog)
-        {
-            setOpenWindowMode(OpenWindowMode.none);
-            return;
-        }
-
-        BlogService.BlogEntriesList blogEntries = BrainOutClient.ClientController.getBlogEntries();
-        if (blogEntries == null || blogEntries.isEmpty())
-            return;
-
-        setOpenWindowMode(OpenWindowMode.blog);
-
-        if (blogButton != null)
-        {
-            blogButton.setChecked(true);
-        }
-
-        {
-            Table header = new Table(BrainOutClient.Skin);
-            header.setBackground("form-gray");
-
-            Label title = new Label(L.get("MENU_NEWS"), BrainOutClient.Skin, "title-small");
-            title.setAlignment(Align.center);
-            header.add(title).expand().center();
-
-            TextButton close = new TextButton("x", BrainOutClient.Skin, "button-default");
-
-
-            close.addListener(new ClickOverListener()
+        if (checkingUpdate) return;
+        checkingUpdate = true;
+        updateButton.setText("Проверяю…");
+        Thread worker = new Thread(() -> {
+            try
             {
-                @Override
-                public void clicked(InputEvent event, float x, float y)
+                Process process = new ProcessBuilder("../python/python.exe", "../support/release_update.py", "prepare")
+                    .redirectErrorStream(true).start();
+                String message;
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream(), "UTF-8")))
                 {
-                    Menu.playSound(MenuSound.select);
-
-                    if (blogButton != null)
-                    {
-                        blogButton.setChecked(false);
-                    }
-
-                    getMainContent().clear();
-
-                    if (getOpenWindowMode() == OpenWindowMode.blog)
-                    {
-                        setOpenWindowMode(OpenWindowMode.none);
-                    }
+                    message = reader.readLine();
+                    while (reader.readLine() != null) { }
                 }
-            });
-
-            header.add(close).size(40, 30).right().row();
-
-            header.pad(0).padTop(2).padRight(1);
-
-            getMainContent().add(header).expandX().fillX().padTop(16).row();
-        }
-
-        {
-            Table payload = new Table(BrainOutClient.Skin);
-            payload.setBackground("form-default");
-
-            Table contents = new Table();
-            contents.align(Align.top);
-
-            renderBlogItems(contents, blogEntries);
-
-            ScrollPane news = new ScrollPane(contents, BrainOutClient.Skin, "scroll-default");
-            payload.add(news).expand().fill().row();
-            setScrollFocus(news);
-
-            getMainContent().add(payload).expand().fill().padBottom(16).row();
-        }
-
-    }
-
-    private void renderBlogItems(Table contents, BlogService.BlogEntriesList blogEntries)
-    {
-        for (BlogService.BlogEntry entry : blogEntries)
-        {
-            JSONObject image = entry.data.optJSONObject("image");
-            JSONObject titleValue = entry.data.optJSONObject("title");
-            JSONObject descriptionValue = entry.data.optJSONObject("description");
-
-            if (image == null || titleValue == null || descriptionValue == null)
-                return;
-
-            String version = titleValue.optString("version", null);
-            if (version != null && !version.isEmpty())
-            {
-                VersionCompare v = new VersionCompare(version);
-                VersionCompare current = new VersionCompare(Version.VERSION);
-
-                if (current.compareTo(v) < 0)
-                {
-                    continue;
-                }
+                int status = process.waitFor();
+                Gdx.app.postRunnable(() -> {
+                    checkingUpdate = false;
+                    updateButton.setText("Обновить игру");
+                    if (status == 2)
+                        pushMenu(new com.desertkun.brainout.menu.popups.ConfirmationPopup(message)
+                        {
+                            @Override public void yes() { HomeHub.installUpdate(); }
+                        });
+                    else pushMenu(new AlertPopup(message == null ? "Не удалось проверить обновления." : message));
+                });
             }
-
-            String titleText = titleValue.optString(BrainOutClient.LocalizationMgr.getCurrentLanguage().toLowerCase(),
-                titleValue.optString(LocalizationManager.GetDefaultLanguage().toLowerCase(), null));
-
-            String descriptionText = descriptionValue.optString(BrainOutClient.LocalizationMgr.getCurrentLanguage().toLowerCase(),
-                descriptionValue.optString(LocalizationManager.GetDefaultLanguage().toLowerCase(), null));
-
-            if (titleText == null || descriptionText == null)
-                continue;
-
-            String imageUrl = image.optString(BrainOutClient.LocalizationMgr.getCurrentLanguage().toLowerCase(),
-                image.optString(LocalizationManager.GetDefaultLanguage().toLowerCase(), null));
-
-            if (imageUrl == null)
-                continue;
-
-            Button btn = new Button(BrainOutClient.Skin, "button-row-default");
-
-            Image background = new Image();
-            background.setScaling(Scaling.fit);
-
-            Avatars.GetAndCache(imageUrl, (has, avatar) ->
+            catch (Exception e)
             {
-                if (has)
-                {
-                    background.setDrawable(new TextureRegionDrawable(avatar));
-                }
-            });
-
-            btn.add(background).expandX().fillX().minHeight(300).row();
-
-            Table splash = new Table(BrainOutClient.Skin);
-            splash.align(Align.top);
-            splash.setBackground("form-transparent-top");
-
-            {
-                Label title = new Label(DateFormat.getDateTimeInstance().format(entry.dateCreate),
-                    BrainOutClient.Skin, "title-small");
-                splash.add(title).expandX().fillX().padBottom(16).row();
+                Gdx.app.postRunnable(() -> {
+                    checkingUpdate = false;
+                    updateButton.setText("Обновить игру");
+                    pushMenu(new AlertPopup("Ошибка обновления: " + e.getMessage()));
+                });
             }
-
-            {
-                Label title = new Label(titleText, BrainOutClient.Skin, "title-yellow");
-                splash.add(title).expandX().fillX().padBottom(16).row();
-            }
-
-            {
-                Label description = new Label(descriptionText.replace("\n", " ").substring(0, 96) + "...", BrainOutClient.Skin, "title-small");
-                description.setWrap(true);
-                splash.add(description).expandX().fillX().row();
-            }
-
-            btn.add(splash).pad(0, -4, -6, -4).expandX().fillX().height(120).padTop(-120).row();
-
-            btn.addListener(new ClickOverListener()
-            {
-                @Override
-                public void clicked(InputEvent event, float x, float y)
-                {
-                    Menu.playSound(MenuSound.select);
-
-                    pushMenu(new BlogEntryMenu(entry));
-                }
-            });
-
-            contents.add(btn).pad(8).expandX().fillX().row();
-        }
+        }, "release-update");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private void openLobbyChat()

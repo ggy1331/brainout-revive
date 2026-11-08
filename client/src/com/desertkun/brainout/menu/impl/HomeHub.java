@@ -111,6 +111,8 @@ public final class HomeHub {
             });
         } else switchEndpoint(endpoint);
     }
+    static void installUpdate() { switchEndpoint("install-update"); }
+
     private static void switchEndpoint(String endpoint) {
         try {
             Path file=Paths.get(System.getenv("BRAINOUT_HUB_NEXT"));

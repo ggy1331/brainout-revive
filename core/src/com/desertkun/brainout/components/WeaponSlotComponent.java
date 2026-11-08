@@ -84,6 +84,7 @@ public abstract class WeaponSlotComponent extends Component
 
     protected State state;
     protected double timer;
+    protected int cylinderCount;
     protected boolean launching;
     protected float angles[];
     protected int shootMode;
@@ -151,7 +152,7 @@ public abstract class WeaponSlotComponent extends Component
 
         Array<Upgrade> upgrades = null;
 
-        if (slot.equals(Constants.Properties.SLOT_PRIMARY))
+        if (slot.equals(Constants.Properties.SLOT_PRIMARY) || weaponData.getWeapon().isPaired())
         {
             upgrades = data.getInfo().upgrades.values().toArray();
 
@@ -188,6 +189,20 @@ public abstract class WeaponSlotComponent extends Component
         }
 
         return false;
+    }
+
+    public boolean isReloadingOrChambering()
+    {
+        return isReloading() || state == State.fetching;
+    }
+
+    private boolean pairedHandBusy()
+    {
+        if (!data.getWeapon().isPaired()) return false;
+        String other = Constants.Properties.SLOT_PRIMARY.equals(getSlot()) ?
+            Constants.Properties.SLOT_SECONDARY : Constants.Properties.SLOT_PRIMARY;
+        WeaponSlotComponent hand = getOtherSlot(other);
+        return hand != null && hand.isReloadingOrChambering();
     }
 
     protected void initProperties(Array<Upgrade> upgrades)
@@ -249,7 +264,6 @@ public abstract class WeaponSlotComponent extends Component
     public void setLaunching(boolean launching)
     {
         this.launching = launching;
-        if (!launching) singleSwing = false;
     }
 
     private boolean isEnabled(boolean checkShootingDisabled)
@@ -281,9 +295,28 @@ public abstract class WeaponSlotComponent extends Component
     }
 
     private boolean singleSwing;
-    public void beginSingleSwing() {
-        beginLaunching();
-        singleSwing = isLaunching();
+    private long meleeReadyAt;
+
+    public void beginSingleSwing()
+    {
+        singleSwing = isEnabled(true);
+        if (singleSwing && state == State.launched && meleeReadyAt != 0)
+        {
+            // Holstered weapons do not tick. Credit the elapsed recovery on the next tap.
+            double remaining = Math.max(0, (meleeReadyAt - System.nanoTime()) / 1e9);
+            timer = Math.min(timer, remaining);
+        }
+    }
+
+    public boolean isSingleSwingPending()
+    {
+        return singleSwing;
+    }
+
+    public void endSingleSwing()
+    {
+        singleSwing = false;
+        setLaunching(false);
     }
 
     public void beginLaunching()
@@ -329,7 +362,7 @@ public abstract class WeaponSlotComponent extends Component
 
     public boolean isLaunching()
     {
-        return launching;
+        return launching || singleSwing;
     }
 
     public Bullet getBullet()
@@ -480,7 +513,8 @@ public abstract class WeaponSlotComponent extends Component
             }
             case fixed:
             {
-                if (!isLaunching())
+                // A queued melee tap includes its own release from the previous attack.
+                if (!isLaunching() || singleSwing)
                 {
                     burstCounter = 0;
 
@@ -836,7 +870,7 @@ public abstract class WeaponSlotComponent extends Component
     public float calculateAccuracy()
     {
         return Interpolation.sineIn.apply(
-            1.0f - MathUtils.clamp(accuracy.asFloat(), 0.0f, 100.0f) / 100.0f
+            1.0f - MathUtils.clamp(accuracy.asFloat() * (data.getWeapon().isPaired() ? 0.5f : 1f), 0.0f, 100.0f) / 100.0f
         );
     }
 
@@ -859,16 +893,21 @@ public abstract class WeaponSlotComponent extends Component
                 Constants.Weapon.ACCURACY_MAX_MAX, calculateAccuracy());
     }
 
+    private float recoilMultiplier()
+    {
+        return data.getWeapon().isPaired() ? 2f : 1f;
+    }
+
     public float calculateLaunchAdd()
     {
         return MathUtils.lerp(Constants.Weapon.RECOIL_LAUNCH_ADD_MIN,
-                Constants.Weapon.RECOIL_LAUNCH_ADD_MAX, calculateRecoil());
+                Constants.Weapon.RECOIL_LAUNCH_ADD_MAX, calculateRecoil()) * recoilMultiplier();
     }
 
     public float calculateLaunchAngeAdd()
     {
         return MathUtils.lerp(Constants.Weapon.RECOIL_LAUNCH_ANGLE_ADD_MIN,
-                Constants.Weapon.RECOIL_LAUNCH_ANGLE_ADD_MAX, calculateRecoil());
+                Constants.Weapon.RECOIL_LAUNCH_ANGLE_ADD_MAX, calculateRecoil()) * recoilMultiplier();
     }
 
     public float calculateBreakdown()
@@ -941,8 +980,9 @@ public abstract class WeaponSlotComponent extends Component
 
         currentAccuracy = MathUtils.clamp(currentAccuracy + calculateLaunchAdd(), 0f, 1f);
 
-        if (singleSwing) setLaunching(false);
         onLaunch(launchData, bullets, MathUtils.random(0, 100000));
+        meleeReadyAt = singleSwing ? System.nanoTime() + (long)(timer * 1e9) : 0;
+        if (singleSwing) endSingleSwing();
     }
 
     abstract protected void onLaunch(LaunchData launchData, int bullets, int random);
@@ -1114,7 +1154,7 @@ public abstract class WeaponSlotComponent extends Component
 
             if (wac != null)
             {
-                launch(wac.getLaunchPointData(), bullets);
+                launch(wac.getLaunchPointData(getSlot()), bullets);
                 setState(State.launched);
             }
 
@@ -1234,7 +1274,7 @@ public abstract class WeaponSlotComponent extends Component
 
     public void doFetch()
     {
-        if (!isEnabled(false))
+        if (!isEnabled(false) || pairedHandBusy())
             return;
 
         if (state == State.fetching ||
@@ -1268,7 +1308,7 @@ public abstract class WeaponSlotComponent extends Component
 
     public boolean doReload(boolean fineToAutoLoadRounds)
     {
-        if (!isEnabled(false))
+        if (!isEnabled(false) || pairedHandBusy())
             return false;
 
         builtUp = false;
@@ -1367,6 +1407,14 @@ public abstract class WeaponSlotComponent extends Component
         if (fineToReload)
         {
             timer = reloadTime.asFloat();
+            cylinderCount = 0;
+            if (data.usesLooseCylinder())
+            {
+                cylinderCount = Math.min(clipSize.asInt() - getRounds(),
+                    owner.getConsumableContainer().getAmount(getBullet()));
+                if (cylinderCount <= 0) return false;
+                timer = data.cylinderReloadTime((float)timer, cylinderCount, clipSize.asInt());
+            }
 
             onReload(null);
             load();

@@ -36,6 +36,9 @@ public class LaserComponentData extends Component<LaserComponent>
 
     private PlayerData playerData;
     private BonePointData laserPoint;
+    private LaserComponentData second;
+    private Bone boundBone;
+    private boolean offHand;
 
     private CenterSprite laserSprite;
     private CenterSprite pointA;
@@ -78,17 +81,13 @@ public class LaserComponentData extends Component<LaserComponent>
         this.playerData = ((PlayerData) weaponData.getOwner());
 
         WeaponAnimationComponentData cwp = getComponentObject().getComponent(WeaponAnimationComponentData.class);
-        Bone bone = cwp.getSkeleton().findBone("laser-bone");
-
-        if (bone == null) return;
-
-        if (weaponData.getOwner() == null) return;
-
-        PlayerAnimationComponentData playerAnimation = weaponData.getOwner().getComponent(PlayerAnimationComponentData.class);
-
-        if (playerAnimation == null) return;
-
-        laserPoint = new BonePointData(bone, playerAnimation.getPrimaryBonePointData());
+        if (cwp == null || playerData == null) return;
+        if (!offHand && weaponData.getWeapon().isPaired())
+        {
+            second = new LaserComponentData(weaponData,getContentComponent());
+            second.offHand = true;
+            second.init();
+        }
 
         this.laserSprite = new CenterSprite(BrainOutClient.getRegion("laser-point"), new LaunchData()
         {
@@ -161,6 +160,15 @@ public class LaserComponentData extends Component<LaserComponent>
     public void update(float dt)
     {
         super.update(dt);
+        if (second != null) second.update(dt);
+        WeaponAnimationComponentData model = weaponData.getComponent(WeaponAnimationComponentData.class);
+        Bone bone = model == null || (offHand && !model.hasOffHand()) ? null : model.actionSkeleton(offHand).findBone("laser-bone");
+        if (bone != boundBone || (laserPoint == null && bone != null))
+        {
+            boundBone = bone;
+            laserPoint = bone == null || model.actionOrigin(offHand) == null ? null : new BonePointData(bone,model.actionOrigin(offHand));
+        }
+        if (laserPoint == null) { got = false; free(); return; }
         updateLight();
 
         if (laserSprite == null) return;
@@ -283,7 +291,8 @@ public class LaserComponentData extends Component<LaserComponent>
     {
         super.render(batch, context);
 
-        if (!enabled)
+        if (second != null) second.render(batch,context);
+        if (laserPoint == null || !enabled)
             return;
 
         if (laserSprite == null) return;
@@ -450,6 +459,7 @@ public class LaserComponentData extends Component<LaserComponent>
     @Override
     public void release()
     {
+        if (second != null) second.release();
         super.release();
 
         free();
@@ -457,6 +467,7 @@ public class LaserComponentData extends Component<LaserComponent>
 
     private void setEnabled(boolean b)
     {
+        if (second != null) second.setEnabled(b);
         enabled = b;
         updateLight();
     }

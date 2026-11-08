@@ -152,6 +152,26 @@ public class WeaponData extends InstrumentData
         loads = new ObjectMap<>();
     }
 
+    public boolean usesLooseCylinder()
+    {
+        return getWeapon().hasLooseCylinder() && !getUpgrades().containsKey("fastloader");
+    }
+
+    public float ejectionDuration(int count)
+    {
+        return 0.1666f * (getWeapon().hasGroupEjection() ? 1 : count);
+    }
+
+    public float cylinderClipLength(int count)
+    {
+        return 0.5833f + ejectionDuration(count) + 0.25f * count;
+    }
+
+    public float cylinderReloadTime(float fullTime, int count, int capacity)
+    {
+        return fullTime * cylinderClipLength(count) / cylinderClipLength(capacity);
+    }
+
     public Weapon getWeapon()
     {
         return weapon;

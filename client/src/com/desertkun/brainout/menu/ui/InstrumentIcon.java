@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.OrderedMap;
 import com.desertkun.brainout.BrainOutClient;
 import com.desertkun.brainout.ClientConstants;
 import com.desertkun.brainout.content.Skin;
+import com.desertkun.brainout.content.instrument.Instrument;
 import com.desertkun.brainout.content.components.InstrumentAnimationComponent;
 import com.desertkun.brainout.content.components.ReplaceSlotComponent;
 import com.desertkun.brainout.content.upgrades.Upgrade;
@@ -30,9 +31,11 @@ import com.esotericsoftware.spine.attachments.Attachment;
 public class InstrumentIcon extends WidgetGroup implements Disposable
 {
     private final InstrumentInfo info;
-    private final InstrumentAnimationComponentData data;
+    private InstrumentAnimationComponentData data;
+    private Instrument displayed;
+    private final float instrumentScale;
     private final Vector2 location;
-    private final Bone centerBone;
+    private Bone centerBone;
     private final boolean dynamic;
 
     private FrameBuffer cached;
@@ -50,20 +53,38 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
         this.dynamic = dynamic;
         this.dirty = false;
 
-        InstrumentAnimationComponent animation = info.instrument.getComponentFrom(InstrumentAnimationComponent.class);
+        this.instrumentScale = instrumentScale;
+        location = new Vector2();
+        if (dynamic) originalAttachments = new OrderedMap<>();
+        loadModel(displayInstrument());
+    }
+
+    private Instrument displayInstrument()
+    {
+        Upgrade conversion = info.upgrades.get("conversion");
+        if (conversion != null && conversion.getConversion() != null)
+        {
+            Instrument target = BrainOutClient.ContentMgr.get(conversion.getConversion(), Instrument.class);
+            if (target != null) return target;
+        }
+        return info.instrument;
+    }
+
+    private void loadModel(Instrument model)
+    {
+        displayed = model;
+        InstrumentAnimationComponent animation = model.getComponentFrom(InstrumentAnimationComponent.class);
 
         if (animation == null)
         {
             throw new RuntimeException("Instrument " + info.instrument.getID() + " should have some animation.");
         }
 
-        location = new Vector2();
-
         data = animation.getComponent(null);
 
         float scale = ClientConstants.Graphics.RES_SIZE * instrumentScale * (1f / 0.4f);
 
-        data.setSkin(info.skin);
+        data.setSkin(displayed == info.instrument ? info.skin : displayed.getDefaultSkin());
         data.getSkeleton().getRootBone().setScale(data.getSkeleton().getRootBone().getScaleX() * scale);
 
         data.init();
@@ -72,7 +93,6 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
 
         if (dynamic)
         {
-            originalAttachments = new OrderedMap<>();
             updateOriginalAttachments();
         }
         else
@@ -106,6 +126,12 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
 
     public void resetAnimation()
     {
+        Instrument target = displayInstrument();
+        if (displayed != target)
+        {
+            loadModel(target);
+            updateLocation();
+        }
         clearToOriginalArrachments();
 
         for (String key : info.upgrades.orderedKeys())
@@ -178,7 +204,7 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
     {
         clearToOriginalArrachments();
 
-        data.setSkin(info.skin);
+        data.setSkin(displayed == info.instrument ? info.skin : displayed.getDefaultSkin());
         data.updateSkin();
 
         updateOriginalAttachments();

@@ -1886,6 +1886,21 @@ public class PlayerClient extends Client
 
 
     @SuppressWarnings("unused")
+    public boolean received(final RemoveLoadoutMsg msg)
+    {
+        BrainOutServer.PostRunnable(() ->
+        {
+            if (!isInitialized() || profile == null) return;
+            if (profile.removeLoadout(msg.number, msg.expectedCount))
+            {
+                getShopCart().initSelection(profile, profile.getLayout(), false);
+                profile.setDirty();
+            }
+            else sendUserProfile();
+        });
+        return true;
+    }
+
     public boolean received(final UpdateSelectionsMsg msg)
     {
         BrainOutServer.PostRunnable(() ->
@@ -1897,7 +1912,8 @@ public class PlayerClient extends Client
 
             updatedSelectionMessages = Math.min(updatedSelectionMessages + 1.0f, 16.0f);
 
-            if (updatedSelectionMessages > 8)
+            if (updatedSelectionMessages > 8 && (profile == null ||
+                !("layout-" + (profile.getLayoutCount() + 1)).equals(msg.layout)))
             {
                 return;
             }

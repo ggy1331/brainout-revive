@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.IntMap;
 import com.desertkun.brainout.BrainOut;
 import com.desertkun.brainout.BrainOutClient;
 import com.desertkun.brainout.Constants;
+import com.desertkun.brainout.data.components.WeaponAnimationComponentData;
 import com.desertkun.brainout.L;
 import com.desertkun.brainout.common.msg.client.*;
 import com.desertkun.brainout.components.my.MyPlayerComponent;
@@ -321,7 +322,7 @@ public class ClientWeaponSlotComponent extends WeaponSlotComponent
         }
 
         BrainOut.EventMgr.sendDelayedEvent(getData().getOwner(),
-            InstrumentActionEvent.obtain(action, getReloadTime().asFloat(), getFetchTime().asFloat()));
+            InstrumentActionEvent.obtain(action, (float)timer, cylinderCount));
     }
 
     @Override
@@ -452,9 +453,12 @@ public class ClientWeaponSlotComponent extends WeaponSlotComponent
             LaunchBulletEvent.obtain(getBullet(), owner.getOwnerId(), slot,
                 launchData.getX(), launchData.getY(), angles, silent));
 
-        BrainOutClient.ClientController.sendUDP(
-            new BulletLaunchMsg(launchData, owner, angles, getRecord(), getBullet(),
-                slot, bullets, random));
+        BulletLaunchMsg shot = new BulletLaunchMsg(launchData, owner, angles, getRecord(), getBullet(),
+            slot, bullets, random);
+        if (isSingleSwingPending())
+            BrainOutClient.ClientController.sendTCP(shot);
+        else
+            BrainOutClient.ClientController.sendUDP(shot);
     }
 
     @Override

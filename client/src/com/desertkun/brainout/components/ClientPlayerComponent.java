@@ -56,7 +56,11 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
     private final LaunchData markerLaunchData;
     private Vector2 pointPosRotated, pointPosLerp, aimOffset, aimOffsetFolowing;
 
-    private Skeleton aimAnimation;
+    private Skeleton aimAnimation, secondAim;
+    private AnimationState secondAimState;
+    private AnimationState.TrackEntry secondAimEntry;
+    private boolean showSecondAim;
+    private final Vector2 secondAimOffset = new Vector2();
     private AnimationState aimState;
     private AnimationState.TrackEntry aimEntry;
 
@@ -237,6 +241,12 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
 
             batch.setColor(Color.WHITE);
             BrainOutClient.SkeletonRndr.draw(batch, aimAnimation);
+            if (showSecondAim)
+            {
+                secondAimState.apply(secondAim);
+                secondAim.updateWorldTransform();
+                BrainOutClient.SkeletonRndr.draw(batch, secondAim);
+            }
         }
     }
 
@@ -336,6 +346,10 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
 
             aimEntry = aimState.setAnimation(0, "aim", false);
             aimEntry.setTimeScale(0);
+            secondAim = new Skeleton(aimMark.getSkeletonData());
+            secondAimState = new AnimationState(aimMark.getStateData());
+            secondAimEntry = secondAimState.setAnimation(0,"aim",false);
+            secondAimEntry.setTimeScale(0);
         });
 
         PlayerAnimationComponentData anim = playerData.getComponent(PlayerAnimationComponentData.class);
@@ -689,6 +703,7 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
             }
         }
 
+        showSecondAim = false;
         if (aimEntry != null)
         {
             if (playerData.getCurrentInstrument() != null && playerData.getCurrentInstrument() instanceof WeaponData)
@@ -697,6 +712,21 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
                 if (mwc != null)
                 {
                     WeaponSlotComponent slot = mwc.getCurrentSlot();
+                    WeaponAnimationComponentData model = playerData.getCurrentInstrument().getComponent(WeaponAnimationComponentData.class);
+                    WeaponSlotComponent right = mwc.getSlot("secondary");
+                    if (mwc.isPaired() && right != null && model != null && model.hasOffHand())
+                    {
+                        LaunchData leftMuzzle = model.getLaunchPointData();
+                        LaunchData rightMuzzle = model.getLaunchPointData("secondary");
+                        secondAimOffset.set(getMousePosition()).rotateDeg(right.getAngleOffset()-slot.getAngleOffset()).sub(getMousePosition());
+                        secondAim.setPosition(markerLaunchData.getX()+rightMuzzle.getX()-leftMuzzle.getX()+secondAimOffset.x,
+                            markerLaunchData.getY()+rightMuzzle.getY()-leftMuzzle.getY()+secondAimOffset.y);
+                        secondAim.getRootBone().setRotation(playerData.getAngle()+right.getAngleOffset()-slot.getAngleOffset());
+                        if (secondAim.getSkin()!=aimAnimation.getSkin()) secondAim.setSkin(aimAnimation.getSkin());
+                        secondAimEntry.setTrackTime(MathUtils.clamp(right.getCurrentAccuracy(),0f,1f)*secondAimEntry.getAnimationEnd()*0.9f);
+                        secondAimState.update(dt);
+                        showSecondAim = true;
+                    }
                     aimEntry.setTrackTime(MathUtils.clamp(slot.getCurrentAccuracy(), 0.0f, 1.0f) * aimEntry.getAnimationEnd() * 0.9f);
                 }
                 else

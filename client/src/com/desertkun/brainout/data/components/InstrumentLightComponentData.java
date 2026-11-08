@@ -28,6 +28,11 @@ public class InstrumentLightComponentData extends Component<InstrumentLightCompo
     private final InstrumentData instrumentData;
     private BonePointData laserPoint;
     private ConeLight light;
+    private InstrumentLightComponentData second;
+    private WeaponAnimationComponentData model;
+    private boolean offHand;
+    private com.esotericsoftware.spine.Bone bound;
+
     private boolean active;
     private String generatedDimension = "";
 
@@ -99,6 +104,17 @@ public class InstrumentLightComponentData extends Component<InstrumentLightCompo
         if (cwp == null)
             return;
 
+        if (cwp instanceof WeaponAnimationComponentData)
+        {
+            model = (WeaponAnimationComponentData)cwp;
+            if (!offHand && ((com.desertkun.brainout.data.instrument.WeaponData)instrumentData).getWeapon().isPaired())
+            {
+                second = new InstrumentLightComponentData(instrumentData,getContentComponent());
+                second.offHand = true;
+                second.init();
+            }
+        }
+        if (offHand || cwp.getSkeleton().findBone("laser-bone")==null) return;
         laserPoint = new BonePointData(
             cwp.getSkeleton().findBone("laser-bone"),
             cwp.getInstrumentLaunch());
@@ -106,6 +122,7 @@ public class InstrumentLightComponentData extends Component<InstrumentLightCompo
 
     private void setActive(boolean active)
     {
+        if (second != null) second.active = active;
         this.active = active;
 
         update(0);
@@ -115,6 +132,13 @@ public class InstrumentLightComponentData extends Component<InstrumentLightCompo
     public void update(float dt)
     {
         super.update(dt);
+        if (second != null) second.update(dt);
+        if (offHand)
+        {
+            com.esotericsoftware.spine.Bone b = model.hasOffHand() ? model.actionSkeleton(true).findBone("laser-bone") : null;
+            if (b == null) { bound = null; free(); return; }
+            if (bound != b) { bound = b; laserPoint = new BonePointData(b,model.actionOrigin(true)); }
+        }
 
         if (!canRenderLights())
         {
@@ -226,6 +250,7 @@ public class InstrumentLightComponentData extends Component<InstrumentLightCompo
     @Override
     public void release()
     {
+        if (second != null) second.release();
         super.release();
 
         generatedDimension = "";

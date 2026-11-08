@@ -281,7 +281,7 @@ public class ServerBotWeaponSlotComponent extends WeaponSlotComponent
         }
 
         BrainOut.EventMgr.sendDelayedEvent(getData().getOwner(),
-            InstrumentActionEvent.obtain(action, getReloadTime().asFloat(), getFetchTime().asFloat()));
+            InstrumentActionEvent.obtain(action, (float)timer, cylinderCount));
 
         weaponAction(action);
     }
@@ -324,12 +324,14 @@ public class ServerBotWeaponSlotComponent extends WeaponSlotComponent
 
         Vector2 speed = cmp.getSpeed();
 
-        BrainOutServer.Controller.getClients().sendTCP(
-            new OtherPlayerInstrumentActionMsg(
+        OtherPlayerInstrumentActionMsg msg = new OtherPlayerInstrumentActionMsg(
                 playerData.getId(), playerData.getX(), playerData.getY(),
                 speed.x, speed.y,  playerData.getAngle(), playerData.getDimension(),
                 pcd.getMousePosition().x, pcd.getMousePosition().y,
-                getData(), action));
+                getData(), action);
+        if (action == Instrument.Action.reload || action == Instrument.Action.reloadSecondary)
+            msg.setDataFloat((float)timer, cylinderCount);
+        BrainOutServer.Controller.getClients().sendTCP(msg);
     }
 
     @Override

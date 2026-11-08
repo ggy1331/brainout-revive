@@ -34,6 +34,7 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
 
     private final WeaponData weaponData;
     private EffectSet.EffectAttacher attacher;
+    private EffectSet.EffectAttacher offHandAttacher;
     private WeaponAnimationComponentData wac;
 
     private UpgradableProperty silent;
@@ -44,10 +45,14 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
     {
         private ObjectMap<String, Pair<EffectData, Float>> boundEffects = new ObjectMap<>();
 
+        private final boolean right;
+        public ClientWeaponComponentAttacher() { this(false); }
+        public ClientWeaponComponentAttacher(boolean right) { this.right = right; }
+
         @Override
         public LaunchData attachDefault()
         {
-            return wac.getLaunchPointData();
+            return right ? wac.getLaunchPointData("secondary") : wac.getLaunchPointData();
         }
 
         public ClientWeaponComponentData getWCD()
@@ -110,7 +115,7 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
                 return null;
             }
 
-            Bone bone = wac.getSkeleton().findBone(attachObject);
+            Bone bone = wac.actionSkeleton(right).findBone(attachObject);
 
             if (bone == null)
             {
@@ -119,7 +124,7 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
 
             return new LengthBonePointData(
                     bone,
-                    wac.getInstrumentLaunch(),
+                    wac.actionOrigin(right),
                     fireBoneOffset.asFloat());
         }
     }
@@ -158,6 +163,7 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
             fireBoneOffset.init(upgrades);
 
             this.attacher = new ClientWeaponComponentAttacher();
+            if (weapon.isPaired()) offHandAttacher = new ClientWeaponComponentAttacher(true);
         }
     }
 
@@ -217,13 +223,17 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
                     }
                 }
 
+                if (wac != null) wac.animateHand(e.slot == com.desertkun.brainout.content.bullet.Bullet.BulletSlot.secondary, "fire", 0);
+
+                EffectSet.EffectAttacher shot = offHandAttacher != null &&
+                    e.slot == com.desertkun.brainout.content.bullet.Bullet.BulletSlot.secondary ? offHandAttacher : attacher;
                 String eventKind;
 
                 switch (e.slot)
                 {
                     case secondary:
                     {
-                        eventKind = "shootSecondary";
+                        eventKind = weaponData.getWeapon().isPaired() ? "shoot" : "shootSecondary";
                         break;
                     }
                     case primary:
@@ -235,14 +245,14 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
                 }
 
                 BrainOut.EventMgr.sendDelayedEvent(weaponData,
-                        LaunchAttachedEffectEvent.obtain(eventKind, attacher));
+                        LaunchAttachedEffectEvent.obtain(eventKind, shot));
                 BrainOut.EventMgr.sendDelayedEvent(bulletData,
-                        LaunchAttachedEffectEvent.obtain("launch", attacher));
+                        LaunchAttachedEffectEvent.obtain("launch", shot));
 
                 if (weaponData.getWeapon().getPrimaryProperties().hasShellAutoEject())
                 {
                     BrainOut.EventMgr.sendDelayedEvent(bulletData,
-                            LaunchAttachedEffectEvent.obtain("shell", attacher));
+                            LaunchAttachedEffectEvent.obtain("shell", shot));
                 }
 
                 BrainOut.EventMgr.sendDelayedEvent(weaponData.getOwner(),
@@ -268,6 +278,7 @@ public class ClientWeaponComponentData extends ClientInstrumentComponentData<Cli
     public void update(float dt)
     {
         attacher.updateBoundEffects(dt);
+        if (offHandAttacher != null) offHandAttacher.updateBoundEffects(dt);
     }
 
     @Override

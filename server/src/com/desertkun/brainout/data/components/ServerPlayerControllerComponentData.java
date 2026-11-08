@@ -1957,7 +1957,12 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
 
                                 if (syncOthers)
                                 {
-                                    sendUDPExceptDistance(generateInstrumentActionMessage(weaponData, waction));
+                                    OtherPlayerInstrumentActionMsg msg = generateInstrumentActionMessage(weaponData, waction);
+                                    if (msg != null)
+                                    {
+                                        msg.setDataFloat(wslot.getCockDuration(), 0);
+                                        sendUDPExceptDistance(msg);
+                                    }
                                 }
 
                                 break;
@@ -1985,7 +1990,7 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
 
                                         if (msg != null)
                                         {
-                                            msg.setDataFloat(wslot.getReloadTime().asFloat(), wslot.getFetchTime().asFloat());
+                                            msg.setDataFloat(wslot.getActiveReloadTime(), wslot.getCylinderCount());
                                             clients.sendUDP(msg, client -> validPlayer(client, 1));
                                         }
                                     }
@@ -2012,7 +2017,7 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
                                         OtherPlayerInstrumentActionMsg msg =
                                                 generateInstrumentActionMessage(weaponData, waction);
 
-                                        msg.setDataFloat(wslot.getReloadTime().asFloat(), wslot.getFetchTime().asFloat());
+                                        msg.setDataFloat(wslot.getFetchTime().asFloat(), 0);
 
                                         clients.sendUDP(msg, client -> validPlayer(client, 1));
                                     }
@@ -2023,7 +2028,7 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
                             case loadBoth:
                             {
                                 ServerWeaponComponentData.Slot wslotB = sw.getSlot(slotB);
-                                if (wslotB != null)
+                                if (wslotB != null && !weaponData.getWeapon().isPaired())
                                 {
                                     if (wslot.loadBoth(poc, false, true) &&
                                         wslotB.loadBoth(poc, false, true))

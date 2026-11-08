@@ -1,5 +1,6 @@
 package com.desertkun.brainout.content.shop;
 
+import com.desertkun.brainout.content.instrument.Instrument;
 import com.badlogic.gdx.utils.ArrayMap;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
@@ -48,6 +49,21 @@ public class ShopCart
         boolean existing = items.get(slot) == selection;
         items.put(slot, selection);
         return existing;
+    }
+
+    public Instrument equippedInstrument(InstrumentSlotItem item)
+    {
+        if (item.getSlot() != null && "slot-secondary".equals(item.getSlot().getID()))
+        {
+            SlotItem.Selection perk = getItem(BrainOut.ContentMgr.get("slot-player", Slot.class));
+            if (perk != null && "sl-pl-akimbo".equals(perk.getItem().getID()))
+            {
+                Instrument paired = BrainOut.ContentMgr.get(
+                    "paired-" + item.getInstrument().getID(), Instrument.class);
+                if (paired != null) return paired;
+            }
+        }
+        return item.getInstrument();
     }
 
     public void removeItem(Slot slot)
@@ -176,6 +192,18 @@ public class ShopCart
 
         Shop shop = Shop.getInstance();
 
+        String suffix = layout.getKey().isEmpty() ? "" : "-" + layout.getKey();
+        String primary = userProfile.getSelection("slot-primary" + suffix);
+        if (primary != null && primary.startsWith("sl-pair-"))
+        {
+            SlotItem sidearm = BrainOut.ContentMgr.get("sl-sec-" + primary.substring(8), SlotItem.class);
+            if (sidearm != null)
+            {
+                userProfile.setSelection("slot-secondary" + suffix, sidearm.getID());
+                userProfile.removeSelection("slot-primary" + suffix);
+            }
+        }
+
         for (ObjectMap.Entry<Slot, SlotItem.Selection> entry : getItems())
         {
             Slot slot = entry.key;
@@ -186,6 +214,15 @@ public class ShopCart
 
             if (s != null)
             {
+                if ("sl-pl-sc-clip".equals(s)) s = "sl-pl-clip";
+                // Translate saved standalone variants the first time an old loadout opens.
+                if ("sl-pri-mosinobrez".equals(s) || s.startsWith("sl-spc-electro-guitar"))
+                {
+                    boolean mosin = s.equals("sl-pri-mosinobrez");
+                    s = mosin ? "sl-pri-mosin" : s.replace("electro-guitar", "guitar");
+                    userProfile.setSelection(s + "-upgrade-conversion", mosin ? "conversion-obrez" : "conversion-electric");
+                    userProfile.setSelection(key, s);
+                }
                 SlotItem slotItem = ((SlotItem) BrainOut.ContentMgr.get(s));
 
                 if (slotItem == null)

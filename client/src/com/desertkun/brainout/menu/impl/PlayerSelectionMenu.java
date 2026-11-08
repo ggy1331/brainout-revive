@@ -31,6 +31,7 @@ import com.desertkun.brainout.content.gamecase.Case;
 import com.desertkun.brainout.content.gamecase.gen.ContentCard;
 import com.desertkun.brainout.content.instrument.Instrument;
 import com.desertkun.brainout.content.instrument.Weapon;
+import com.desertkun.brainout.content.upgrades.Upgrade;
 import com.desertkun.brainout.content.shop.*;
 import com.desertkun.brainout.data.instrument.InstrumentInfo;
 import com.desertkun.brainout.data.interfaces.WithBadge;
@@ -495,7 +496,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
 
         if (slotItem.hasComponent(IconComponent.class))
         {
-            TextureAtlas.AtlasRegion icon = slotItem.getComponent(IconComponent.class).getIcon();
+            TextureAtlas.AtlasRegion icon = equipmentIcon(slotItem, selection);
             if (icon != null)
             {
                 Image image = new Image(icon);
@@ -524,6 +525,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             }
 
             InstrumentIcon icon = new InstrumentIcon(iselection.getInfo(), scale, false);
+            icon.setTouchable(Touchable.disabled);
             icon.init();
             item.add(icon);
         }
@@ -537,6 +539,17 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
 
         slotRoot.add(item).expand().fill().row();
         MenuBadge.apply(click, slot);
+    }
+
+    private TextureAtlas.AtlasRegion equipmentIcon(SlotItem item, SlotItem.Selection selected)
+    {
+        if (selected instanceof InstrumentSlotItem.InstrumentSelection)
+        {
+            Upgrade conversion = ((InstrumentSlotItem.InstrumentSelection)selected).getSelectedUpgrades().get("conversion");
+            if (conversion != null && conversion.hasComponent(IconComponent.class))
+                return conversion.getComponent(IconComponent.class).getIcon();
+        }
+        return item.getComponent(IconComponent.class).getIcon();
     }
 
     private void updateSlotButtons()
@@ -621,13 +634,49 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             Layout next = Layout.resolve("layout-" + (userProfile.getLayoutCount() + 1));
             userProfile.setLayout(next);
             selectLayout(next);
-        })).size(36, 28).padBottom(3).row();
+        })).left().size(36, 28).padBottom(3).row();
 
         Table rows = new Table();
-        ScrollPane scroll = new ScrollPane(rows, BrainOutClient.Skin, "scroll-default");
+        rows.top().left();
+        ScrollPane.ScrollPaneStyle style = new ScrollPane.ScrollPaneStyle(
+            BrainOutClient.Skin.get("scroll-default", ScrollPane.ScrollPaneStyle.class));
+        style.background = null;
+        ScrollPane scroll = new ScrollPane(rows, style);
         scroll.setScrollingDisabled(true, false);
         scroll.setFadeScrollBars(false);
-        layoutContent.add(scroll).width(46).height(Math.min(4, count) * 30);
+        float gutter = Math.max(style.vScroll == null ? 0 : style.vScroll.getMinWidth(),
+            style.vScrollKnob == null ? 0 : style.vScrollKnob.getMinWidth());
+        float width = 36 + gutter;
+        float height = Math.min(4, count) * 30;
+        layoutContent.add(scroll).left().size(width, height).row();
+        int selected = selectedLayout == null ? 1 : selectedLayout.getOrder() + 1;
+        if (selected > 1)
+        {
+            Group controls = new Group();
+            TextButton confirm = HubPanel.button("?", () -> {
+                if (!userProfile.removeLoadout(selected, count)) return;
+                BrainOutClient.ClientController.sendTCP(new RemoveLoadoutMsg(selected, count));
+                selectedLayout = userProfile.getLayout();
+                updateShopCardSelection();
+                updateSlotButtons();
+            });
+            confirm.getLabelCell().padLeft(10);
+            Image tick = new Image(BrainOutClient.getRegion("loadout-confirm"));
+            tick.setBounds(4, 9, 10, 10);
+            tick.setTouchable(Touchable.disabled);
+            confirm.addActor(tick);
+            confirm.setBounds(-38, 0, 36, 28);
+            confirm.setVisible(false);
+            controls.addActor(confirm);
+            TextButton remove = HubPanel.button("-", () -> confirm.setVisible(!confirm.isVisible()));
+            remove.setSize(36, 28);
+            controls.addActor(remove);
+            layoutContent.add(controls).left().size(36, 28).padTop(3).row();
+        }
+        else if (count > 1)
+        {
+            layoutContent.add().height(28).padTop(3).row();
+        }
         ButtonGroup<TextButton> layoutsButtons = new ButtonGroup<>();
         for (int i = 1; i <= count; i++)
         {
@@ -654,8 +703,10 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                 btn.setChecked(true);
             }
         }
-        scroll.layout();
-        if (selectedLayout != null) scroll.setScrollY(Math.max(0, selectedLayout.getOrder() - 2) * 30f);
+        scroll.setSize(width, height);
+        scroll.validate();
+        scroll.setScrollY(Math.max(0, selected - 3) * 30f);
+        scroll.updateVisualScroll();
     }
 
     private void selectLayout(Layout layout)
@@ -1381,7 +1432,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             }
             else if (item.hasComponent(IconComponent.class))
             {
-                TextureAtlas.AtlasRegion icon = item.getComponent(IconComponent.class).getIcon();
+                TextureAtlas.AtlasRegion icon = equipmentIcon(item, item.getStaticSelection());
 
                 if (icon != null)
                 {
@@ -1563,7 +1614,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                                     selectItem(item.getSlot(), item.getStaticSelection());
                                     save();
 
-                                    pushMenu(new UpgradeInstrumentMenu(islot, PlayerSelectionMenu.this::save));
+                                    pushMenu(new UpgradeInstrumentMenu(islot, shopCart.equippedInstrument(islot), PlayerSelectionMenu.this::save));
                                 }
                             });
 

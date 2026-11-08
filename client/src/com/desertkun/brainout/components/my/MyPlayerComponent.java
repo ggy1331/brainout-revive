@@ -436,12 +436,14 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         return activateClosestActive();
     }
 
-    private ConsumableRecord quickReturn, quickKnife;
+    private int quickReturnId, quickKnifeId;
+    private ConsumableRecord meleeAfterReload;
     private String returnMode;
     private WeaponSlotComponent swingSlot;
-    private float swingTime;
+    private float pendingTime, recoveryTime;
 
-    private void quickMelee() {
+    private void quickMelee()
+    {
         if (swingSlot != null || getPlayerData().isWounded() || !isEnabled()) return;
         PlayerOwnerComponent owner = getPlayerData().getComponent(PlayerOwnerComponent.class);
         if (owner == null) return;
@@ -449,33 +451,71 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         Slot melee = BrainOutClient.ContentMgr.get("slot-melee", Slot.class);
         ConsumableRecord knife = owner.getNextInstrumentForSlot(melee, null);
         if (previous == null || knife == null) return;
+
+        MyWeaponComponent previousWeapon = owner.getCurrentInstrument().getComponent(MyWeaponComponent.class);
+        if (previousWeapon != null && previousWeapon.isHandlingReload())
+        {
+            meleeAfterReload = previous;
+            return;
+        }
+        returnMode = previousWeapon != null && previousWeapon.getCurrentSlot() != null
+            ? previousWeapon.getCurrentSlot().getSlot() : currentMode;
         if (previous != knife) selectRecord(knife, Constants.Properties.SLOT_PRIMARY);
         if (owner.getCurrentInstrumentRecord() != knife) return;
         MyWeaponComponent weapon = owner.getCurrentInstrument().getComponent(MyWeaponComponent.class);
-        if (weapon == null || weapon.getCurrentSlot() == null) {
-            if (previous != knife) selectRecord(previous, currentMode);
+        if (weapon == null || weapon.getCurrentSlot() == null)
+        {
+            if (previous != knife) selectRecord(previous, returnMode);
             return;
         }
-        quickReturn = previous;
-        returnMode = currentMode;
-        quickKnife = knife;
-        swingTime = 0;
+
+        quickReturnId = previous.getId();
+        quickKnifeId = knife.getId();
+        pendingTime = recoveryTime = 0;
         swingSlot = weapon.getCurrentSlot();
         swingSlot.beginSingleSwing();
+        if (!swingSlot.isSingleSwingPending()) finishQuickMelee(owner);
     }
 
-    private void updateQuickMelee(float dt) {
-        if (swingSlot == null) return;
-        swingTime += dt;
-        PlayerOwnerComponent owner = getPlayerData().getComponent(PlayerOwnerComponent.class);
-        boolean stillEquipped = owner != null && owner.getCurrentInstrumentRecord() == quickKnife;
-        if (stillEquipped && swingTime < 2.5f && (swingTime < 0.22f || swingSlot.isLaunching())) return;
-        swingSlot.setLaunching(false);
+    private void finishQuickMelee(PlayerOwnerComponent owner)
+    {
+        swingSlot.endSingleSwing();
         swingSlot = null;
-        if (stillEquipped && quickReturn != quickKnife &&
-            owner.getConsumableContainer().get(quickReturn.getId()) == quickReturn)
-            selectRecord(quickReturn, returnMode);
-        quickReturn = quickKnife = null;
+        if (owner == null || owner.getCurrentInstrumentRecord() == null ||
+            owner.getCurrentInstrumentRecord().getId() != quickKnifeId || quickReturnId == quickKnifeId) return;
+
+        ConsumableRecord previous = owner.getConsumableContainer().get(quickReturnId);
+        if (previous != null) selectRecord(previous, returnMode);
+    }
+
+    private void updateQuickMelee(float dt)
+    {
+        PlayerOwnerComponent owner = getPlayerData().getComponent(PlayerOwnerComponent.class);
+        if (meleeAfterReload != null)
+        {
+            boolean stillEquipped = owner != null && owner.getCurrentInstrumentRecord() == meleeAfterReload;
+            meleeAfterReload = null;
+            if (stillEquipped) quickMelee();
+        }
+        if (swingSlot == null) return;
+        if (owner != null && owner.getCurrentInstrumentRecord() != null &&
+            owner.getCurrentInstrumentRecord().getId() == quickKnifeId && !getPlayerData().isWounded())
+        {
+            if (swingSlot.isSingleSwingPending())
+            {
+                pendingTime += dt;
+                if (pendingTime < 2.5f) return;
+            }
+            else
+            {
+                recoveryTime += dt;
+                // The hit reaches the animation controller through queued events.
+                if (recoveryTime < 0.15f) return;
+                PlayerComponentData player = getPlayerData().getComponent(ClientPlayerComponent.class);
+                if (player != null && player.isPlayingHitAnimation()) return;
+            }
+        }
+        finishQuickMelee(owner);
     }
 
     private boolean selectSlot(int slot, String mode)
@@ -911,8 +951,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
                         case loadMagazineRound:
                         {
                             mwp.getCurrentSlot().stopLoadingBullets();
-                            BrainOutClient.ClientController.sendTCP(new SelectInstrumentMsg(switchTo));
-                            return;
+                            break;
                         }
                     }
                 }
@@ -965,7 +1004,10 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     public void update(float dt)
     {
         if (!isEnabled())
+        {
+            meleeAfterReload = null;
             return;
+        }
 
         updateQuickMelee(dt);
         if (hitTimer > 0)

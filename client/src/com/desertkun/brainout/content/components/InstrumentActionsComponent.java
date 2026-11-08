@@ -13,6 +13,7 @@ import com.desertkun.brainout.data.instrument.InstrumentData;
 import com.desertkun.brainout.data.interfaces.LaunchData;
 import com.desertkun.brainout.data.interfaces.LengthBonePointData;
 import com.esotericsoftware.spine.Bone;
+import com.desertkun.brainout.data.components.WeaponAnimationComponentData;
 import com.esotericsoftware.spine.Slot;
 import com.esotericsoftware.spine.attachments.Attachment;
 
@@ -38,7 +39,7 @@ public class InstrumentActionsComponent extends ContentComponent
 
     public abstract static class Action
     {
-        public abstract void process(InstrumentData instrument);
+        public abstract void process(InstrumentData instrument, boolean right);
         public abstract void read(JsonValue jsonData);
         public abstract void completeLoad(AssetManager assetManager);
     }
@@ -72,12 +73,12 @@ public class InstrumentActionsComponent extends ContentComponent
         }
 
         @Override
-        public void process(InstrumentData instrument)
+        public void process(InstrumentData instrument, boolean right)
         {
             InstrumentAnimationComponentData iac =
                 instrument.getComponentWithSubclass(InstrumentAnimationComponentData.class);
 
-            Slot slot = iac.getSkeleton().findSlot(slotName);
+            Slot slot = (iac instanceof WeaponAnimationComponentData ? ((WeaponAnimationComponentData)iac).actionSkeleton(right) : iac.getSkeleton()).findSlot(slotName);
 
             if (slot != null)
             {
@@ -126,7 +127,7 @@ public class InstrumentActionsComponent extends ContentComponent
         }
 
         @Override
-        public void process(InstrumentData instrument)
+        public void process(InstrumentData instrument, boolean right)
         {
             InstrumentAnimationComponentData iac =
                     instrument.getComponentWithSubclass(InstrumentAnimationComponentData.class);
@@ -135,7 +136,7 @@ public class InstrumentActionsComponent extends ContentComponent
             {
                 @Override
                 public LaunchData attachDefault() {
-                    return iac.getLaunchPointData();
+                    return right && iac instanceof WeaponAnimationComponentData ? ((WeaponAnimationComponentData)iac).getLaunchPointData("secondary") : iac.getLaunchPointData();
                 }
 
                 @Override
@@ -143,14 +144,15 @@ public class InstrumentActionsComponent extends ContentComponent
                 {
                     if (instrument.getOwner() == null) return null;
 
-                    Bone bone = iac.getSkeleton().findBone(attachObject);
+                    WeaponAnimationComponentData weapon = iac instanceof WeaponAnimationComponentData ? (WeaponAnimationComponentData)iac : null;
+                    Bone bone = (weapon == null ? iac.getSkeleton() : weapon.actionSkeleton(right)).findBone(attachObject);
 
                     if (bone == null)
                     {
                         return null;
                     }
 
-                    return new LengthBonePointData(bone, iac.getInstrumentLaunch(), 0);
+                    return new LengthBonePointData(bone, weapon == null ? iac.getInstrumentLaunch() : weapon.actionOrigin(right), 0);
                 }
             });
         }
@@ -174,7 +176,7 @@ public class InstrumentActionsComponent extends ContentComponent
         private String animation;
 
         @Override
-        public void process(InstrumentData instrument)
+        public void process(InstrumentData instrument, boolean right)
         {
             InstrumentAnimationComponentData anim =
                 instrument.getComponentWithSubclass(InstrumentAnimationComponentData.class);
@@ -182,7 +184,7 @@ public class InstrumentActionsComponent extends ContentComponent
             if (anim == null)
                 return;
 
-            anim.getState().setAnimation(0, animation, false);
+            (anim instanceof WeaponAnimationComponentData ? ((WeaponAnimationComponentData)anim).actionState(right) : anim.getState()).setAnimation(0, animation, false);
         }
 
         @Override
@@ -221,11 +223,12 @@ public class InstrumentActionsComponent extends ContentComponent
 
     public void process(InstrumentData instrument, String payload)
     {
-        Action action = actions.get(payload);
+        boolean right = payload.startsWith("offhand/");
+        Action action = actions.get(right ? payload.substring(8) : payload);
 
         if (action != null)
         {
-            action.process(instrument);
+            action.process(instrument, right);
         }
     }
 

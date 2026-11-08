@@ -52,6 +52,11 @@ public class ConsumableSlotItem extends SlotItem
 
     public class ConsumableSelection extends Selection
     {
+        protected int cargoAmount(ItemCargo cargo, ShopCart cart, Slot slot)
+        {
+            return cargo.getAmount();
+        }
+
         @Override
         public void apply(ShopCart shopCart, PlayerData playerData, UserProfile profile, Slot slot, Selection selection)
         {
@@ -59,7 +64,7 @@ public class ConsumableSlotItem extends SlotItem
 
             for (ItemCargo cargo: getCargo())
             {
-                int amount = cargo.getAmount();
+                int amount = cargoAmount(cargo,shopCart,slot);
                 Content content = cargo.getContent();
 
                 if (content instanceof Instrument)

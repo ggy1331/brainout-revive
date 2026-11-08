@@ -69,6 +69,13 @@ def run():
                     return code
                 value = request.read_text(encoding="utf8").strip()
                 request.unlink()
+                if value == "install-update":
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location("release_update", ROOT/"support/release_update.py")
+                    updater = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(updater)
+                    updater.schedule(ROOT)
+                    return 0
                 if value == "home":
                     endpoint = home
                 else:

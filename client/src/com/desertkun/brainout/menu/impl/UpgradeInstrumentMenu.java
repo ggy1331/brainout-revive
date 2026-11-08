@@ -54,7 +54,7 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
     private Shader grayShader;
     private Button selectedSkinButton;
 
-    public UpgradeInstrumentMenu(InstrumentSlotItem item, Runnable done)
+    public UpgradeInstrumentMenu(InstrumentSlotItem item, com.desertkun.brainout.content.instrument.Instrument equipped, Runnable done)
     {
         this.done = done;
         this.item = item;
@@ -62,7 +62,7 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
 
         this.info = new InstrumentInfo();
 
-        this.info.instrument = item.getInstrument();
+        this.info.instrument = equipped;
         this.info.skin = selection.getInfo().skin;
         this.toInstall = null;
 
@@ -647,6 +647,7 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
 
                     if (canBeSelected)
                     {
+                        chars.clearHoverUpgrade();
                         if (upgradeButton.isChecked())
                         {
                             //Analytics.EventDesign(1, "ui", "select-upgrade", upgrade.getID());

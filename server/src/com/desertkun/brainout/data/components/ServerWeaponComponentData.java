@@ -52,6 +52,12 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
         private final ServerWeaponComponent weaponComponent;
         private final String slot;
         private IntMap<Magazine> magazines;
+        private int cylinderCount;
+        private int cylinderInserted;
+        private float cylinderDuration;
+        public int getCylinderCount() { return cylinderCount; }
+        public float getCockDuration() { return cockTime.asFloat(); }
+        public float getActiveReloadTime() { return reloadTimer; }
         private int reloadBuffer;
         private int reloadBufferQuality;
 
@@ -211,7 +217,7 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
         {
             Array<Upgrade> upgrades = null;
 
-            if (slot.equals(Constants.Properties.SLOT_PRIMARY))
+            if (slot.equals(Constants.Properties.SLOT_PRIMARY) || weaponData.getWeapon().isPaired())
             {
                 upgrades = weaponData.getInfo().upgrades.values().toArray();
             }
@@ -351,9 +357,6 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
 
         public boolean loadBoth(PlayerOwnerComponent playerOwnerComponent, boolean full, boolean loadTime)
         {
-            //if (state == State.reloading)
-            //    return false;
-
             if (loadTime)
             {
                 state = State.reloading;
@@ -514,8 +517,19 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
 
         public boolean load(PlayerOwnerComponent playerOwnerComponent, boolean full, boolean loadTime)
         {
-            //if (state == State.reloading)
-            //    return false;
+            if (loadTime && !full && getWeaponData().usesLooseCylinder())
+            {
+                if (state == State.reloading) return false;
+                cylinderCount = Math.min(clipSize.asInt() - getRounds(),
+                    playerOwnerComponent.getConsumableContainer().getAmount(getBullet()));
+                if (cylinderCount <= 0) return false;
+                cylinderInserted = 0;
+                cylinderDuration = weaponData.cylinderReloadTime(getReloadTime().asFloat(), cylinderCount, clipSize.asInt());
+                reloadTimer = cylinderDuration;
+                state = State.reloading;
+                return true;
+            }
+            cylinderCount = 0;
 
             if (loadTime)
             {
@@ -572,6 +586,12 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
         {
             if (state == State.reloading)
             {
+                if (cylinderCount > 0)
+                {
+                    cylinderCount = 0;
+                    state = State.normal;
+                    return;
+                }
                 if (!weaponProperties.isPerBulletReload())
                 {
                     if (getRounds() > 0)
@@ -703,8 +723,11 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
                 {
                     reloadTimer -= dt;
 
-                    if (reloadTimer <= getThreshold())
+                    if (cylinderCount > 0) insertCylinderRounds();
+
+                    if (reloadTimer <= (cylinderCount > 0 ? 0 : getThreshold()))
                     {
+                        cylinderCount = 0;
                         reloadTimer = 0;
 
                         state = State.normal;
@@ -722,6 +745,28 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
                     }
                     break;
                 }
+            }
+        }
+
+        private void insertCylinderRounds()
+        {
+            ActiveData player = getWeaponData().getOwner();
+            if (player == null) return;
+            PlayerOwnerComponent owner = player.getComponent(PlayerOwnerComponent.class);
+            if (owner == null) return;
+            float clipLength = weaponData.cylinderClipLength(cylinderCount);
+            float clipTime = (1 - reloadTimer / cylinderDuration) * clipLength;
+            while (cylinderInserted < cylinderCount &&
+                clipTime >= 0.4f + weaponData.ejectionDuration(cylinderCount) + 0.25f * cylinderInserted)
+            {
+                cylinderInserted++;
+                ConsumableContainer.AcquiredConsumables added = owner.getAmmo(1, getBullet());
+                if (added.amount <= 0) break;
+                int loaded = getRounds();
+                setRounds(loaded + 1, (loaded * getRoundsQuality() + added.quality) / (loaded + 1));
+                updateWeapon(true);
+                ServerPlayerControllerComponentData controller = player.getComponentWithSubclass(ServerPlayerControllerComponentData.class);
+                if (controller != null) controller.consumablesUpdated();
             }
         }
 

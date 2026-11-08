@@ -46,7 +46,15 @@ public class PlayerSlotItem extends ConsumableSlotItem
         {
             PlayerOwnerComponent ownerComponent = playerData.getComponent(PlayerOwnerComponent.class);
 
-            Selection slotFromSelection = shopCart.getItem(slotFrom);
+            if (slotFrom != null) addReserve(shopCart, ownerComponent, slotFrom);
+            if ("sl-pl-clip".equals(getID()))
+                addReserve(shopCart, ownerComponent, BrainOut.ContentMgr.get("slot-secondary", Slot.class));
+            super.apply(shopCart, playerData, profile, slot, selection);
+        }
+
+        private void addReserve(ShopCart shopCart, PlayerOwnerComponent ownerComponent, Slot source)
+        {
+            Selection slotFromSelection = shopCart.getItem(source);
 
             if (slotFromSelection instanceof InstrumentSlotItem.InstrumentSelection)
             {
@@ -96,7 +104,6 @@ public class PlayerSlotItem extends ConsumableSlotItem
                 }
             }
 
-            super.apply(shopCart, playerData, profile, slot, selection);
         }
     }
 

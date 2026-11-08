@@ -1,5 +1,6 @@
 """Build v0.8 equipment and localization data for the local client and server."""
 from copy import deepcopy
+from loadout_rules import LAUNCHERS
 import json
 from pathlib import Path
 import sys
@@ -50,6 +51,8 @@ def transform(data):
         if isinstance(instrument,dict) and "upgrades" in instrument:
             instrument["upgrades"] = {k:v for k,v in instrument["upgrades"].items() if k not in STAT_SLOTS}
         if value.get("slot") == "slot-special" and value["class"].startswith("content.shop."):
+            if value.get("instrument", {}).get("id") in LAUNCHERS:
+                continue
             extra = deepcopy(value)
             extra.update(slot="slot-special-extra", original=key)
             content[key+"-slot2"] = extra

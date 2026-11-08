@@ -28,6 +28,7 @@ public class MyWeaponComponent extends Component
     private final ConsumableRecord record;
     private final WeaponData data;
     private WeaponSlotComponent currentSlot;
+    private boolean reloadRightAfterLeft;
     private ObjectMap<String, WeaponSlotComponent> slots;
 
     public MyWeaponComponent(WeaponData weaponData, ConsumableRecord record)
@@ -117,6 +118,30 @@ public class MyWeaponComponent extends Component
             {
                 GameControllerEvent gcEvent = ((GameControllerEvent) event);
 
+                if (isPaired())
+                {
+                    WeaponSlotComponent right = getSlot(Constants.Properties.SLOT_SECONDARY);
+                    switch (gcEvent.action)
+                    {
+                        case beginLaunch: current.beginLaunching(); return true;
+                        case endLaunch: current.endLaunching(); return true;
+                        case beginLaunchSecondary: right.beginLaunching(); return true;
+                        case endLaunchSecondary: right.endLaunching(); return true;
+                        case reload:
+                            if (right.isReloadingOrChambering()) return true;
+                            if (current.isReloadingOrChambering())
+                            {
+                                reloadRightAfterLeft = right.getRounds() < right.getClipSize().asInt();
+                                return true;
+                            }
+                            boolean rightNeedsAmmo = right.getRounds() < right.getClipSize().asInt();
+                            if (current.getRounds() < current.getClipSize().asInt() && current.doReload(true))
+                                reloadRightAfterLeft = rightNeedsAmmo;
+                            else if (rightNeedsAmmo)
+                                right.doReload(true);
+                            return true;
+                    }
+                }
                 switch (gcEvent.action)
                 {
                     case beginLaunchSecondary:
@@ -237,6 +262,18 @@ public class MyWeaponComponent extends Component
         return false;
     }
 
+    public boolean isHandlingReload()
+    {
+        if (reloadRightAfterLeft) return true;
+        for (WeaponSlotComponent slot : slots.values())
+        {
+            if (slot.isReloadingOrChambering() ||
+                slot.getState() == WeaponSlotComponent.State.loadMagazineRound ||
+                slot.getState() == WeaponSlotComponent.State.cocking) return true;
+        }
+        return false;
+    }
+
     private boolean checkOtherSlots(WeaponSlotComponent current)
     {
         for (ObjectMap.Entry<String, WeaponSlotComponent> entry : slots)
@@ -257,6 +294,7 @@ public class MyWeaponComponent extends Component
 
     private void deselected()
     {
+        reloadRightAfterLeft = false;
         WeaponSlotComponent slot = getCurrentSlot();
 
         if (slot == null)
@@ -269,9 +307,14 @@ public class MyWeaponComponent extends Component
         }
     }
 
+    public boolean isPaired()
+    {
+        return data.getWeapon().isPaired();
+    }
+
     public WeaponSlotComponent switchWeaponSlot(String name)
     {
-        if (name == null)
+        if (name == null || isPaired())
         {
             name = Constants.Properties.SLOT_PRIMARY;
         }
@@ -301,6 +344,16 @@ public class MyWeaponComponent extends Component
         super.update(dt);
 
         getCurrentSlot().update(dt);
+        if (isPaired())
+        {
+            WeaponSlotComponent right = getSlot(Constants.Properties.SLOT_SECONDARY);
+            right.update(dt);
+            if (reloadRightAfterLeft && !currentSlot.isReloadingOrChambering())
+            {
+                reloadRightAfterLeft = false;
+                if (right.getRounds() < right.getClipSize().asInt()) right.doReload(true);
+            }
+        }
     }
 
     private void updatePlayerData()

@@ -19,6 +19,10 @@ import com.desertkun.brainout.reflection.ReflectAlias;
 @Reflect("content.upgrades.Upgrade")
 public class Upgrade extends OwnableContent
 {
+    private String conversion;
+
+    public String getConversion() { return conversion; }
+
     private enum UpgradeKind
     {
         add,
@@ -175,6 +179,7 @@ public class Upgrade extends OwnableContent
     public void read(Json json, JsonValue jsonData)
     {
         super.read(json, jsonData);
+        conversion = jsonData.getString("conversion", null);
 
         if (jsonData.has("properties"))
         {

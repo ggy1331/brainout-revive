@@ -20,6 +20,10 @@ public class WeaponHeatComponentData extends Component<WeaponHeatComponent>
 {
     private ParticleEffectData effectData;
     private float value;
+    private ParticleEffectData rightSmoke;
+    private float rightHeat;
+    private com.esotericsoftware.spine.Bone rightBone;
+
 
     public WeaponHeatComponentData(ComponentObject componentObject, WeaponHeatComponent contentComponent)
     {
@@ -83,6 +87,7 @@ public class WeaponHeatComponentData extends Component<WeaponHeatComponent>
     {
         super.render(batch, context);
 
+        if (rightSmoke != null && rightHeat > 0) rightSmoke.render(batch,context);
         if (effectData != null && value > 0)
             effectData.render(batch, context);
     }
@@ -91,6 +96,12 @@ public class WeaponHeatComponentData extends Component<WeaponHeatComponent>
     public void update(float dt)
     {
         super.update(dt);
+        if (rightSmoke != null && rightHeat > 0)
+        {
+            rightSmoke.setHighEmission(rightHeat);
+            rightSmoke.update(dt);
+            rightHeat = Math.max(0,rightHeat-getContentComponent().getAttenuation()*dt);
+        }
 
         if (effectData != null)
         {
@@ -110,10 +121,19 @@ public class WeaponHeatComponentData extends Component<WeaponHeatComponent>
     @Override
     public void release()
     {
+        clearRightSmoke();
         super.release();
 
         if (effectData != null)
             effectData.release();
+    }
+
+    private void clearRightSmoke()
+    {
+        if (rightSmoke != null) rightSmoke.release();
+        rightSmoke = null;
+        rightBone = null;
+        rightHeat = 0;
     }
 
     @Override
@@ -142,6 +162,7 @@ public class WeaponHeatComponentData extends Component<WeaponHeatComponent>
                     if (getComponentObject() != e.selected && effectData != null)
                     {
                         effectData.clear();
+                        clearRightSmoke();
                     }
                 }
                 break;
@@ -152,7 +173,8 @@ public class WeaponHeatComponentData extends Component<WeaponHeatComponent>
 
                 if (e.getAction() == SimpleEvent.Action.deselected)
                 {
-                    effectData.clear();
+                    if (effectData != null) effectData.clear();
+                    clearRightSmoke();
                     break;
                 }
 
@@ -160,6 +182,26 @@ public class WeaponHeatComponentData extends Component<WeaponHeatComponent>
             }
             case launchBullet:
             {
+                com.desertkun.brainout.events.LaunchBulletEvent shot = (com.desertkun.brainout.events.LaunchBulletEvent)event;
+                WeaponAnimationComponentData model = getComponentObject().getComponent(WeaponAnimationComponentData.class);
+                if (model != null && model.hasOffHand() && shot.slot == com.desertkun.brainout.content.bullet.Bullet.BulletSlot.secondary)
+                {
+                    com.esotericsoftware.spine.Bone bone = model.actionSkeleton(true).findBone(getContentComponent().getAttachBone());
+                    if (bone != rightBone)
+                    {
+                        clearRightSmoke();
+                        rightBone = bone;
+                        if (bone != null && getContentComponent().getEffect().isEnabled())
+                        {
+                            rightSmoke = getContentComponent().getEffect().getEffect(new com.desertkun.brainout.data.interfaces.BonePointData(bone,model.actionOrigin(true)){
+                                @Override public float getAngle(){return 0;}
+                            });
+                            rightSmoke.init();
+                        }
+                    }
+                    rightHeat = Math.min(rightHeat+getContentComponent().getLaunchAdd(),getContentComponent().getMax());
+                    break;
+                }
                 value = Math.min(value + getContentComponent().getLaunchAdd(), getContentComponent().getMax());
 
                 break;
