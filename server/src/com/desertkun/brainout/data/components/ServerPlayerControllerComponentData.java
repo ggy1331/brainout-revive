@@ -434,7 +434,13 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
 
     public void setState(Player.State state)
     {
-        this.state = state;
+        if (state == Player.State.dive)
+        {
+            if (this.state != state) startDive();
+            return;
+        }
+        if (state == Player.State.tacticalRun && this.state != state && !startTacticalRun())
+            state = Player.State.run;
 
         PlayerComponentData pcd = playerData.getComponentWithSubclass(PlayerComponentData.class);
 
@@ -459,7 +465,9 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
             state = Player.State.wounded;
         }
 
+        this.state = state;
         pcd.setState(state);
+        updateMoveDirection();
     }
 
     public boolean move(float x, float y, float aimX, float aimY, float moveX, float moveY)

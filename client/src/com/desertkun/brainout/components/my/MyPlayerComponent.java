@@ -86,7 +86,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     @Override
     protected void sendState(Player.State state)
     {
-        BrainOutClient.ClientController.sendUDP(new PlayerStateMsg(state));
+        BrainOutClient.ClientController.sendTCP(new PlayerStateMsg(state));
     }
 
     @Override
@@ -440,6 +440,8 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     private ConsumableRecord meleeAfterReload;
     private String returnMode;
     private WeaponSlotComponent swingSlot;
+    private int swingSequence;
+    private boolean swingPoseSeen;
     private float pendingTime, recoveryTime;
 
     private void quickMelee()
@@ -473,6 +475,8 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         quickKnifeId = knife.getId();
         pendingTime = recoveryTime = 0;
         swingSlot = weapon.getCurrentSlot();
+        swingSequence = swingSlot.getShootSequence();
+        swingPoseSeen = false;
         swingSlot.beginSingleSwing();
         if (!swingSlot.isSingleSwingPending()) finishQuickMelee(owner);
     }
@@ -510,9 +514,13 @@ public class MyPlayerComponent extends PlayerControllerComponentData
             {
                 recoveryTime += dt;
                 // The hit reaches the animation controller through queued events.
-                if (recoveryTime < 0.15f) return;
                 PlayerComponentData player = getPlayerData().getComponent(ClientPlayerComponent.class);
-                if (player != null && player.isPlayingHitAnimation()) return;
+                if (player != null && swingSlot.getShootSequence() != swingSequence)
+                {
+                    if (!swingPoseSeen && recoveryTime >= 0.05f) player.ensureQuickHitPose();
+                    if (player.isPlayingHitAnimation()) { swingPoseSeen = true; return; }
+                }
+                if (recoveryTime < 0.15f) return;
             }
         }
         finishQuickMelee(owner);

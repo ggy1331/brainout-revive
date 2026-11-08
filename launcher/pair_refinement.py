@@ -151,6 +151,8 @@ def refine(z,c,actor,changes):
             clips["pair-"+side+"-"+name]=pose
             if welrod:
                 clips["pair-"+side+"-welrod-reload-matte"]=deepcopy(pose)
+    from arm_animations import apply as animate_arms
+    animate_arms(c,actor,read,changes)
     changes[ACTOR]=encode(actor)
 
 def build(source,dest):
@@ -158,6 +160,11 @@ def build(source,dest):
         data=json.loads(z.read("content.json")); changes={}
         refine(z,data["content"],json.loads(z.read(ACTOR)),changes)
         changes["content.json"]=encode(data)
+        if "data/texts.json" in z.namelist():
+            from solo_sidearms import perk_text
+            texts=json.loads(z.read("data/texts.json"))
+            perk_text(texts["data"])
+            changes["data/texts.json"]=encode(texts)
         if "__H" in z.namelist():
             hashes=json.loads(z.read("__H"));hashes.update({k:zlib.crc32(v) for k,v in changes.items()})
             changes["__H"]=encode(hashes)

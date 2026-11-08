@@ -10,7 +10,11 @@ import subprocess
 import sys
 import tempfile
 import time
-from urllib.request import Request, urlopen
+from http.client import IncompleteRead
+from html.parser import HTMLParser
+from urllib.error import HTTPError, URLError
+from urllib.parse import urljoin
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,14 +62,88 @@ def unpack(archive, dest, digest):
     if not {"brainout.exe","client/brainout-desktop.jar","server/brainout-server.jar","support/home.py"} <= seen:
         raise ValueError("Релиз не содержит полной Windows-сборки")
 
-def open_url(url,timeout=45):
-    return urlopen(Request(url,headers={"User-Agent":"BrainOut-Windows-Updater","Accept":"application/vnd.github+json"}),timeout=timeout)
+def open_url(url,timeout=90,accept="application/vnd.github+json"):
+    return urlopen(Request(url,headers={"User-Agent":"BrainOut-Windows-Updater","Accept":accept,
+                                       "Accept-Language":"en"}),timeout=timeout)
+
+def transient(error):
+    return not isinstance(error, HTTPError) or error.code in (403,408,429,500,502,503,504)
+
+class ReleaseAssetPage(HTMLParser):
+    def __init__(self, tag):
+        super().__init__()
+        self.name = f"BrainOut-{tag}-Windows.zip"
+        self.path = f"/{REPO}/releases/download/{tag}/{self.name}"
+        self.link_found = False
+        self.digest = None
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "a" and attrs.get("href") == self.path:
+            self.link_found = True
+        if tag == "clipboard-copy" and attrs.get("aria-label") == "Copy to clipboard digest for "+self.name:
+            self.digest = attrs.get("value")
+
+class ReleaseRedirect(HTTPRedirectHandler):
+    # GitHub identifies its latest release in the redirect itself.
+    def http_error_302(self, request, response, code, message, headers):
+        return response
+
+def web_release(page, current):
+    request = Request(page+"latest", headers={"User-Agent":"BrainOut-Windows-Updater"})
+    with build_opener(ReleaseRedirect()).open(request,timeout=60) as response:
+        target = urljoin(page,response.headers.get("Location",""))
+    if not target.startswith(page+"tag/"):
+        raise ValueError("GitHub не вернул страницу релиза")
+    tag = target[len(page+"tag/"):]
+    if version(tag) <= version(current):
+        return {"tag_name":tag}
+    parser = ReleaseAssetPage(tag)
+    with open_url(page+"expanded_assets/"+tag,60,"text/html") as response:
+        parser.feed(response.read().decode("utf-8"))
+    parser.close()
+    if not parser.link_found or not re.fullmatch(r"sha256:[0-9a-f]{64}",parser.digest or ""):
+        raise ValueError("В релизе не найден Windows-архив с контрольной суммой")
+    return {"tag_name":tag, "assets":[{"name":parser.name, "digest":parser.digest,
+                                       "browser_download_url":"https://github.com"+parser.path}]}
+
+def release_info(current):
+    api = "https://api.github.com/repos/"+REPO+"/releases/"
+    page = "https://github.com/"+REPO+"/releases/"
+    for attempt in range(3):
+        try:
+            endpoint = api+"latest"
+            if attempt == 2:
+                endpoint += "?check=" + str(int(time.time()))
+            if attempt == 1:
+                return web_release(page,current)
+            with open_url(endpoint,12 if attempt == 0 else 60) as response:
+                return json.load(response)
+        except (URLError, TimeoutError, ConnectionError, IncompleteRead, ValueError) as exc:
+            if not transient(exc) or attempt == 2:
+                raise
+            time.sleep(attempt + 1)
+
+def download_asset(asset, archive):
+    direct = asset["browser_download_url"]
+    urls = (direct, asset.get("url",direct), direct)
+    for attempt, url in enumerate(urls):
+        try:
+            with open_url(url,accept="application/octet-stream") as src, archive.open("wb") as out:
+                shutil.copyfileobj(src,out)
+            if "size" not in asset or archive.stat().st_size == asset["size"]:
+                return
+            if attempt == 2:
+                raise ValueError("Загрузка прервана")
+        except (URLError, TimeoutError, ConnectionError, IncompleteRead) as exc:
+            if not transient(exc) or attempt == 2:
+                raise
+        time.sleep(attempt + 1)
 
 def prepare(root):
-    with open_url("https://api.github.com/repos/"+REPO+"/releases/latest") as response:
-        release=json.load(response)
-    tag=release["tag_name"]
     current=(root/MARKER).read_text().strip() if (root/MARKER).exists() else BASELINE
+    release=release_info(current)
+    tag=release["tag_name"]
     if version(tag)<=version(current):
         print("Установлена актуальная версия "+current+".");return 0
     asset=next(a for a in release["assets"] if a["name"]==f"BrainOut-{tag}-Windows.zip")
@@ -74,8 +152,7 @@ def prepare(root):
     cache=root/CACHE;cache.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=cache) as tmp:
         archive=Path(tmp)/"release.zip"
-        with open_url(asset["browser_download_url"]) as src,archive.open("wb") as out:shutil.copyfileobj(src,out)
-        if archive.stat().st_size!=asset["size"]:raise ValueError("Загрузка прервана")
+        download_asset(asset,archive)
         dest=Path(tmp)/"files";unpack(archive,dest,digest[7:])
         if (cache/"ready").exists():shutil.rmtree(cache/"ready")
         os.replace(dest,cache/"ready")
@@ -141,6 +218,10 @@ def main():
     if sys.argv[1]=="prepare":
         sys.stdout.reconfigure(encoding="utf-8")
         try:return prepare(ROOT)
+        except (URLError, TimeoutError, ConnectionError, IncompleteRead) as exc:
+            detail = f" (HTTP {exc.code})" if isinstance(exc, HTTPError) else ""
+            print("Не удалось получить обновление с GitHub"+detail+". Повторите проверку позже.")
+            return 1
         except Exception as exc:print("Не удалось скачать обновление: "+str(exc));return 1
     root=Path(sys.argv[2])
     kernel=ctypes.windll.kernel32

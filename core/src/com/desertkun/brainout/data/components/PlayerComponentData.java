@@ -47,6 +47,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         woundedForward,
         woundedBackward,
         fly,
+        diving,
         crouch,
         crouchForward,
         crouchBackward,
@@ -66,6 +67,10 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
     private InstrumentAnimationStates.State topAnimationState;
     private BottomAnimationState bottomAnimationState;
     private float trigger;
+    private float visualHeight = -1;
+    private boolean animatedSprint;
+    private String sprintClip;
+    private float carryBlend, sampleTime, gaitSpeed;
     private Vector2 mousePosition;
     private boolean woundedRight;
     private float woundedTimer;
@@ -191,6 +196,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         if (states != null)
         {
             String animationName = states.getAnimation(state);
+            if (animationName == null && state == InstrumentAnimationStates.State.aimHit)
+                animationName = states.getAnimation(InstrumentAnimationStates.State.hit);
 
             InstrumentData held = playerData.getCurrentInstrument();
             if (held instanceof WeaponData)
@@ -209,10 +216,21 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                     {
                         boolean right = state == InstrumentAnimationStates.State.reloadSecondary || state == InstrumentAnimationStates.State.cockSecondary || state == InstrumentAnimationStates.State.fetchSecondary;
                         String name = "pair-" + (right ? "right-" : "left-") + animationName;
+                        String id = weapon.getWeapon().getID();
+                        if (reload && id.startsWith("paired-"))
+                        {
+                            String fitted = name + "-" + id.substring(7);
+                            if (animation.getSkeleton().getData().findAnimation(fitted) != null) name = fitted;
+                        }
                         if (animation.getSkeleton().getData().findAnimation(name) != null)
                             animationName = name;
                     }
                 }
+            }
+            if (held instanceof WeaponData && animationName != null && !((WeaponData)held).getWeapon().isPaired())
+            {
+                String solo = "solo-" + held.getInstrument().getID() + "-" + animationName;
+                if (animation.getSkeleton().getData().findAnimation(solo) != null) animationName = solo;
             }
             if (animationName != null)
             {
@@ -240,6 +258,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                         AnimationState.TrackEntry animationTop = animation.getState().setAnimation(ANIMATION_TOP,
                                 anim, loop);
 
+                        if (isMeleeEquipped() && (state == InstrumentAnimationStates.State.hit ||
+                            state == InstrumentAnimationStates.State.aimHit)) animationTop.setMixDuration(0.025f);
                         if (timeToPlay != 0)
                         {
                             animationTop.setTimeScale(
@@ -295,6 +315,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
                     if (iac != null)
                     {
+                        if (instrumentData != playerData.getCurrentInstrument()) break;
+                        if (isMeleeEquipped() && states == iac.getStates() && isPlayingHitAnimation()) break;
                         resetHandAnimations();
                         setInstrumentState(iac.getStates());
                     }
@@ -317,6 +339,22 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         }
 
         return false;
+    }
+
+    private boolean isMeleeEquipped()
+    {
+        InstrumentData held = playerData.getCurrentInstrument();
+        return held != null && held.getInstrument().getSlot() != null &&
+            "slot-melee".equals(held.getInstrument().getSlot().getID());
+    }
+
+    public void ensureQuickHitPose()
+    {
+        if (!isMeleeEquipped() || isPlayingHitAnimation() || playerData.isWounded()) return;
+        InstrumentAnimationComponentData weapon = playerData.getCurrentInstrument().getComponentWithSubclass(InstrumentAnimationComponentData.class);
+        if (weapon == null) return;
+        states = weapon.getStates();
+        updateHandAnimations(InstrumentAnimationStates.State.hit,false,true);
     }
 
     public boolean isPlayingHitAnimation()
@@ -447,6 +485,13 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
     {
         super.update(dt);
 
+        Player.PlayerState pose = playerData.getCurrentState();
+        if (pose != null)
+        {
+            if (visualHeight < 0 || playerData.isWounded()) visualHeight = pose.height;
+            else visualHeight += MathUtils.clamp(pose.height - visualHeight, -3.6f * dt, 3.6f * dt);
+        }
+
         float origAngle = playerData.getAngle();
 
         origAngle = processPlayerAngle(origAngle);
@@ -466,6 +511,32 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
             }
         }
 
+        InstrumentData held = playerData.getCurrentInstrument();
+        boolean carrying = getState() == Player.State.tacticalRun && held instanceof WeaponData
+            && held.getInstrument().getSlot() != null && !"slot-melee".equals(held.getInstrument().getSlot().getID())
+            && (topAnimationState == InstrumentAnimationStates.State.hold || topAnimationState == InstrumentAnimationStates.State.aim)
+            && !isAim();
+        float rate = carrying ? 5.5f : 6.5f;
+        carryBlend = MathUtils.clamp(carryBlend + (carrying ? dt : -dt) * rate, 0, 1);
+        boolean sidearm = held != null && held.getInstrument().getSlot() != null &&
+            "slot-secondary".equals(held.getInstrument().getSlot().getID());
+        String wanted = carrying && states != null ? (sidearm ? "sprint-short-" : "sprint-long-") +
+            states.getAnimation(InstrumentAnimationStates.State.hold) : null;
+        if (!java.util.Objects.equals(wanted,sprintClip))
+        {
+            Animation clip = wanted == null ? null : animation.getSkeleton().getData().findAnimation(wanted);
+            if (clip != null)
+            {
+                if (animation.getState().getCurrent(4) == null) animation.getState().setEmptyAnimation(4,0);
+                AnimationState.TrackEntry arms = animation.getState().setAnimation(4,clip,true);
+                arms.setMixDuration(0.13f);
+                arms.setTimeScale(1 / animation.getContentComponent().getAnimation().getTimeScale());
+            }
+            else if (sprintClip != null)
+                animation.getState().setEmptyAnimation(4,0.12f);
+            sprintClip = wanted;
+        }
+        float weight = carryBlend * carryBlend * (3 - 2 * carryBlend);
         if (isWounded())
         {
             if (handsBone != null)
@@ -506,7 +577,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
             else
             {
                 if (handsBone != null)
-                    handsBone.setRotation(origAngle);
+                    handsBone.setRotation(origAngle * (1 - weight));
 
                 if (headBone != null)
                     headBone.setRotation(origAngle);
@@ -537,11 +608,22 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
         hasBottomContact = bottomContactAccumulator > 0;
 
+        sampleTime += dt;
         trigger -= dt;
 
         if (trigger < 0)
         {
-            if (Math.abs(lastPosition.x - getX()) > 0.05f)
+            float distance = Math.abs(lastPosition.x - getX());
+            float speed = distance / Math.max(sampleTime, 0.001f);
+            sampleTime = 0;
+            gaitSpeed = MathUtils.lerp(gaitSpeed, speed, 0.6f);
+            if (getState() == Player.State.dive)
+                newState = BottomAnimationState.diving;
+            else if (!hasBottomContact && !hasFixture && !playerData.isWounded())
+            {
+                newState = BottomAnimationState.fly;
+            }
+            else if (distance > 0.012f)
             {
                 if (hasBottomContact || hasFixture)
                 {
@@ -586,6 +668,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
                             break;
                         }
+                        case tacticalRun:
                         case run:
                         {
                             if (getX() > lastPosition.x != getFlipX())
@@ -672,13 +755,24 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                 }
             }
 
-            if (newState != bottomAnimationState)
+            boolean sprint = getState() == Player.State.tacticalRun;
+            if (newState != bottomAnimationState || sprint != animatedSprint)
             {
+                animatedSprint = sprint;
                 bottomAnimationState = newState;
 
                 updateBottomAnimation();
             }
 
+            AnimationState.TrackEntry legs = animation.getState().getCurrent(ANIMATION_BOTTOM);
+            if (legs != null && legs.getLoop())
+            {
+                String gait = legs.getAnimation().getName();
+                float nominal = gaitSpeedAtNormalTempo(gait);
+                if (nominal > 0)
+                    legs.setTimeScale(MathUtils.clamp(gaitSpeed / nominal, 0.12f, 2.6f) /
+                        animation.getContentComponent().getAnimation().getTimeScale());
+            }
             lastPosition.set(getX(), getY());
             trigger = 0.05f;
         }
@@ -774,6 +868,20 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
                 break;
             }
+            case diving:
+            {
+                AnimationState rig = animation.getState();
+                AnimationState.TrackEntry active = rig.getCurrent(ANIMATION_BOTTOM);
+                if (active != null && active.getAnimation().getName().equals("dolphin-dive") &&
+                    active.getNext() != null) break;
+                Animation clip = animation.getSkeleton().getData().findAnimation("dolphin-dive");
+                if (clip == null) { setBottomAnimation("crouch"); break; }
+                AnimationState.TrackEntry launch = rig.setAnimation(ANIMATION_BOTTOM, clip, false);
+                launch.setTimeScale(1f / animation.getContentComponent().getAnimation().getTimeScale());
+                launch.setMixDuration(0.05f);
+                rig.addAnimation(ANIMATION_BOTTOM,"crouch",true,clip.getDuration()).setMixDuration(0.04f);
+                break;
+            }
             case fly:
             {
                 setBottomAnimation("fly");
@@ -818,6 +926,25 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         setBottomAnimation(anim, 1);
     }
 
+    private float gaitSpeedAtNormalTempo(String name)
+    {
+        if (!name.endsWith("-forward") && !name.endsWith("-backward")) return 0;
+        if (name.startsWith("run-")) return 12f;
+        if (name.startsWith("move-")) return 10f;
+        if (name.startsWith("sit-")) return 4f;
+        if (name.startsWith("crouch-")) return 1.5f;
+        if (name.startsWith("wounded-")) return 3f;
+        return 0;
+    }
+
+    private String stanceForClip(String name)
+    {
+        if (name.startsWith("crouch")) return "prone";
+        if (name.startsWith("sit")) return "sit";
+        if (name.equals("stay") || name.startsWith("run-") || name.startsWith("move-")) return "stand";
+        return null;
+    }
+
     private void setBottomAnimation(String anim, float timeScale)
     {
         Animation a = animation.getSkeleton().getData().findAnimation(anim);
@@ -826,11 +953,57 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         {
             try
             {
-                AnimationState.TrackEntry trackEntry =
-                        animation.getState().setAnimation(ANIMATION_BOTTOM, a, true);
-
-                trackEntry.setEventThreshold(0);
-                trackEntry.setTimeScale(timeScale / animation.getContentComponent().getAnimation().getTimeScale());
+                AnimationState state = animation.getState();
+                AnimationState.TrackEntry current = state.getCurrent(ANIMATION_BOTTOM);
+                AnimationState.TrackEntry queued = current == null ? null : current.getNext();
+                String previous = current == null ? null : stanceForClip(
+                    (queued == null ? current : queued).getAnimation().getName());
+                String target = stanceForClip(anim);
+                float rigSpeed = animation.getContentComponent().getAnimation().getTimeScale();
+                float nominal = gaitSpeedAtNormalTempo(anim);
+                if (nominal > 0) timeScale = MathUtils.clamp(gaitSpeed / nominal, 0.12f, 2.6f);
+                AnimationState.TrackEntry next;
+                if (queued != null && current.getAnimation().getName().startsWith("stance-") &&
+                    target != null && target.equals(previous))
+                {
+                    next = queued;
+                    next.setAnimation(a);
+                    next.setAnimationEnd(a.getDuration());
+                }
+                else
+                {
+                    Animation change = previous == null || target == null || target.equals(previous) ? null :
+                        animation.getSkeleton().getData().findAnimation("stance-" + previous + "-" + target);
+                    if (change == null)
+                    {
+                        String oldName = current == null ? "" : current.getAnimation().getName();
+                        float phase = -1;
+                        if (nominal > 0 && gaitSpeedAtNormalTempo(oldName) > 0 &&
+                            current.getAnimationEnd() > 0)
+                        {
+                            phase = current.getAnimationTime() / current.getAnimationEnd();
+                            if (oldName.endsWith("-forward") != anim.endsWith("-forward")) phase = 1 - phase;
+                        }
+                        next = state.setAnimation(ANIMATION_BOTTOM, a, true);
+                        if (current != null) next.setMixDuration(0.14f);
+                        if (phase >= 0)
+                        {
+                            float t = phase * a.getDuration();
+                            next.setTrackTime(t);
+                            next.setAnimationLast(t);
+                        }
+                    }
+                    else
+                    {
+                        AnimationState.TrackEntry transition = state.setAnimation(ANIMATION_BOTTOM, change, false);
+                        transition.setMixDuration(0.06f);
+                        transition.setTimeScale(1 / rigSpeed);
+                        next = state.addAnimation(ANIMATION_BOTTOM, a, true, change.getDuration());
+                        next.setMixDuration(0.08f);
+                    }
+                }
+                next.setEventThreshold(0);
+                next.setTimeScale(timeScale / rigSpeed);
             }
             catch (NullPointerException | IllegalStateException | ArrayIndexOutOfBoundsException e)
             {
@@ -848,7 +1021,9 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
     @Override
     public float getY()
     {
-        return playerData.getY();
+        Player.PlayerState pose = playerData.getCurrentState();
+        float offset = pose == null || visualHeight < 0 ? 0 : (visualHeight - pose.height) * 0.5f;
+        return playerData.getY() + offset + 0.16f;
     }
 
     @Override
@@ -908,6 +1083,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
 
     public void updateAim()
     {
+        if (isMeleeEquipped() && isPlayingHitAnimation()) return;
         if (animation != null && (topAnimationState == InstrumentAnimationStates.State.reload ||
             topAnimationState == InstrumentAnimationStates.State.reloadSecondary))
         {

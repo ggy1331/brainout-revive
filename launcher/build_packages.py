@@ -23,6 +23,7 @@ import equipment_package
 import gameplay_package
 import loadout_rules
 import welrod_graft
+from finalize_sidearms import finalize
 
 
 def side(name, fresh):
@@ -37,7 +38,8 @@ def side(name, fresh):
     equipment_package.build(keep, tmp / "1-equipment.zip")
     gameplay_package.build(str(tmp / "1-equipment.zip"), str(tmp / "2-gameplay.zip"))
     loadout_rules.build(str(tmp / "2-gameplay.zip"), str(tmp / "3-loadout.zip"))
-    welrod_graft.apply(tmp / "3-loadout.zip", pk / "base.zip")
+    welrod_graft.apply(tmp / "3-loadout.zip", tmp / "4-welrod.zip")
+    finalize(tmp / "4-welrod.zip", pk / "base.zip")
     welrod_graft.freeplay(keep_fp, pk / "freeplay.zip")
     print(name, "packages ready")
 

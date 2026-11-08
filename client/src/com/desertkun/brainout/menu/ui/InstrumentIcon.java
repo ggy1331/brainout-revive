@@ -37,6 +37,13 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
     private final Vector2 location;
     private Bone centerBone;
     private final boolean dynamic;
+    private boolean drawPair;
+    private final Vector2 pairOrigin = new Vector2();
+    private final Vector2 pairSize = new Vector2();
+    private final com.badlogic.gdx.utils.FloatArray pairVertices = new com.badlogic.gdx.utils.FloatArray();
+    private boolean measurePair = true;
+
+    public void setDrawPair(boolean value) { drawPair = value; dirty = true; }
 
     private FrameBuffer cached;
     private TextureRegion cachedTexture;
@@ -51,6 +58,7 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
     {
         this.info = info;
         this.dynamic = dynamic;
+        drawPair = info.instrument.getID().startsWith("paired-");
         this.dirty = false;
 
         this.instrumentScale = instrumentScale;
@@ -155,6 +163,7 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
             }
         }
 
+        measurePair = true;
         if (cached != null)
         {
             dirty = true;
@@ -259,9 +268,7 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
                 cacheBatch.begin();
                 cacheBatch.enableBlending();
 
-                data.getSkeleton().setPosition(location.x, location.y);
-                data.getSkeleton().updateWorldTransform();
-                data.render(cacheBatch, null);
+                renderIcon(cacheBatch);
 
                 cacheBatch.end();
 
@@ -274,10 +281,47 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
         }
         else
         {
-            data.getSkeleton().setPosition(location.x, location.y);
-            data.getSkeleton().updateWorldTransform();
-            data.render(batch, null);
+            renderIcon(batch);
         }
+    }
+
+    private void renderIcon(Batch batch)
+    {
+        Skeleton rig = data.getSkeleton();
+        if (!drawPair || getWidth() <= 0 || getHeight() <= 0)
+        {
+            rig.setPosition(location.x, location.y);
+            rig.updateWorldTransform();
+            data.render(batch, null);
+            return;
+        }
+        if (measurePair)
+        {
+            rig.setPosition(0, 0);
+            rig.updateWorldTransform();
+            rig.getBounds(pairOrigin, pairSize, pairVertices);
+            measurePair = false;
+        }
+        float spread = Math.min(7f, Math.min(getWidth(), getHeight()) * .10f);
+        float fit = Math.min(1f, Math.min((getWidth() - 2 * spread - 2) / Math.max(1, pairSize.x),
+            (getHeight() - 2 * spread - 2) / Math.max(1, pairSize.y)));
+        fit = Math.max(.01f, fit);
+        float sx = rig.getScaleX(), sy = rig.getScaleY();
+        float x = getWidth() * getCenterX() - fit * (pairOrigin.x + pairSize.x / 2);
+        float y = getHeight() * getCenterY() - fit * (pairOrigin.y + pairSize.y / 2);
+        rig.setScale(sx * fit, sy * fit);
+        rig.setPosition(x + spread, y + spread);
+        rig.updateWorldTransform();
+        float r = rig.getColor().r, g = rig.getColor().g, b = rig.getColor().b;
+        rig.getColor().set(r * .62f, g * .67f, b * .73f, rig.getColor().a);
+        data.render(batch, null);
+        rig.getColor().set(r, g, b, rig.getColor().a);
+        rig.setPosition(x - spread, y - spread);
+        rig.updateWorldTransform();
+        data.render(batch, null);
+        rig.setScale(sx, sy);
+        rig.setPosition(location.x, location.y);
+        rig.updateWorldTransform();
     }
 
     @Override

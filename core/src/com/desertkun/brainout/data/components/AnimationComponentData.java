@@ -205,8 +205,13 @@ public class AnimationComponentData<T extends AnimationComponent> extends Compon
 
         if (attached == null)
         {
-            BrainOut.SkeletonRndr.update(skeleton, null);
+            updateSkeletonPose();
         }
+    }
+
+    protected void updateSkeletonPose()
+    {
+        BrainOut.SkeletonRndr.update(skeleton, null);
     }
 
     public void updateTransform()

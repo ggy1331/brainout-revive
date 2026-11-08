@@ -56,7 +56,7 @@ public class WeaponAnimationComponentData extends InstrumentAnimationComponentDa
             if (magazine == null || markerBone == null) return;
             boolean nativeMagazine = magazine.getAttachment() != null;
             handMarker.getColor().a = nativeMagazine ? 0 : 1;
-            boolean betweenMagazines = markerBone.getY() < -0.01f && handMarker.getAttachment() == null;
+            boolean betweenMagazines = (Math.abs(markerBone.getY()) > 0.01f || Math.abs(markerBone.getX()) > 0.01f) && handMarker.getAttachment() == null;
             travel.setX(markerBone.getX());
             travel.setY(markerBone.getY());
             travel.setScale(betweenMagazines ? 0f : 1f);
@@ -105,6 +105,10 @@ public class WeaponAnimationComponentData extends InstrumentAnimationComponentDa
                 rightMagazine = new MagazineMotion(offHand, actor, "right");
             }
         }
+        if (event.getID() == Event.ID.setInstrument && weaponData != null && weaponData.getWeapon().getSlot() != null && !weaponData.getWeapon().isPaired() &&
+            getAttachedTo() instanceof PlayerAnimationComponentData &&
+            "slot-secondary".equals(weaponData.getWeapon().getSlot().getID()))
+            leftMagazine = new MagazineMotion(getSkeleton(), getAttachedTo().getSkeleton(), "left");
         return handled;
     }
 
@@ -161,9 +165,9 @@ public class WeaponAnimationComponentData extends InstrumentAnimationComponentDa
                 offHand.getSlots().get(i).setAttachment(getSkeleton().getSlots().get(i).getAttachment());
             offHandState.update(dt);
             offHandState.apply(offHand);
-            leftMagazine.apply();
             rightMagazine.apply();
         }
+        if (leftMagazine != null) leftMagazine.apply();
     }
 
     @Override

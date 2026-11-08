@@ -36,7 +36,6 @@ public class PlayerAnimationComponentData extends AnimationComponentData<PlayerA
 
     private final PlayerData playerData;
     private PlayerSkin skin;
-
     private BonePointData primaryBonePointData;
     private BonePointData secondaryBonePointData;
     private BonePointData bleedingBonePointData;

@@ -53,17 +53,21 @@ public class ShopCart
 
     public Instrument equippedInstrument(InstrumentSlotItem item)
     {
-        if (item.getSlot() != null && "slot-secondary".equals(item.getSlot().getID()))
+        Instrument base = item.getInstrument();
+        if (item.getSlot() == null || !"slot-secondary".equals(item.getSlot().getID())) return base;
+        // Early saves could store the hidden paired shop item itself.
+        if (base.getID().startsWith("paired-"))
         {
-            SlotItem.Selection perk = getItem(BrainOut.ContentMgr.get("slot-player", Slot.class));
-            if (perk != null && "sl-pl-akimbo".equals(perk.getItem().getID()))
-            {
-                Instrument paired = BrainOut.ContentMgr.get(
-                    "paired-" + item.getInstrument().getID(), Instrument.class);
-                if (paired != null) return paired;
-            }
+            Instrument original = BrainOut.ContentMgr.get(base.getID().substring(7), Instrument.class);
+            if (original != null) base = original;
         }
-        return item.getInstrument();
+        SlotItem.Selection perk = getItem(BrainOut.ContentMgr.get("slot-player", Slot.class));
+        if (perk != null && "sl-pl-akimbo".equals(perk.getItem().getID()))
+        {
+            Instrument paired = BrainOut.ContentMgr.get("paired-" + base.getID(), Instrument.class);
+            if (paired != null) return paired;
+        }
+        return base;
     }
 
     public void removeItem(Slot slot)
@@ -124,6 +128,11 @@ public class ShopCart
 
     public Player getPlayer()
     {
+        Slot perkSlot = BrainOut.ContentMgr.get("slot-player", Slot.class);
+        SlotItem.Selection perk = perkSlot == null ? null : getItem(perkSlot);
+        if (perk instanceof PlayerSlotItem.PlayerSlotSelection)
+            return ((PlayerSlotItem.PlayerSlotSelection)perk).getItem().getPlayer();
+
         for (ObjectMap.Entry<Slot, SlotItem.Selection> entry : getItems())
         {
             if (BrainOut.R.instanceOf(PlayerSlot.class, entry.key))

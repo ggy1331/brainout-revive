@@ -164,6 +164,8 @@ def build(src,dst):
                         frame["y"]=frame.get("y",0)+3
                 pose["bones"][far]=far_track
             actor["animations"][target]=pose
+        from stance_animations import add_stance_clips
+        add_stance_clips(actor)
         hand_clips(actor,c)
         changes["content/animations/actor.json"]=encode(actor)
         apply_loadout_rules(c)
@@ -173,6 +175,8 @@ def build(src,dst):
             changes["content/textures/gameplay-icons.png"]=png
         from pair_refinement import refine
         refine(z,c,actor,changes)
+        from solo_sidearms import perk_text
+        perk_text(t)
         changes.update({"content.json":encode(data),"data/texts.json":encode(texts)})
         for entry in z.infolist():
             if entry.filename not in changes:output.writestr(entry,z.read(entry))

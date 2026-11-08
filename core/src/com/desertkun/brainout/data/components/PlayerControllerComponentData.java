@@ -30,7 +30,16 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
     private Vector2 moveDirection, originalDirection;
     protected Player.State state;
+    private float diveTime, diveCooldown;
     private float hasJumped;
+    private float runTapWindow, sprintRemaining;
+    private boolean runHeld;
+    private float groundSpeed, groundedSinceJump, jumpScale = 1;
+    private boolean jumpedBefore;
+    private static final float WALK_SCALE = 0.8f;
+    private static final float SPRINT_SCALE = 1.32f;
+    private static final float SPRINT_SECONDS = 1.8f;
+    private static final float HOP_RECOVERY = 0.24f;
     private float bottomContactAccumulator;
     private boolean jumpDirty;
     private Boost boost;
@@ -523,19 +532,20 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
         if (pcd != null)
         {
-            float pX = playerData.getX(),
-                    pY = playerData.getY() + pcd.getHalfSize().y + 0.5f;
-
             Map map = getMap();
-
-            if (map == null)
-                return false;
-
-            BlockData block = map.getBlockAt(pX, pY, Constants.Layers.BLOCK_LAYER_FOREGROUND);
-
-            if (block != null && block.isConcrete())
+            if (map == null) return false;
+            float bottom = playerData.getY() - pcd.getHalfSize().y;
+            int firstY = MathUtils.floor(playerData.getY() + pcd.getHalfSize().y + 0.01f);
+            int lastY = MathUtils.floor(bottom + playerData.getPlayer().getState(Player.State.normal).height - 0.01f);
+            int left = MathUtils.floor(playerData.getX() - pcd.getHalfSize().x + 0.01f);
+            int right = MathUtils.floor(playerData.getX() + pcd.getHalfSize().x - 0.01f);
+            for (int y = firstY; y <= lastY; y++)
             {
-                return true;
+                for (int x = left; x <= right; x++)
+                {
+                    BlockData block = map.getBlockAt(x, y, Constants.Layers.BLOCK_LAYER_FOREGROUND);
+                    if (block != null && block.isConcrete()) return true;
+                }
             }
         }
 
@@ -549,36 +559,41 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         return pcd != null && pcd.hasContact(SimplePhysicsComponentData.Contact.bottom);
     }
 
-    protected void setRun(boolean sit)
+    protected boolean startTacticalRun()
     {
-        if (isWounded())
-            return;
+        if (isWounded() || !playerData.canRun() ||
+            !"player-fast".equals(playerData.getPlayer().getID())) return false;
+        com.desertkun.brainout.components.PlayerOwnerComponent owner =
+            playerData.getComponent(com.desertkun.brainout.components.PlayerOwnerComponent.class);
+        if (owner != null && owner.getConsumableContainer().queryRecords(record ->
+            record.getItem().getContent() instanceof com.desertkun.brainout.content.instrument.Weapon &&
+            ((com.desertkun.brainout.content.instrument.Weapon)record.getItem().getContent()).isPaired()).size > 0)
+            return false;
+        sprintRemaining = SPRINT_SECONDS;
 
-        if (playerData.getState() == Player.State.sit)
-            return;
+        return true;
+    }
 
-        if (playerData.getState() == Player.State.squat)
-            return;
-
-        if (isCrouching())
-            return;
-
-        if (playerData.canRun())
+    protected void setRun(boolean pressed)
+    {
+        if (pressed && runHeld) return;
+        runHeld = pressed;
+        if (state == Player.State.dive) return;
+        if (isWounded()) return;
+        if (!pressed)
         {
-            this.state = sit ? Player.State.run : Player.State.normal;
+            if (state == Player.State.run || state == Player.State.tacticalRun) setState(Player.State.normal);
+            return;
         }
-        else
+        if (state == Player.State.sit || state == Player.State.squat || isCrouching())
         {
-            this.state = Player.State.normal;
+            setPositionMode(PositionMode.normal);
+            if (state != Player.State.normal) return;
         }
-
-        PlayerComponentData cpc = playerData.getComponentWithSubclass(PlayerComponentData.class);
-
-        if (cpc != null)
-        {
-            cpc.setState(this.state);
-            updateMoveDirection();
-        }
+        if (!playerData.canRun()) return;
+        boolean sprint = runTapWindow > 0 && startTacticalRun();
+        runTapWindow = sprint ? 0 : 0.42f;
+        setState(sprint ? Player.State.tacticalRun : Player.State.run);
     }
 
     protected boolean isWounded()
@@ -591,11 +606,35 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         return state == Player.State.crawl;
     }
 
+    protected boolean startDive()
+    {
+        if (isWounded() || diveCooldown > 0 || playerData.getPlayer().isFlying() ||
+            BrainOut.PackageMgr.getDefine("crawl", "").equals("disabled")) return false;
+        SimplePhysicsComponentData body = playerData.getComponentWithSubclass(SimplePhysicsComponentData.class);
+        if (body == null) return false;
+        boolean grounded = hasBottomContact();
+        if (grounded && ((state != Player.State.run && state != Player.State.tacticalRun) ||
+            Math.abs(body.getSpeed().x) < 2)) return false;
+        if (!grounded && (state == Player.State.crawl || state == Player.State.sit ||
+            state == Player.State.squat || state == Player.State.dive)) return false;
+        float speed = body.getSpeed().x;
+        setState(Player.State.dive);
+        diveTime = 0;
+        diveCooldown = 1.15f;
+        float heading = Math.abs(speed) > 1 ? Math.signum(speed) :
+            Math.signum(MathUtils.cosDeg(playerData.getAngle()));
+        groundSpeed = heading * Math.max(Math.abs(speed) * 1.12f, grounded ? 0 : 7f);
+        body.getSpeed().set(groundSpeed, grounded ? 8.5f : Math.min(0, body.getSpeed().y));
+        return true;
+    }
+
     protected void setPositionMode(PositionMode mode)
     {
         if (isWounded())
             return;
 
+        if (state == Player.State.dive) return;
+        if (mode == PositionMode.crouch && startDive()) return;
         if (mode == PositionMode.normal && hasTopContact()) return;
 
         switch (mode)
@@ -683,11 +722,34 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             }
         }
 
+        diveCooldown = Math.max(0, diveCooldown - dt);
+        runTapWindow = Math.max(0, runTapWindow - dt);
+        sprintRemaining = Math.max(0, sprintRemaining - dt);
+        if (state == Player.State.tacticalRun && sprintRemaining == 0) setState(Player.State.run);
+        if (hasBottomContact || hasFixture)
+        {
+            groundedSinceJump += dt;
+            if (groundedSinceJump >= HOP_RECOVERY || hasFixture)
+            {
+                jumpScale = 1;
+                jumpedBefore = false;
+            }
+        }
         boolean hadBottomContact = bottomContactAccumulator > 0;
 
         float forceX = 0, forceY = 0;
 
-        if (playerData.getPlayer().isFlying())
+        if (state == Player.State.dive)
+        {
+            diveTime += dt;
+            if (diveTime >= 0.12f && ((hasBottomContact && pcd.getSpeed().y <= 0) || hasFixture))
+            {
+                groundSpeed = pcd.getSpeed().x * 0.45f;
+                pcd.getSpeed().x = groundSpeed;
+                setState(Player.State.crawl);
+            }
+        }
+        else if (playerData.getPlayer().isFlying())
         {
             pcd.getSpeed().x = moveDirection.x;
             pcd.getSpeed().y = moveDirection.y;
@@ -698,7 +760,10 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             {
                 if (hasBottomContact() || hasFixture)
                 {
-                    pcd.getSpeed().x = moveDirection.x;
+                    float target = moveDirection.x * horizontalScale();
+                    float step = (target == 0 ? 110f : 95f) * dt;
+                    groundSpeed += MathUtils.clamp(target - groundSpeed, -step, step);
+                    pcd.getSpeed().x = groundSpeed;
                 }
 
                 if (hasFixture)
@@ -721,7 +786,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             {
                 if (moveDirection.y > 0)
                 {
-                    forceX = moveDirection.x * dt * 0.5f;
+                    forceX = moveDirection.x * horizontalScale() * dt * 0.5f;
                 }
 
                 hasJumped = Math.max(hasJumped - dt, 0);
@@ -857,8 +922,14 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
         if (pcd != null)
         {
+            float previousScale = jumpScale;
+            jumpScale = jumpedBefore ? Math.max(0.55f, jumpScale - 0.15f) : 1;
+            jumpedBefore = true;
+            groundedSinceJump = 0;
+            groundSpeed *= jumpScale / previousScale;
+            pcd.getSpeed().x = groundSpeed;
             BrainOut.EventMgr.sendDelayedEvent(playerData,
-                SetSpeedEvent.obtain(0, playerData.getPlayer().getJumpForce(), 0, 1));
+                SetSpeedEvent.obtain(0, Math.min(playerData.getPlayer().getJumpForce() * 0.86f, 19.5f) * jumpScale, 0, 1));
 
             hasJumped = 0.5f;
             bottomContactAccumulator = BOTTOM_CONTACT_MAX;
@@ -890,6 +961,23 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         this.moveDirection.x *= pl.getSpeedCoef();
     }
 
+    private float horizontalScale()
+    {
+        if (state == Player.State.normal) return WALK_SCALE * jumpScale;
+        if (state == Player.State.run || state == Player.State.tacticalRun)
+        {
+            boolean backward = originalDirection.x * MathUtils.cosDeg(playerData.getAngle()) < 0;
+            if (backward)
+            {
+                float walk = playerData.getPlayer().getState(Player.State.normal).speed.x * WALK_SCALE;
+                float run = playerData.getPlayer().getState(Player.State.run).speed.x;
+                return (run > 0 ? (walk + run) / (2 * run) : 1) * jumpScale;
+            }
+            if (state == Player.State.tacticalRun) return SPRINT_SCALE * jumpScale;
+        }
+        return jumpScale;
+    }
+
     public Vector2 getMaximumSpeed()
     {
         tmp.set(playerData.getCurrentState().speed);
@@ -900,7 +988,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             tmp.x *= getInstrumentSpeedCoef(current);
         }
 
-        tmp.x *= playerData.getSpeedCoef();
+        tmp.x *= playerData.getSpeedCoef() * horizontalScale();
 
         return tmp;
     }

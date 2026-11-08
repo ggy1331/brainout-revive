@@ -26,7 +26,9 @@ public class Player extends Active
         squat,
         run,
         wounded,
-        crawl
+        crawl,
+        tacticalRun,
+        dive
     }
 
     public class PlayerState implements Json.Serializable
@@ -180,7 +182,8 @@ public class Player extends Active
 
     public PlayerState getState(State state)
     {
-        return states.get(state);
+        if (state == State.dive) return states.get(State.crawl);
+        return states.get(state == State.tacticalRun ? State.run : state);
     }
 
     public boolean isFlying()

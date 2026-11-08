@@ -288,6 +288,12 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
         }
     }
 
+    private boolean usesPairedIcon(SlotItem item)
+    {
+        return item instanceof InstrumentSlotItem &&
+            shopCart.equippedInstrument((InstrumentSlotItem)item).getID().startsWith("paired-");
+    }
+
     public ShopCart getShopCart()
     {
         return shopCart;
@@ -494,7 +500,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
         SlotItem.Selection selection = shopCart.getItem(slot);
         SlotItem slotItem = selection.getItem();
 
-        if (slotItem.hasComponent(IconComponent.class))
+        if (slotItem.hasComponent(IconComponent.class) && !usesPairedIcon(slotItem))
         {
             TextureAtlas.AtlasRegion icon = equipmentIcon(slotItem, selection);
             if (icon != null)
@@ -525,6 +531,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             }
 
             InstrumentIcon icon = new InstrumentIcon(iselection.getInfo(), scale, false);
+            icon.setDrawPair(usesPairedIcon(slotItem));
             icon.setTouchable(Touchable.disabled);
             icon.init();
             item.add(icon);
@@ -1430,7 +1437,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                 frame.setTouchable(Touchable.disabled);
                 slotItemContainer.addActor(frame);
             }
-            else if (item.hasComponent(IconComponent.class))
+            else if (item.hasComponent(IconComponent.class) && !usesPairedIcon(item))
             {
                 TextureAtlas.AtlasRegion icon = equipmentIcon(item, item.getStaticSelection());
 
@@ -1480,6 +1487,7 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                     }
 
                     InstrumentIcon icon = new InstrumentIcon(selection.getInfo(), scale, true);
+                    icon.setDrawPair(usesPairedIcon(slotItem));
                     icon.init();
 
                     activeIcons.add(icon);
