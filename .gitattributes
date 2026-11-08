@@ -2,3 +2,5 @@ rt.jar filter=lfs diff=lfs merge=lfs -text
 bin/obfuscated/brainout-desktop.jar filter=lfs diff=lfs merge=lfs -text
 *.bat text eol=crlf
 *.ps1 text eol=crlf
+# Welrod bundle: bytes copied from the v0.11.0 release, keep them exact
+launcher/welrod_bundle/** -text
