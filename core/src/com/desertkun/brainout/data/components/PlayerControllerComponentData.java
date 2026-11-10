@@ -40,6 +40,17 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private static final float SPRINT_SCALE = 1.32f;
     private static final float SPRINT_SECONDS = 1.8f;
     private static final float HOP_RECOVERY = 0.24f;
+    // Ladder fatigue: the vertical speed on a ladder is scaled by ladderScale.
+    // It drops while climbing and drops sharply on every up/down reversal, so
+    // bouncing on a ladder quickly becomes slow; it recovers while hanging still
+    // and faster off the ladder.
+    private static final float LADDER_MIN = 0.45f;       // slowest: 45% of the normal speed
+    private static final float LADDER_DECAY = 0.10f;     // per second of climbing
+    private static final float LADDER_REVERSE = 0.22f;   // per up/down reversal
+    private static final float LADDER_REST = 0.20f;      // per second hanging still
+    private static final float LADDER_RECOVERY = 0.90f;  // per second off the ladder
+    private float ladderScale = 1;
+    private int ladderDirection;
     private float bottomContactAccumulator;
     private boolean jumpDirty;
     private Boost boost;
@@ -732,6 +743,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
                 jumpedBefore = false;
             }
         }
+        updateLadderFatigue(dt, hasFixture);
         boolean hadBottomContact = bottomContactAccumulator > 0;
 
         float forceX = 0, forceY = 0;
@@ -765,7 +777,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
                 if (hasFixture)
                 {
-                    pcd.getSpeed().y = moveDirection.y;
+                    pcd.getSpeed().y = moveDirection.y * ladderScale;
                 }
                 else
                 {
@@ -896,6 +908,38 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private void boost(float time, float x, float y)
     {
         this.boost = new Boost(time, x, y);
+    }
+
+    private void updateLadderFatigue(float dt, boolean onLadder)
+    {
+        if (!onLadder || playerData.getPlayer().isFlying())
+        {
+            ladderDirection = 0;
+            ladderScale = Math.min(1, ladderScale + LADDER_RECOVERY * dt);
+            return;
+        }
+
+        int direction = moveDirection.y > 0.01f ? 1 : (moveDirection.y < -0.01f ? -1 : 0);
+
+        if (direction == 0)
+        {
+            // the last direction is kept: stopping for a moment does not hide a reversal
+            ladderScale = Math.min(1, ladderScale + LADDER_REST * dt);
+            return;
+        }
+
+        if (ladderDirection != 0 && direction != ladderDirection)
+        {
+            ladderScale -= LADDER_REVERSE;
+        }
+
+        ladderDirection = direction;
+        ladderScale = Math.max(LADDER_MIN, ladderScale - LADDER_DECAY * dt);
+    }
+
+    public float getLadderScale()
+    {
+        return ladderScale;
     }
 
     private void jump()
