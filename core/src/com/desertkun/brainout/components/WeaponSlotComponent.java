@@ -96,6 +96,18 @@ public abstract class WeaponSlotComponent extends Component
     private float currentAccuracy;
     private float angleOffset;
 
+    // Burst bloom: shots fired without a pause form a burst. The first shot of a
+    // burst is more precise; every next one kicks the spread up harder and also
+    // flies wider on top of it. Fast clicking counts as a burst too.
+    private static final float BURST_RESET = 0.30f;        // pause (s) that ends a burst
+    private static final float FIRST_SHOT_SPREAD = 0.4f;   // first shot: 40% of the usual spread
+    private static final float BLOOM_KICK = 0.35f;         // each shot of a burst: +35% spread kick...
+    private static final int BLOOM_KICK_SHOTS = 6;         // ...counted up to the 6th shot (2.1x at most)
+    private static final float BLOOM_SPREAD = 0.08f;       // each shot of a burst: +8% wider...
+    private static final int BLOOM_SPREAD_SHOTS = 10;      // ...up to the 10th shot (1.8x at most)
+    private int burstShots;
+    private float burstIdle = BURST_RESET;
+
     private final ConsumableRecord record;
     private final WeaponData data;
     private final Weapon.WeaponProperties weaponProperties;
@@ -966,19 +978,32 @@ public abstract class WeaponSlotComponent extends Component
             angles = new float[amount];
         }
 
+        if (burstIdle >= BURST_RESET)
+        {
+            burstShots = 0;
+        }
+
+        // shotguns keep their pellet spread: the first-shot bonus is for single bullets
+        boolean pellets = getBullet().getAmountPerLaunch() > 1;
+        float spreadScale = burstShots == 0 && !pellets ? FIRST_SHOT_SPREAD :
+            1f + BLOOM_SPREAD * Math.min(burstShots, BLOOM_SPREAD_SHOTS);
+
         for (int i = 0; i < amount; i++)
         {
             float min = calculateAccuracyMin();
             float max = calculateAccuracyMax();
 
-            float acc = min + (max - min) * currentAccuracy;
+            float acc = (min + (max - min) * currentAccuracy) * spreadScale;
 
             RandomLaunchData randomLaunchData = new RandomLaunchData(launchData, random, acc);
 
             angles[i] = randomLaunchData.getAngle();
         }
 
-        currentAccuracy = MathUtils.clamp(currentAccuracy + calculateLaunchAdd(), 0f, 1f);
+        float bloom = 1f + BLOOM_KICK * Math.min(burstShots, BLOOM_KICK_SHOTS);
+        currentAccuracy = MathUtils.clamp(currentAccuracy + calculateLaunchAdd() * bloom, 0f, 1f);
+        burstShots++;
+        burstIdle = 0;
 
         onLaunch(launchData, bullets, MathUtils.random(0, 100000));
         meleeReadyAt = singleSwing ? System.nanoTime() + (long)(timer * 1e9) : 0;
@@ -1476,6 +1501,8 @@ public abstract class WeaponSlotComponent extends Component
 
     private void updateAccuracy(float dt)
     {
+        burstIdle += dt;
+
         ActiveData activeData = data.getOwner();
 
         if (activeData instanceof PlayerData)
