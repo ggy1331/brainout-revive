@@ -60,12 +60,23 @@ public class ExitMenu extends Menu
         if (HomeHub.ENDPOINT != null)
         {
             if (BrainOutClient.ClientController.isLobby()) {
+                if (HomeHub.OWNER && HomeHub.MATCH_RUNNING) {
+                    // the owner left a match that is still going on
+                    if (HomeHub.AWAY_FROM_MATCH) addButton("Вернуться в матч", () -> { close(); HomeHub.rejoin(); });
+                    addButton("Завершить матч", () -> { close(); HomeHub.confirmEndMatch(); });
+                }
                 addButton("Свободная Зона",HomeHub::zone);
                 addButton("Подключение",() -> openHubPanel(true));
                 addButton("Запуск матча", () -> HomeHub.openMatch(this, () -> openHubPanel(false)));
                 if (!HomeHub.OWNER) addButton("В свой хаб",()->HomeHub.changeHost("home"));
                 addButton("Закрыть игру",()->Gdx.app.exit());
-            } else addButton((!HomeHub.OWNER || BrainOutClient.ClientController.isFreePlay()) ? "Выход в свой хаб" : "Вернуться в меню",HomeHub::back);
+            } else if (!HomeHub.OWNER || BrainOutClient.ClientController.isFreePlay()) {
+                addButton("Выход в свой хаб",HomeHub::back);
+            } else {
+                // the owner in a match: leave alone, or end it for everybody
+                addButton("Выйти в хаб", () -> { close(); HomeHub.home(); });
+                addButton("Завершить матч для всех", () -> { close(); HomeHub.confirmEndMatch(); });
+            }
         }
         else addButton(L.get("MENU_EXIT"), this::exit);
 

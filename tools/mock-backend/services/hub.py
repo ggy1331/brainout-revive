@@ -29,6 +29,9 @@ class Hub:
         self.owner = None
         self.match = None
         self.members = set()
+        # accounts that left the running match for the hub ("home"): the hub
+        # does not pull them back into it until they ask ("rejoin")
+        self.away = set()
         self.zones = {}
         with open(Path(app.server_dir) / "maps-set.json", encoding="utf-8-sig") as f:
             data = json.load(f)
@@ -136,9 +139,11 @@ class Hub:
                 room = self.room(account)
                 if self.match and not self.match.alive():
                     self.members.clear()
+                    self.away.clear()
                     self.pending = {a: t for a, t in self.pending.items() if t != self.match.id}
                     self.match = None
-                if self.match and room and room.game == "lobby" and account not in self.zones:
+                if self.match and room and room.game == "lobby" and account not in self.zones \
+                        and account not in self.away:
                     active = sum(a == self.owner or self.seen.get(a, 0) > time.monotonic() - 12 for a in self.members)
                     if account in self.members or active < self.match.capacity:
                         self.members.add(account)
@@ -148,8 +153,9 @@ class Hub:
                     self.pending.pop(account, None)
                     target = None
                 return {"target": target or "", "room": room.game if room else "",
-                        "match": bool(self.match and account in self.members)}
-        if action not in ("match", "return", "zone") or ctx.method != "POST":
+                        "match": bool(self.match and account in self.members),
+                        "running": bool(self.match), "away": account in self.away}
+        if action not in ("match", "return", "zone", "home", "rejoin") or ctx.method != "POST":
             raise HttpError(404)
         with self.transition:
             with self.lock:
@@ -169,6 +175,12 @@ class Hub:
                     map_id, mode = secrets.choice(choices)
                 if action == "zone" and (current.game != "lobby" or account in self.members):
                     raise HttpError(409)
+                if action == "rejoin":
+                    # back into the running match: the next state poll pulls the player in
+                    if not self.match or not self.match.alive():
+                        raise HttpError(409, {"error": "Матч уже закончился."})
+                    self.away.discard(account)
+                    return {"ok": True}
             if action == "match":
                 with master.lock:
                     kind = mode if mode in ("duel", "zombie") else "main"
@@ -182,6 +194,7 @@ class Hub:
                     raise
                 with self.lock:
                     self.match = room
+                    self.away.clear()
                     self.members = participants
                     for a in participants:
                         self.pending[a] = room.id
@@ -197,15 +210,20 @@ class Hub:
             else:
                 lobby = master.find_or_create("lobby", {})
                 with self.lock:
-                    if owner and self.match:
+                    if action == "return" and owner and self.match:
+                        # "end the match for everyone": the whole group goes to the hub
                         old = self.match
                         for a in self.members:
                             self.pending[a] = lobby.id
                         self.members.clear()
+                        self.away.clear()
                         self.match = None
                         self.retire(old)
                     else:
+                        # "home" (or a guest's return): only this player leaves, the match goes on
                         self.members.discard(account)
+                        if self.match and current.id == self.match.id:
+                            self.away.add(account)
                     self.pending[account] = lobby.id
                     zone = self.zones.pop(account, None)
                     if zone:

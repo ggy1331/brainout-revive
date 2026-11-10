@@ -504,6 +504,12 @@ public class LobbyMenu extends PlayerSelectionMenu
 
         if (HomeHub.ENDPOINT != null)
         {
+            if (HomeHub.OWNER && HomeHub.MATCH_RUNNING)
+            {
+                // the owner left a match that is still going on
+                if (HomeHub.AWAY_FROM_MATCH) HubPanel.add(controls,"Вернуться в матч",HomeHub::rejoin);
+                HubPanel.add(controls,"Завершить матч",() -> HomeHub.confirmEndMatch());
+            }
             HubPanel.add(controls,"Свободная Зона",HomeHub::zone);
             HubPanel.add(controls,"Подключение",()->pushMenu(new HubPanel(true)));
             HubPanel.add(controls,"Запуск матча", () -> HomeHub.openMatch(this, () -> pushMenu(new HubPanel(false))));

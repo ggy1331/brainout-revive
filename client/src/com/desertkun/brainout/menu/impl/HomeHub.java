@@ -2,6 +2,7 @@ package com.desertkun.brainout.menu.impl;
 
 import com.badlogic.gdx.Gdx;
 import com.desertkun.brainout.BrainOutClient;
+import com.desertkun.brainout.client.states.CSEndGame;
 import com.desertkun.brainout.client.states.CSGame;
 import com.desertkun.brainout.client.states.CSJoinRoom;
 import com.desertkun.brainout.common.enums.DisconnectReason;
@@ -29,6 +30,8 @@ public final class HomeHub {
 
     private static String guestRoomToken;
     private static int generation;
+    /** From the last hub state: a match is running / this player left it for the hub. */
+    public static boolean MATCH_RUNNING, AWAY_FROM_MATCH;
 
     public static String roomToken(String localToken) {
         return guestRoomToken != null ? guestRoomToken : localToken;
@@ -72,8 +75,13 @@ public final class HomeHub {
                 Gdx.app.postRunnable(() -> {
                     if (epoch != generation) return;
                     polling=false; lastSuccess=System.currentTimeMillis();
+                    MATCH_RUNNING=state.optBoolean("running",false);
+                    AWAY_FROM_MATCH=state.optBoolean("away",false);
                     String target=state.optString("target","");
-                    if(!leaving && !target.isEmpty() && BrainOutClient.ClientController.getState(CSGame.class)!=null &&
+                    // also from the end-of-match results screen (CSEndGame): before, a return
+                    // requested there waited for the next round and looked like "nothing happens"
+                    if(!leaving && !target.isEmpty() && (BrainOutClient.ClientController.getState(CSGame.class)!=null
+                        || BrainOutClient.ClientController.getState(CSEndGame.class)!=null) &&
                         (!target.equals(lastTarget)||System.currentTimeMillis()>retryAt)) {
                         lastTarget=target; retryAt=System.currentTimeMillis()+7000;
                         BrainOutClient.ClientController.setState(new CSJoinRoom(target));
@@ -109,6 +117,25 @@ public final class HomeHub {
     public static void back(){
         if(!OWNER)changeHost("home");
         else query("return",new JSONObject(),null);
+    }
+    /** Owner: go to the hub alone, the match goes on for the others. */
+    public static void home(){
+        if(!OWNER)changeHost("home");
+        else {nextPoll=0;query("home",new JSONObject(),null);}
+    }
+    /** Owner: end the running match, everybody goes to the hub. */
+    public static void endMatch(){nextPoll=0;query("return",new JSONObject(),null);}
+    /** Back into the running match after leaving it for the hub. */
+    public static void rejoin(){nextPoll=0;query("rejoin",new JSONObject(),null);}
+    public static void confirmEndMatch(){
+        Menu popup = new com.desertkun.brainout.menu.popups.ConfirmationPopup(
+            "Завершить матч для всех? Все игроки вернутся в хаб.") {
+            @Override public void yes(){endMatch();}
+        };
+        com.desertkun.brainout.gs.GameState gs = BrainOutClient.getInstance().topState();
+        if (gs == null) return;
+        Menu top = gs.topMenu();
+        if (top != null) top.pushMenu(popup); else gs.pushMenu(popup);
     }
     public static void changeHost(String endpoint) {
         if (leaving || waiting) return;
