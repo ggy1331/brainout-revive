@@ -83,6 +83,8 @@ id = weapon-osv96
 instrumentTags = primary, sniper
 primary = {
     accuracy = 85
+    // spread recovers from 1 to 0.2 (standing) in 7 s: 0.8 / 7; the M82 takes ~5 s
+    accuracy-recovery = 0.114
     aimDistance = 30
     allowedBullets = bullet-12.7x108
     clipSize = 5
