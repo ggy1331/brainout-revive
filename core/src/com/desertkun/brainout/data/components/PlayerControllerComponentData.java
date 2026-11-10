@@ -32,24 +32,31 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     protected Player.State state;
     private float diveTime, diveCooldown;
     private float hasJumped;
-    private float runTapWindow, sprintRemaining;
+    private float runTapWindow;
     private boolean runHeld;
     private float groundSpeed, groundedSinceJump, jumpScale = 1;
     private boolean jumpedBefore;
     private static final float WALK_SCALE = 0.8f;
     private static final float SPRINT_SCALE = 1.32f;
-    private static final float SPRINT_SECONDS = 1.8f;
     private static final float HOP_RECOVERY = 0.24f;
-    // Ladder fatigue: the vertical speed on a ladder is scaled by ladderScale.
-    // It drops while climbing and drops sharply on every up/down reversal, so
-    // bouncing on a ladder quickly becomes slow; it recovers while hanging still
-    // and faster off the ladder.
-    private static final float LADDER_MIN = 0.45f;       // slowest: 45% of the normal speed
-    private static final float LADDER_DECAY = 0.10f;     // per second of climbing
-    private static final float LADDER_REVERSE = 0.22f;   // per up/down reversal
-    private static final float LADDER_REST = 0.20f;      // per second hanging still
-    private static final float LADDER_RECOVERY = 0.90f;  // per second off the ladder
-    private float ladderScale = 1;
+    // Stamina (0..1): one pool spent by the tactical sprint, jumps, dives and
+    // ladders, restored by resting. Heavier weapons (lower speedCoef) spend more.
+    // Computed the same way on the client, the server and for bots (core code).
+    private static final float STAMINA_SPRINT = 0.50f;        // per second of tactical sprint (full -> 2 s)
+    private static final float STAMINA_SPRINT_MIN = 0.20f;    // needed to start a tactical sprint
+    private static final float STAMINA_JUMP = 0.12f;          // per jump
+    private static final float STAMINA_DIVE = 0.25f;          // per dive (also the minimum to dive)
+    private static final float STAMINA_LADDER = 0.12f;        // per second of climbing
+    private static final float STAMINA_LADDER_REVERSE = 0.25f; // per up/down reversal on a ladder
+    private static final float STAMINA_REGEN_DELAY = 0.6f;    // seconds after spending before it comes back
+    private static final float STAMINA_REGEN_REST = 0.30f;    // per second: standing, sitting, lying
+    private static final float STAMINA_REGEN_WALK = 0.22f;    // per second: walking
+    private static final float STAMINA_REGEN_RUN = 0.08f;     // per second: normal (not tactical) run
+    private static final float STAMINA_REGEN_LADDER = 0.10f;  // per second: hanging still on a ladder
+    private static final float STAMINA_WEIGHT_MAX = 1.5f;     // heaviest weapons spend at most 1.5x
+    private static final float LADDER_MIN = 0.45f;            // ladder speed at zero stamina
+    private static final float JUMP_TIRED = 0.6f;             // jump strength without stamina for it
+    private float stamina = 1, staminaRegenDelay;
     private int ladderDirection;
     private float bottomContactAccumulator;
     private boolean jumpDirty;
@@ -577,9 +584,8 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         InstrumentData held = playerData.getCurrentInstrument();
         if (held instanceof com.desertkun.brainout.data.instrument.WeaponData &&
             ((com.desertkun.brainout.data.instrument.WeaponData)held).getWeapon().isPaired()) return false;
-        sprintRemaining = SPRINT_SECONDS;
-
-        return true;
+        // the sprint lasts while there is stamina (updateStamina), not a fixed time
+        return stamina >= STAMINA_SPRINT_MIN;
     }
 
     protected void setRun(boolean pressed)
@@ -625,6 +631,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             Math.abs(body.getSpeed().x) < 2)) return false;
         if (!grounded && (state == Player.State.crawl || state == Player.State.sit ||
             state == Player.State.squat || state == Player.State.dive)) return false;
+        if (!spendStamina(STAMINA_DIVE, false)) return false;
         float speed = body.getSpeed().x;
         setState(Player.State.dive);
         diveTime = 0;
@@ -732,8 +739,6 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
         diveCooldown = Math.max(0, diveCooldown - dt);
         runTapWindow = Math.max(0, runTapWindow - dt);
-        sprintRemaining = Math.max(0, sprintRemaining - dt);
-        if (state == Player.State.tacticalRun && sprintRemaining == 0) setState(Player.State.run);
         if (hasBottomContact || hasFixture)
         {
             groundedSinceJump += dt;
@@ -743,7 +748,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
                 jumpedBefore = false;
             }
         }
-        updateLadderFatigue(dt, hasFixture);
+        updateStamina(dt, hasFixture, hasBottomContact);
         boolean hadBottomContact = bottomContactAccumulator > 0;
 
         float forceX = 0, forceY = 0;
@@ -777,7 +782,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
                 if (hasFixture)
                 {
-                    pcd.getSpeed().y = moveDirection.y * ladderScale;
+                    pcd.getSpeed().y = moveDirection.y * getLadderScale();
                 }
                 else
                 {
@@ -910,36 +915,96 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         this.boost = new Boost(time, x, y);
     }
 
-    private void updateLadderFatigue(float dt, boolean onLadder)
+    /** How much more a heavy weapon costs: 1 for light ones, up to STAMINA_WEIGHT_MAX. */
+    private float staminaWeight()
     {
-        if (!onLadder || playerData.getPlayer().isFlying())
-        {
-            ladderDirection = 0;
-            ladderScale = Math.min(1, ladderScale + LADDER_RECOVERY * dt);
-            return;
-        }
-
-        int direction = moveDirection.y > 0.01f ? 1 : (moveDirection.y < -0.01f ? -1 : 0);
-
-        if (direction == 0)
-        {
-            // the last direction is kept: stopping for a moment does not hide a reversal
-            ladderScale = Math.min(1, ladderScale + LADDER_REST * dt);
-            return;
-        }
-
-        if (ladderDirection != 0 && direction != ladderDirection)
-        {
-            ladderScale -= LADDER_REVERSE;
-        }
-
-        ladderDirection = direction;
-        ladderScale = Math.max(LADDER_MIN, ladderScale - LADDER_DECAY * dt);
+        InstrumentData held = playerData.getCurrentInstrument();
+        if (held == null || held.getInstrument() == null) return 1;
+        // the base speedCoef of the weapon itself: identical on the client and the server
+        float coef = held.getInstrument().getSpeedCoef();
+        if (coef <= 0) return 1;
+        return MathUtils.clamp(1f / coef, 1f, STAMINA_WEIGHT_MAX);
     }
 
+    /** Spend stamina; returns false (and spends nothing) if there is not enough. */
+    protected boolean spendStamina(float amount, boolean partial)
+    {
+        float cost = amount * staminaWeight();
+        if (!partial && stamina < cost) return false;
+        stamina = Math.max(0, stamina - cost);
+        staminaRegenDelay = STAMINA_REGEN_DELAY;
+        return true;
+    }
+
+    private void updateStamina(float dt, boolean onLadder, boolean onGround)
+    {
+        if (playerData.getPlayer().isFlying())
+        {
+            stamina = 1;
+            return;
+        }
+
+        if (state == Player.State.tacticalRun)
+        {
+            spendStamina(STAMINA_SPRINT * dt, true);
+            if (stamina <= 0) setState(Player.State.run);
+        }
+
+        float regen = 0;
+
+        if (onLadder)
+        {
+            int direction = moveDirection.y > 0.01f ? 1 : (moveDirection.y < -0.01f ? -1 : 0);
+
+            if (direction != 0)
+            {
+                // the last direction is kept: stopping for a moment does not hide a reversal
+                if (ladderDirection != 0 && direction != ladderDirection)
+                {
+                    spendStamina(STAMINA_LADDER_REVERSE, true);
+                }
+                ladderDirection = direction;
+                spendStamina(STAMINA_LADDER * dt, true);
+            }
+            else
+            {
+                regen = STAMINA_REGEN_LADDER;
+            }
+        }
+        else
+        {
+            ladderDirection = 0;
+
+            if (onGround && state != Player.State.tacticalRun && state != Player.State.dive)
+            {
+                if (state == Player.State.run && Math.abs(moveDirection.x) > 0.01f)
+                    regen = STAMINA_REGEN_RUN;
+                else if (Math.abs(moveDirection.x) > 0.01f && state == Player.State.normal)
+                    regen = STAMINA_REGEN_WALK;
+                else
+                    regen = STAMINA_REGEN_REST;
+            }
+        }
+
+        if (staminaRegenDelay > 0)
+        {
+            staminaRegenDelay = Math.max(0, staminaRegenDelay - dt);
+        }
+        else if (regen > 0)
+        {
+            stamina = Math.min(1, stamina + regen * dt);
+        }
+    }
+
+    /** Ladder speed: full with full stamina, LADDER_MIN with none. */
     public float getLadderScale()
     {
-        return ladderScale;
+        return LADDER_MIN + (1 - LADDER_MIN) * stamina;
+    }
+
+    public float getStamina()
+    {
+        return stamina;
     }
 
     private void jump()
@@ -965,6 +1030,13 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         {
             float previousScale = jumpScale;
             jumpScale = jumpedBefore ? Math.max(0.55f, jumpScale - 0.15f) : 1;
+            // a tired jump is weaker: not enough stamina for it -> JUMP_TIRED strength
+            if (!spendStamina(STAMINA_JUMP, false))
+            {
+                stamina = 0;
+                staminaRegenDelay = STAMINA_REGEN_DELAY;
+                jumpScale *= JUMP_TIRED;
+            }
             jumpedBefore = true;
             groundedSinceJump = 0;
             groundSpeed *= jumpScale / previousScale;
