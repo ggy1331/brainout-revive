@@ -52223,5 +52223,30 @@
         "EL": "QSZ-92",
         "SR": "QSZ-92",
         "PT": "QSZ-92"
+    },
+    "ITEM_PLAYER_SKIN_GRENADIER": {
+        "EN": "Grenadier",
+        "CS": "Grenadier",
+        "NL": "Grenadier",
+        "DE": "Grenadier",
+        "IT": "Grenadier",
+        "KO": "Grenadier",
+        "PL": "Grenadier",
+        "RO": "Grenadier",
+        "RU": "\u0413\u0440\u0435\u043d\u0430\u0434\u0435\u0440",
+        "ZH": "Grenadier",
+        "ES": "Grenadier",
+        "TR": "Grenadier",
+        "UA": "\u0413\u0440\u0435\u043d\u0430\u0434\u0435\u0440",
+        "FR": "Grenadier",
+        "LT": "Grenadier",
+        "HR": "Grenadier",
+        "BE": "\u0413\u0440\u0435\u043d\u0430\u0434\u0435\u0440",
+        "HU": "Grenadier",
+        "LV": "Grenadier",
+        "SL": "Grenadier",
+        "EL": "Grenadier",
+        "SR": "Grenadier",
+        "PT": "Grenadier"
     }
 }

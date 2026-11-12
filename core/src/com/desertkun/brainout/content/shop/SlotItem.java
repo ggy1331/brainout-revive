@@ -87,6 +87,12 @@ public abstract class SlotItem extends OwnableContent
 
         }
 
+        /** Same as {@link #init(UserProfile)}, with the profile selection key of the slot (with layout suffix). */
+        public void init(UserProfile userProfile, String selectionKey)
+        {
+            init(userProfile);
+        }
+
         public void saveSelection(UserProfile profile, Selection selection, String layout)
         {
             Layout layout_ = Layout.resolve(layout);

@@ -3,6 +3,7 @@ package com.desertkun.brainout.components.my;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.desertkun.brainout.BrainOut;
@@ -318,7 +319,10 @@ public class MyPlayerComponent extends PlayerControllerComponentData
             {
                 HitConfirmEvent e = ((HitConfirmEvent) event);
 
+                Map hitMap = e.d >= 0 ? Map.Get(Map.FindDimension(e.d)) : null;
+                hitTarget = hitMap != null ? hitMap.getActiveData(e.obj) : null;
                 showHitMarker(e.collider, e.x, e.y, e.dmg, e.d);
+                hitTarget = null;
 
                 break;
             }
@@ -487,6 +491,10 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         swingSlot = null;
         if (owner == null || owner.getCurrentInstrumentRecord() == null ||
             owner.getCurrentInstrumentRecord().getId() != quickKnifeId || quickReturnId == quickKnifeId) return;
+        // the quick-strike key still held after the hit: the melee weapon stays in the hands
+        int key = BrainOutClient.ClientSett.getControls().getKeyCode(
+            com.desertkun.brainout.client.settings.KeyProperties.Keys.slotKnifeAlt, com.badlogic.gdx.Input.Keys.V);
+        if (com.badlogic.gdx.Gdx.input.isKeyPressed(key)) return;
 
         ConsumableRecord previous = owner.getConsumableContainer().get(quickReturnId);
         if (previous != null) selectRecord(previous, returnMode);
@@ -748,7 +756,9 @@ public class MyPlayerComponent extends PlayerControllerComponentData
             }
             else
             {
+                float ox = pointPos.x, oy = pointPos.y;
                 pointPos.add(tmp.x, tmp.y);
+                slideAroundInnerCircle(ox, oy, tmp.x, tmp.y);
             }
             tmp.set(pointPos);
 
@@ -761,9 +771,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
             posX = (int)(playerData.getX() + tmp.x);
             posY = (int)(playerData.getY() + tmp.y);
 
-            float h = (Math.min(BrainOutClient.getWidth(), BrainOutClient.getHeight()) / Constants.Graphics.RES_SIZE) * 0.4f;
-
-            pointPos.clamp(0, maxAimDist + h);
+            constrainAim(maxAimDist);
         }
         else
         {
@@ -786,6 +794,143 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         return controller;
     }
 
+    /** Radius of the low stance circle (the same formula ClientPlayerComponent uses to pick the stance). */
+    private static float lowStanceRadius()
+    {
+        return (Math.min(BrainOutClient.getWidth(), BrainOutClient.getHeight()) / Constants.Graphics.RES_SIZE) * 0.16f; // low stance circle (was 0.4, then 0.25), keep in sync with ClientPlayerComponent
+    }
+
+    /** Max aim distance of the current instrument, as in setAimDirection; 0 if unknown. */
+    private float currentMaxAimDistance()
+    {
+        InstrumentData current = getPlayerData().getCurrentInstrument();
+
+        if (current == null)
+            return 0;
+
+        if (current.getInstrument().hasComponent(InstrumentAimComponent.class))
+            return current.getInstrument().getComponent(InstrumentAimComponent.class).getAimDistance();
+
+        if (current instanceof WeaponData)
+        {
+            MyWeaponComponent mwc = current.getComponent(MyWeaponComponent.class);
+            WeaponSlotComponent slot = mwc != null ? mwc.getCurrentSlot() : null;
+            if (slot != null)
+                return slot.getAimDistance().asFloat();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Weapon stances on the mouse: without RMB the cursor stays inside the low stance circle
+     * (weapon lowered); holding RMB raises the weapon (high stance) and the cursor lives in the
+     * ring between that circle and the weapon's max aim distance. Paired pistols (RMB fires the
+     * second one), other instruments and gamepads keep the old free cursor.
+     */
+    private void constrainAim(float maxAimDist)
+    {
+        PlayerData playerData = getPlayerData();
+        ClientPlayerComponent cpc = playerData.getComponent(ClientPlayerComponent.class);
+
+        if (cpc == null)
+            return;
+
+        Vector2 pointPos = cpc.getMousePosition();
+        float h = lowStanceRadius();
+        InstrumentData current = playerData.getCurrentInstrument();
+
+        boolean rings = !controller && current instanceof WeaponData &&
+            !((WeaponData) current).getWeapon().isPaired();
+
+        if (!rings)
+        {
+            highStanceHeld = false;
+            wasAimHeld = false;
+            pointPos.clamp(0, maxAimDist + h);
+            return;
+        }
+
+        boolean held = com.desertkun.brainout.controllers.KeyboardController.isAimHeld();
+        highStanceHeld = held;
+
+        if (held)
+        {
+            if (pointPos.len() < 0.001f)
+            {
+                pointPos.set(h, 0).setAngleDeg(playerData.getAngle());
+            }
+
+            if (!wasAimHeld)
+            {
+                // raising the weapon again: the mark returns to the distance it had last time
+                pointPos.nor().scl(Math.max(h, rememberedAimRadius));
+            }
+
+            pointPos.clamp(h, Math.max(h, maxAimDist + h));
+            rememberedAimRadius = pointPos.len();
+        }
+        else
+        {
+            // strictly inside: ClientPlayerComponent treats len >= h as the high stance
+            pointPos.clamp(0, h * 0.98f);
+        }
+
+        wasAimHeld = held;
+    }
+
+    private boolean wasAimHeld, highStanceHeld;
+    private float rememberedAimRadius;
+
+    /** RMB is held with an ordinary weapon: the high stance whose mark the camera follows. */
+    public boolean isHighStanceHeld()
+    {
+        return highStanceHeld;
+    }
+
+    /**
+     * High stance: the mark can't enter the inner circle. Pushing it inwards used to snap it to
+     * the edge along the radius — crossing near the centre flipped it to the other side. Now the
+     * mark slides along the edge by the part of the mouse move that goes along the circle.
+     */
+    private void slideAroundInnerCircle(float ox, float oy, float dx, float dy)
+    {
+        if (!highStanceHeld || controller ||
+            !com.desertkun.brainout.controllers.KeyboardController.isAimHeld())
+            return;
+
+        ClientPlayerComponent cpc = getPlayerData().getComponent(ClientPlayerComponent.class);
+        if (cpc == null)
+            return;
+
+        Vector2 pointPos = cpc.getMousePosition();
+        float h = lowStanceRadius();
+        float oldLen = (float) Math.sqrt(ox * ox + oy * oy);
+
+        if (pointPos.len() >= h || oldLen < 0.001f)
+            return;
+
+        // tangent at the old point (counter-clockwise) and the mouse move along it
+        float tx = -oy / oldLen, ty = ox / oldLen;
+        float along = dx * tx + dy * ty;
+        float angle = along / Math.max(h, oldLen);   // arc length -> radians
+
+        float cos = MathUtils.cos(angle), sin = MathUtils.sin(angle);
+        float nx = (ox * cos - oy * sin) / oldLen * h, ny = (ox * sin + oy * cos) / oldLen * h;
+        pointPos.set(nx, ny);
+    }
+
+    /** Called every frame: pressing or releasing RMB moves the cursor without a mouse move. */
+    private void constrainAimEveryFrame()
+    {
+        PlayerData playerData = getPlayerData();
+
+        if (playerData == null || playerData.getCurrentInstrument() == null)
+            return;
+
+        constrainAim(currentMaxAimDistance());
+    }
+
     private void showDamageMarker(float x, float y, float angle)
     {
         ClientMap map = ((ClientMap) getMap());
@@ -802,6 +947,8 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         map.addEffect(ded);
     }
 
+    private ActiveData hitTarget;
+
     private void showHitMarker(String collider, float x, float y, int dmg, int d)
     {
         ClientMap map = ((ClientMap) getMap());
@@ -814,6 +961,23 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         if (d >= 0 && collider != null && collider.equals("block"))
         {
             FlyingTextData flyingTextData = new FlyingTextData(String.valueOf(dmg), x, y,
+                Map.FindDimension(d), "title-ingame-red");
+
+            map.addActive(map.generateClientId(), flyingTextData, true);
+        }
+        else if (d >= 0 && dmg > 0 && "true".equals(BrainOutClient.PackageMgr.getDefine("lobby", "false")))
+        {
+            // hub: the damage dealt to a training dummy, above its head
+            float tx = x, ty = y;
+            ActiveData target = hitTarget;
+            if (target != null && target.getMap() == map)
+            {
+                tx = target.getX();
+                ty = target.getY() + 2.2f;
+            }
+
+            String text = collider != null && collider.equals("head") ? dmg + "!" : String.valueOf(dmg);
+            FlyingTextData flyingTextData = new FlyingTextData(text, tx, ty,
                 Map.FindDimension(d), "title-ingame-red");
 
             map.addActive(map.generateClientId(), flyingTextData, true);
@@ -1018,6 +1182,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         }
 
         updateQuickMelee(dt);
+        constrainAimEveryFrame();
         if (hitTimer > 0)
         {
             hitTimer -= dt;

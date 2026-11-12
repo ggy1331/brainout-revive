@@ -74,11 +74,8 @@ public class ClientShootingRangeActivatorComponentData extends ClientActiveActiv
             }
         }
 
-        if (!hasWeapon)
-        {
-            return false;
-        }
-
+        // revive: the official shooting-range events are gone — the range is always open, the
+        // server picks the weapon (the one in the hands if the range has it, else a random one)
         return super.test(playerData);
     }
 

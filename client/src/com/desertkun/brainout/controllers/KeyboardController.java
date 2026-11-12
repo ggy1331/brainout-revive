@@ -25,6 +25,15 @@ public class KeyboardController extends GameController
     private boolean keyPressed[];
     private int keyCodes[];
 
+    // RMB held in the action mode: aiming in the high stance (see MyPlayerComponent.constrainAim)
+    private static boolean aimHeld;
+
+    public static boolean isAimHeld()
+    {
+        // the button state double-check covers a release that happened while a menu was open
+        return aimHeld && Gdx.input.isButtonPressed(Input.Buttons.RIGHT);
+    }
+
     private final Vector2 pointPos, aimPos, tmp;
 
     public KeyboardController()
@@ -481,6 +490,18 @@ public class KeyboardController extends GameController
         KeyProperties.Keys action = BrainOutClient.ClientSett.getControls().getKey(keyCode);
         if ((action == KeyProperties.Keys.sit || action == KeyProperties.Keys.squat || action == KeyProperties.Keys.slotKnifeAlt) && !stanceKeysHeld.add(keyCode))
             return true;
+
+        // hub: J places a training dummy with my loadout, K removes the nearest one
+        // (only while J / K are not bound to anything else)
+        if (action == null && getControllerMode() == ControllerMode.action &&
+            (keyCode == Input.Keys.J || keyCode == Input.Keys.K) &&
+            "true".equals(BrainOutClient.PackageMgr.getDefine("lobby", "false")))
+        {
+            BrainOutClient.ClientController.sendTCP(new com.desertkun.brainout.common.msg.client.TrainingDummyMsg(
+                keyCode == Input.Keys.J ? com.desertkun.brainout.common.msg.client.TrainingDummyMsg.PLACE :
+                    com.desertkun.brainout.common.msg.client.TrainingDummyMsg.REMOVE));
+            return true;
+        }
         return keyPressed(keyCode);
     }
 
@@ -505,8 +526,14 @@ public class KeyboardController extends GameController
                 {
                     sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.endLaunch, button));
                 }
+                else if (button == Input.Buttons.RIGHT)
+                {
+                    aimHeld = false;
+                    sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.endAimHold));
+                }
                 else
                 {
+                    // middle button: underbarrel launchers and other secondary fire
                     sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.endLaunchSecondary, button));
                 }
 
@@ -545,8 +572,14 @@ public class KeyboardController extends GameController
 
                     sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.beginLaunch, button));
                 }
+                else if (button == Input.Buttons.RIGHT)
+                {
+                    aimHeld = true;
+                    sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.beginAimHold));
+                }
                 else
                 {
+                    // middle button: underbarrel launchers and other secondary fire
                     sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.beginLaunchSecondary));
                 }
 

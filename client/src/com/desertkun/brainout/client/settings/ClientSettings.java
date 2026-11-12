@@ -32,6 +32,7 @@ public abstract class ClientSettings extends CoreSettings
 
     private IntegerRangeProperty soundVolume;
     private IntegerRangeProperty musicVolume;
+    private IntegerRangeProperty radioVolume;
     private IntegerRangeProperty voiceChatVolume;
     private IntegerRangeProperty microphoneVolume;
 
@@ -154,6 +155,7 @@ public abstract class ClientSettings extends CoreSettings
             blood = new BooleanProperty("blood", "MENU_BLOOD", true, graphics);
         }
 
+        radioVolume = new IntegerRangeProperty("radio", "MENU_SOUND_RADIO", 70, 0, 100, sound);
         soundVolume = new IntegerRangeProperty("sound", "MENU_SOUND_SFX", 100, 0, 100, sound);
         musicVolume = new IntegerRangeProperty("music", "MENU_SOUND_MUSIC", 100, 0, 100, sound)
         {
@@ -548,6 +550,8 @@ public abstract class ClientSettings extends CoreSettings
     {
         return soundVolume;
     }
+
+    public IntegerRangeProperty getRadioVolume() { return radioVolume; }
 
     public IntegerRangeProperty getMusicVolume()
     {

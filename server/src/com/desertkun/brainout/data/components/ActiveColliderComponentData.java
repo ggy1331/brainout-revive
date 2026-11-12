@@ -74,6 +74,17 @@ public class ActiveColliderComponentData<T extends ActiveColliderComponent> exte
 
         LaunchData l = bullet.getLaunchData();
 
+        // revive: a melee hit kills at once only from behind; from the front it takes half the health
+        if (activeData instanceof com.desertkun.brainout.data.active.PlayerData && bullet.getInstrumentInfo() != null &&
+            bullet.getInstrumentInfo().instrument != null && bullet.getInstrumentInfo().instrument.getSlot() != null &&
+            "slot-melee".equals(bullet.getInstrumentInfo().instrument.getSlot().getID()))
+        {
+            float facing = com.badlogic.gdx.math.MathUtils.cosDeg(activeData.getAngle());
+            float side = l.getX() - activeData.getX();
+            boolean fromBehind = facing * side < 0;
+            if (!fromBehind) dmg = Math.min(dmg, health.getInitHealth() * 0.5f);
+        }
+
         health.damage((DamageEvent)DamageEvent.obtain(dmg, bullet.getOwnerId(), bullet.getInstrumentInfo(),
             bullet, l.getX(), l.getY(), l.getAngle(), Constants.Damage.DAMAGE_HIT));
 

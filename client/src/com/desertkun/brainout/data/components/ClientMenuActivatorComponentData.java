@@ -82,6 +82,7 @@ public class ClientMenuActivatorComponentData extends ClientActiveActivatorCompo
             }
             case "workbench":
             {
+                if (HomeHub.ENDPOINT != null) return super.test(playerData);
                 if (BrainOutClient.getInstance().topState().topMenu() instanceof LobbyMenu)
                 {
                     return false;
@@ -94,12 +95,20 @@ public class ClientMenuActivatorComponentData extends ClientActiveActivatorCompo
         return super.test(playerData);
     }
 
+    @Override
+    public String getActivateText() {
+        if (HomeHub.ENDPOINT != null && "workbench".equals(getContentComponent().getMenu()))
+            return com.desertkun.brainout.L.get("MENU_RADIO");
+        return super.getActivateText();
+    }
+
     private Menu openMenu(String menu)
     {
         switch (menu)
         {
             case "workbench":
             {
+                if (HomeHub.ENDPOINT != null) return new RadioMenu();
                 final CSGame gameController = BrainOutClient.ClientController.getState(CSGame.class);
 
                 if (gameController == null)

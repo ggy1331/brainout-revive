@@ -77,7 +77,6 @@ public class ActionPhaseMenu extends Menu implements EventReceiver
     private int previousWeaponState;
     private float activatorCheck;
     private float updatePlayerInfoCounter;
-    private static final float STAMINA_BAR_HEIGHT = 8;
     private boolean isRenderBlocked;
 
     /*
@@ -461,30 +460,6 @@ public class ActionPhaseMenu extends Menu implements EventReceiver
                     BorderActor groupBorder = new BorderActor(group);
                     groupBorder.getCell().padRight(2).padLeft(2);
                     stats.add(groupBorder).row();
-                }
-
-                {
-                    // stamina: refreshed every frame (the rest of this panel is rebuilt every 2 s)
-                    final PlayerControllerComponentData controller =
-                        myPlayerData.getComponentWithSubclass(PlayerControllerComponentData.class);
-
-                    if (controller != null)
-                    {
-                        ProgressBar staminaBar = new ProgressBar(0, 1, 0.01f, false, BrainOutClient.Skin,
-                            "progress-event")
-                        {
-                            @Override
-                            public void act(float delta)
-                            {
-                                super.act(delta);
-                                setValue(controller.getStamina());
-                            }
-                        };
-                        staminaBar.setAnimateDuration(0);
-                        staminaBar.setValue(controller.getStamina());
-                        stats.add(staminaBar).width(ClientConstants.Menu.PlayerInfo.LABEL_WIDTH)
-                            .height(STAMINA_BAR_HEIGHT).padTop(2).padLeft(2).padRight(2).row();
-                    }
                 }
 
                 InstrumentData currentInstrument = myPlayerData.getCurrentInstrument();

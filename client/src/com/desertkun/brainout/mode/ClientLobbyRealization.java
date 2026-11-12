@@ -56,6 +56,7 @@ public class ClientLobbyRealization extends ClientGameRealization<GameModeLobby>
     @Override
     public void init(PlayState.InitCallback callback)
     {
+        HubRadio.enter();
         BrainOut.EventMgr.subscribe(Event.ID.simple, this);
 
         GameState topState = BrainOutClient.getInstance().topState();
@@ -88,6 +89,7 @@ public class ClientLobbyRealization extends ClientGameRealization<GameModeLobby>
     @Override
     public void release()
     {
+        HubRadio.leave();
         BrainOut.EventMgr.unsubscribe(Event.ID.simple, this);
     }
 
@@ -102,7 +104,7 @@ public class ClientLobbyRealization extends ClientGameRealization<GameModeLobby>
     @Override
     public void update(float dt)
     {
-
+        HubRadio.tick();
     }
 
     @Override

@@ -820,6 +820,10 @@ public class PlayerClient extends Client
 
             for (OwnableContent item : items)
             {
+                // the bots' service perk is not meant for players
+                if ("sl-pl-bot".equals(item.getID()))
+                    continue;
+
                 if (p.itemsHave(item) == 0)
                 {
                     p.addItem(item, 1);
@@ -1884,6 +1888,28 @@ public class PlayerClient extends Client
         return true;
     }
 
+
+    @SuppressWarnings("unused")
+    public boolean received(final TrainingDummyMsg msg)
+    {
+        BrainOutServer.PostRunnable(() ->
+        {
+            GameMode gameMode = BrainOutServer.Controller.getGameMode();
+            if (gameMode == null ||
+                !(gameMode.getRealization() instanceof com.desertkun.brainout.mode.ServerLobbyRealization))
+                return;
+
+            com.desertkun.brainout.mode.ServerLobbyRealization lobby =
+                ((com.desertkun.brainout.mode.ServerLobbyRealization) gameMode.getRealization());
+
+            if (msg.action == TrainingDummyMsg.PLACE)
+                lobby.placeTrainingDummy(this);
+            else if (msg.action == TrainingDummyMsg.REMOVE)
+                lobby.removeTrainingDummy(this);
+        });
+
+        return true;
+    }
 
     @SuppressWarnings("unused")
     public boolean received(final RemoveLoadoutMsg msg)

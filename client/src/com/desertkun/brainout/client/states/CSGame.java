@@ -1170,11 +1170,32 @@ public class CSGame extends ControllerState
                         LaunchBulletEvent.obtain(bullet, msg.ownerId,
                             msg.slot, msg.x, msg.y, msg.angles, msg.silent));
 
+                    if (!playerData.isVisible() && !msg.silent)
+                        showShotMarker(map, playerData, msg.activeX, msg.activeY);
                 }
             }
         }
 
         return true;
+    }
+
+    private final com.badlogic.gdx.utils.IntMap<Long> shotMarkers = new com.badlogic.gdx.utils.IntMap<>();
+
+    /** An unseen enemy fired: an arc around our player, roughly towards him (never his position). */
+    private void showShotMarker(ClientMap map, PlayerData shooter, float sx, float sy)
+    {
+        PlayerData me = this.playerData;
+        if (me == null || me.getMap() != map) return;
+        float dx = me.getX() - sx, dy = me.getY() - sy;
+        if (dx * dx + dy * dy > 80 * 80) return;                   // too far to hear where it is
+        long now = System.currentTimeMillis();
+        Long last = shotMarkers.get(shooter.getId());
+        if (last != null && now - last < 450) return;               // a burst is one marker
+        shotMarkers.put(shooter.getId(), now);
+        float angle = com.badlogic.gdx.math.MathUtils.atan2(dy, dx) * com.badlogic.gdx.math.MathUtils.radiansToDegrees
+            + com.badlogic.gdx.math.MathUtils.random(-14f, 14f);    // only a rough direction
+        map.addEffect(new com.desertkun.brainout.data.effect.DamageEffectData(
+            new PointLaunchData(me.getX(), me.getY(), angle, me.getDimension()), "shot-marker", 1.1f));
     }
 
     @SuppressWarnings("unused")

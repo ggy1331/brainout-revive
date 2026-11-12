@@ -113,7 +113,7 @@ public class TaskShootTargetAndDontMove extends Task
                     randomness = 8f;
                 }
 
-                if (getController().lerpAngle(targetAngle + MathUtils.random(-randomness, randomness)))
+                if (getController().lerpAngle(targetAngle + MathUtils.random(-randomness, randomness) * getController().aimSpread(target)))
                 {
                     fireTimer -= dt;
                     if (fireTimer <= 0)
@@ -122,7 +122,7 @@ public class TaskShootTargetAndDontMove extends Task
                         {
                             resetTimers();
 
-                            openFire(true);
+                            openFire(getController().reacted(target));
                         }
                         else
                         {
@@ -131,7 +131,7 @@ public class TaskShootTargetAndDontMove extends Task
                     }
                     else
                     {
-                        openFire(true);
+                        openFire(getController().reacted(target));
                     }
                 }
                 else

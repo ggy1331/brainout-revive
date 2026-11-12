@@ -1,0 +1,20 @@
+class = content.shop.PlayerSkinSlotItem
+components = [
+    {
+        class = content.components.IconComponent
+        icon = icon-player-skin-grenadier
+        tag = client
+    }
+    {
+        class = content.components.RandomWeightComponent
+        weight = 50
+    }
+]
+id = sl-skin-grenadier
+items = []
+name = ITEM_PLAYER_SKIN_GRENADIER
+skin = skin-player-grenadier
+slot = slot-player-skin
+category = outfit
+tags = unique
+index = 444

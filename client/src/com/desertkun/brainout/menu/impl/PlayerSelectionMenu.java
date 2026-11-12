@@ -28,6 +28,7 @@ import com.desertkun.brainout.components.ShowPurchaseProgressComponent;
 import com.desertkun.brainout.content.*;
 import com.desertkun.brainout.content.components.*;
 import com.desertkun.brainout.content.gamecase.Case;
+import com.esotericsoftware.spine.Skeleton;
 import com.desertkun.brainout.content.gamecase.gen.ContentCard;
 import com.desertkun.brainout.content.instrument.Instrument;
 import com.desertkun.brainout.content.instrument.Weapon;
@@ -500,7 +501,22 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
         SlotItem.Selection selection = shopCart.getItem(slot);
         SlotItem slotItem = selection.getItem();
 
-        if (slotItem.hasComponent(IconComponent.class) && !usesPairedIcon(slotItem))
+        if (selection instanceof PlayerSkinSlotItem.PlayerSkinSlotSelection &&
+            ((PlayerSkinSlotItem.PlayerSkinSlotSelection) selection).hasParts())
+        {
+            UIAnimation preview = new UIAnimation(BrainOutClient.ContentMgr.get("anim-actor", Animation.class));
+            setPreviewSkin(preview.getSkeleton(), (PlayerSkinSlotItem.PlayerSkinSlotSelection) selection);
+            preview.getSkeleton().setSlotsToSetupPose();
+            preview.getSkeleton().setScale(16f, 16f);
+            preview.getState().setAnimation(0, "stay", true);
+            // like the costume cards: the skeleton is drawn in the container's (transformed) coordinates
+            Container<UIAnimation> frame = new Container<>(preview);
+            frame.fill();
+            frame.setTransform(true);
+            frame.setTouchable(Touchable.disabled);
+            item.add(frame).size(48, 70).padRight(8);
+        }
+        else if (slotItem.hasComponent(IconComponent.class) && !usesPairedIcon(slotItem))
         {
             TextureAtlas.AtlasRegion icon = equipmentIcon(slotItem, selection);
             if (icon != null)
@@ -1326,6 +1342,10 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             if (preset != null && !preset.isItemAllowed(item))
                 continue;
 
+            // service perks without a name (sl-pl-bot, the bots' perk) showed up as "???"
+            if (item instanceof PlayerSlotItem && !item.getTitle().isValid())
+                continue;
+
             if (selectedTag != null)
             {
                 if (Constants.Other.FAVORITES_TAG.equals(selectedTag))
@@ -1426,7 +1446,8 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             if (item instanceof PlayerSkinSlotItem && ((PlayerSkinSlotItem)item).getSkin() != null)
             {
                 UIAnimation preview = new UIAnimation(BrainOutClient.ContentMgr.get("anim-actor", Animation.class));
-                preview.getSkeleton().setSkin(((PlayerSkinSlotItem)item).getSkin().getData());
+                PlayerSkinSlotItem.PlayerSkinSlotSelection previewSel = skinPartSelection(slot, (PlayerSkinSlotItem) item);
+                setPreviewSkin(preview.getSkeleton(), previewSel);
                 preview.getSkeleton().setSlotsToSetupPose();
                 preview.getSkeleton().setScale(34f, 34f);
                 preview.getState().setAnimation(0, "stay", true);
@@ -1671,6 +1692,25 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                             }
 
                             playSound(MenuSound.select);
+
+                            if (item instanceof PlayerSkinSlotItem)
+                            {
+                                selectItem(item.getSlot(), skinPartSelection(slot, (PlayerSkinSlotItem) item));
+                                save();
+
+                                if (skinPartMode >= 0)
+                                {
+                                    // stay in the window to pick the other parts
+                                    updateSlotButtons();
+                                    rerenderCategory(tab, category, slot);
+                                    return;
+                                }
+
+                                closeSlotInfo();
+                                selectedSlot = null;
+                                updateSlotButtons();
+                                return;
+                            }
 
                             //Analytics.EventDesign(1, "ui", "select-item", item.getID());
                             selectItem(item.getSlot(), item.getStaticSelection());
@@ -1944,6 +1984,11 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
                     item.hasItem(userProfile) ? MenuBadge.Mode.click : MenuBadge.Mode.hover, ITEM_BADGE);
         }
 
+        if ("slot-player-skin".equals(slot.getID()))
+        {
+            content.add(renderSkinPartModes(tab, category, slot)).padTop(6).expandX().fillX().row();
+        }
+
         ScrollPane scrollPane = new ScrollPane(items, BrainOutClient.Skin, "scroll-default");
         tab.setUserObject(scrollPane);
         scrollPane.setFadeScrollBars(false);
@@ -1960,6 +2005,91 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
         }
     }
 
+    // -1 = whole skin, 0 = legs, 1 = torso with arms, 2 = head (PlayerSkinSlotItem.PART_NAMES)
+    private static int skinPartMode = -1;
+    private static final String[] SKIN_PART_TITLES = {"Целиком", "Ноги", "Торс и руки", "Голова"};
+
+    private Table renderSkinPartModes(Tabs.Tab tab, Slot.Category category, Slot slot)
+    {
+        Table modes = new Table();
+        ButtonGroup<TextButton> group = new ButtonGroup<>();
+
+        for (int i = -1; i < 3; i++)
+        {
+            final int mode = i;
+            TextButton b = new TextButton(SKIN_PART_TITLES[i + 1], BrainOutClient.Skin, "button-checkable");
+            group.add(b);
+            b.setChecked(skinPartMode == mode);
+            b.addListener(new ClickOverListener()
+            {
+                @Override
+                public void clicked(InputEvent event, float x, float y)
+                {
+                    if (skinPartMode == mode)
+                        return;
+
+                    playSound(MenuSound.select);
+                    skinPartMode = mode;
+                    rerenderCategory(tab, category, slot);
+                }
+            });
+
+            modes.add(b).height(32).expandX().fillX().pad(2);
+        }
+
+        return modes;
+    }
+
+    private void rerenderCategory(Tabs.Tab tab, Slot.Category category, Slot slot)
+    {
+        float scroll = tab.getUserObject() instanceof ScrollPane ? ((ScrollPane) tab.getUserObject()).getScrollY() : 0;
+
+        renderSlotCategory(tab, category, slot);
+
+        if (tab.getUserObject() instanceof ScrollPane)
+        {
+            ScrollPane pane = (ScrollPane) tab.getUserObject();
+            pane.layout();
+            pane.setScrollY(scroll);
+            pane.updateVisualScroll();
+            setScrollFocus(pane);
+        }
+    }
+
+    /** The selection that clicking on the costume would make in the current part mode. */
+    private PlayerSkinSlotItem.PlayerSkinSlotSelection skinPartSelection(Slot slot, PlayerSkinSlotItem item)
+    {
+        SlotItem.Selection current = shopCart.getItem(slot);
+
+        if (skinPartMode < 0 || !(current instanceof PlayerSkinSlotItem.PlayerSkinSlotSelection))
+        {
+            // whole skin: all three parts from this skin
+            return (PlayerSkinSlotItem.PlayerSkinSlotSelection) item.getSelection();
+        }
+
+        PlayerSkinSlotItem.PlayerSkinSlotSelection cur = (PlayerSkinSlotItem.PlayerSkinSlotSelection) current;
+        PlayerSkinSlotItem.PlayerSkinSlotSelection result =
+            (PlayerSkinSlotItem.PlayerSkinSlotSelection) cur.getItem().getSelection();
+        result.copyPartsFrom(cur);
+        result.setPart(skinPartMode, item);
+        return result;
+    }
+
+    private static void setPreviewSkin(Skeleton skeleton, PlayerSkinSlotItem.PlayerSkinSlotSelection selection)
+    {
+        com.esotericsoftware.spine.Skin skin = PlayerSkinParts.compose(skeleton.getData(),
+            selection.getPart(0).getSkin(), selection.getPart(1).getSkin(), selection.getPart(2).getSkin());
+
+        if (skin != null)
+        {
+            skeleton.setSkin(skin);
+        }
+        else if (selection.getItem().getSkin() != null)
+        {
+            skeleton.setSkin(selection.getItem().getSkin().getData());
+        }
+    }
+
     private boolean lockedItemClicked(SlotItem item)
     {
         return false;
@@ -1973,6 +2103,12 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             ? "-" + selectedLayout.getKey() : "";
 
         userProfile.setSelection(slot.getID() + key, selection.getItem().getID());
+
+        if (selection instanceof PlayerSkinSlotItem.PlayerSkinSlotSelection)
+        {
+            selection.saveSelection(userProfile, selection,
+                selectedLayout != null ? selectedLayout.getID() : null);
+        }
 
         if (selectedLayout != null)
         {

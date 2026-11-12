@@ -53,7 +53,12 @@ public class GameControllerEvent extends Event
         custom,
 
         activate,
-        freePlayFriends
+        freePlayFriends,
+
+        // right mouse button: hold to aim in the high stance (paired pistols and
+        // block placing use it as their secondary action, like RMB did before)
+        beginAimHold,
+        endAimHold
     }
 
     public Action action;

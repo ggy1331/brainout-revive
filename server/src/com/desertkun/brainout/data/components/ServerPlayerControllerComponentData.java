@@ -649,13 +649,9 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
                                         pd.getX(), pd.getY(), angles,
                                         weaponData, bullet, slot, silent));
 
-                                ServerTeamVisibilityComponentData stv = pd.getComponent(ServerTeamVisibilityComponentData.class);
-
-                                if (stv != null && !wslot.isSilent())
-                                {
-                                    stv.show();
-                                }
-
+                                // revive: a shot no longer reveals the shooter to everybody (through
+                                // walls too); others see him only by line of sight, and the client
+                                // shows a rough "shots from there" arc (CSGame, shot-marker)
                                 return true;
                             }
                             case pullRequired:

@@ -276,6 +276,7 @@ public class MyPlaceComponent extends Component
                         return true;
                     }
 
+                    case beginAimHold: // RMB, as before
                     case beginLaunchSecondary:
                     {
                         setMode(Mode.remove);

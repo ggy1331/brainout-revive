@@ -17,6 +17,20 @@ public class MusicManager implements com.badlogic.gdx.audio.Music.OnCompletionLi
     private com.badlogic.gdx.audio.Music currentMusic = null;
 
     private MusicList musicList;
+    private boolean radioOverride;
+
+    /** Preserve the hub playlist, but never mix its guitar with the radio. */
+    public void setRadioOverride(boolean value)
+    {
+        if (value == radioOverride && !value) return;
+        boolean changed = value != radioOverride;
+        radioOverride = value;
+        if (currentMusic != null)
+        {
+            if (value) currentMusic.pause();
+            else if (changed) currentMusic.play();
+        }
+    }
 
     public MusicManager()
     {
@@ -59,7 +73,7 @@ public class MusicManager implements com.badlogic.gdx.audio.Music.OnCompletionLi
                     currentMusic = music.getMusic();
                     if (currentMusic != null)
                     {
-                        currentMusic.play();
+                        if (!radioOverride) currentMusic.play();
 
                         updateVolume();
 
@@ -91,7 +105,7 @@ public class MusicManager implements com.badlogic.gdx.audio.Music.OnCompletionLi
 
             try
             {
-                currentMusic.play();
+                if (!radioOverride) currentMusic.play();
                 currentMusic.setLooping(repeat);
             }
             catch (GdxRuntimeException ignored)

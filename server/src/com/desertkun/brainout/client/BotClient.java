@@ -401,7 +401,7 @@ public class BotClient extends Client
         return 1f;
     }
 
-    private void makeSureIsSpawned(float dt)
+    protected void makeSureIsSpawned(float dt)
     {
         spawnTimer -= dt;
 
@@ -526,6 +526,36 @@ public class BotClient extends Client
         return "sl-pl-bot";
     }
 
+    private static final Object[] BOT_PERKS = {"sl-pl-bot", 30, "sl-pl-heavy", 15, "sl-pl-helmet", 15,
+        "sl-pl-clip", 15, "sl-pl-fast", 15, "sl-pl-silent", 10};
+    private static final Object[] BOT_GADGETS = {"sl-grn-he", 40, "sl-grn-he-small", 20, "sl-grn-flash", 15,
+        "sl-grn-smoke", 10, "sl-grn-molotov", 15};
+
+    /** A random shop item from (id, weight) pairs, among those enabled and allowed by the preset. */
+    private <T extends com.desertkun.brainout.content.shop.SlotItem> T pickWeighted(Class<T> kind, Object[] table)
+    {
+        Preset preset = BrainOutServer.Controller.getCurrentPreset();
+        com.badlogic.gdx.utils.Array<T> items = new com.badlogic.gdx.utils.Array<>();
+        com.badlogic.gdx.utils.FloatArray weights = new com.badlogic.gdx.utils.FloatArray();
+        float total = 0;
+        for (int i = 0; i < table.length; i += 2)
+        {
+            T item = BrainOutServer.ContentMgr.get((String) table[i], kind);
+            if (item == null || !item.isEnabled()) continue;
+            if (preset != null && !preset.isItemAllowed(item)) continue;
+            items.add(item);
+            weights.add(((Integer) table[i + 1]).floatValue());
+            total += ((Integer) table[i + 1]).floatValue();
+        }
+        float r = com.badlogic.gdx.math.MathUtils.random(total);
+        for (int i = 0; i < items.size; i++)
+        {
+            r -= weights.get(i);
+            if (r <= 0) return items.get(i);
+        }
+        return items.size > 0 ? items.peek() : null;
+    }
+
     protected void setupShopCart()
     {
         getShopCart().clear();
@@ -551,6 +581,22 @@ public class BotClient extends Client
         if (secondaryWeapon != null)
         {
             getShopCart().selectItem(secondarySlot, secondaryWeapon.getStaticSelection());
+        }
+
+        // revive: bots take a perk and a gadget like players do (the bot "player" differs from the
+        // default one only by a higher jump)
+        if ("sl-pl-bot".equals(getBotContent()) && playerSlot != null)
+        {
+            PlayerSlotItem perk = pickWeighted(PlayerSlotItem.class, BOT_PERKS);
+            if (perk != null) getShopCart().selectItem(playerSlot, perk.getStaticSelection());
+        }
+        com.desertkun.brainout.mode.GameMode mode = BrainOutServer.Controller.getGameMode();
+        Slot specialSlot = BrainOutServer.ContentMgr.get("slot-special", Slot.class);
+        if (specialSlot != null && mode != null && mode.getID() != com.desertkun.brainout.mode.GameMode.ID.free &&
+            mode.getID() != com.desertkun.brainout.mode.GameMode.ID.lobby)
+        {
+            InstrumentSlotItem gadget = pickWeighted(InstrumentSlotItem.class, BOT_GADGETS);
+            if (gadget != null) getShopCart().selectItem(specialSlot, gadget.getStaticSelection());
         }
 
         Slot playerSkinSlot = BrainOutServer.ContentMgr.get("slot-player-skin", Slot.class);

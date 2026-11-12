@@ -543,6 +543,17 @@ public class ClientList extends ObjectMap<Integer, Client>
         return client;
     }
 
+    public TrainingDummyClient newTrainingDummy(Team team, PlayerClient owner,
+                                                float x, float y, String dimension, boolean faceRight)
+    {
+        int id = generateId();
+        TrainingDummyClient client = new TrainingDummyClient(id, serverController, owner, x, y, dimension, faceRight);
+        put(id, client);
+        internalSetClientTeam(client, team);
+
+        return client;
+    }
+
     public BotClient newFreePlayBotClient(Team team)
     {
         int id = generateId();
@@ -593,6 +604,10 @@ public class ClientList extends ObjectMap<Integer, Client>
             Client client = entry.value;
 
             if (client.getTeam() != team)
+                continue;
+
+            // hub training dummies are placed by players, not by the bot balance
+            if (client instanceof TrainingDummyClient)
                 continue;
 
             if (client instanceof BotClient)

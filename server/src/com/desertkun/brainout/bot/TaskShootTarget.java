@@ -116,7 +116,7 @@ public class TaskShootTarget extends Task
                     randomness = 8f;
                 }
 
-                if (getController().lerpAngle(targetAngle + MathUtils.random(-randomness, randomness)))
+                if (getController().lerpAngle(targetAngle + MathUtils.random(-randomness, randomness) * getController().aimSpread(target)))
                 {
                     fireTimer -= dt;
                     if (fireTimer <= 0)
@@ -125,7 +125,7 @@ public class TaskShootTarget extends Task
                         {
                             resetTimers();
 
-                            openFire(true);
+                            openFire(getController().reacted(target));
                         }
                         else
                         {
@@ -134,7 +134,7 @@ public class TaskShootTarget extends Task
                     }
                     else
                     {
-                        openFire(true);
+                        openFire(getController().reacted(target));
                     }
                 }
                 else
@@ -147,6 +147,18 @@ public class TaskShootTarget extends Task
                 openFire(false);
 
                 lostSightTimer += dt;
+                // revive: the enemy ducked behind cover close by - a grenade where he was
+                if (lostSightTimer > 0.6f && lostSightTimer < 0.75f && getController().canThrowGrenade() &&
+                    MathUtils.randomBoolean(0.6f))
+                {
+                    float gx = target.getX(), gy = target.getY();
+                    float d2 = Vector2.dst2(getPlayerData().getX(), getPlayerData().getY(), gx, gy);
+                    if (d2 > 6 * 6 && d2 < 26 * 26)
+                    {
+                        pushTask(new TaskThrowGrenade(getStack(), gx, gy));
+                        return;
+                    }
+                }
                 if (lostSightTimer > 1.0f)
                 {
                     pop();

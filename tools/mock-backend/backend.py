@@ -24,6 +24,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from services import registry  # noqa: E402
+from services.radio_media import AudioStream
 from services.common import Ctx, HttpError, Storage  # noqa: E402
 
 log = logging.getLogger("backend")
@@ -68,6 +69,9 @@ class Handler(BaseHTTPRequestHandler):
             if service is None:
                 raise HttpError(404, "unknown service " + parts[0])
             result = service(ctx, parts[1:])
+            if isinstance(result, AudioStream):
+                result.serve(self)
+                return
             if isinstance(result, tuple):
                 status, payload = result[0], result[1]
                 if len(result) > 2:

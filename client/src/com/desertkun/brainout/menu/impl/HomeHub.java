@@ -37,15 +37,15 @@ public final class HomeHub {
         return guestRoomToken != null ? guestRoomToken : localToken;
     }
 
-    private static String token() {
+    static String token() {
         LoginService login=LoginService.Get();
         return login==null || login.getCurrentAccessToken()==null ? "" : login.getCurrentAccessToken().get();
     }
 
-    private static JSONObject request(String action, JSONObject body,String token) throws Exception {
+    static JSONObject request(String action, JSONObject body,String token) throws Exception {
         HttpURLConnection c=(HttpURLConnection)new URL("http://"+ENDPOINT+"/hub/"+action).openConnection(Proxy.NO_PROXY);
         try {
-            c.setConnectTimeout(1800); c.setReadTimeout("leave".equals(action) ? 1500 : body==null ? 3500 : 100000);
+            c.setConnectTimeout(1800); c.setReadTimeout("radio-resolve".equals(action) ? 330000 : "leave".equals(action) ? 1500 : body==null ? 3500 : 100000);
             c.setRequestProperty("X-Token",token);
             if(System.getenv("BRAINOUT_OWNER_KEY") != null) c.setRequestProperty("X-Hub-Key",System.getenv("BRAINOUT_OWNER_KEY"));
             if(body!=null) {
@@ -53,7 +53,12 @@ public final class HomeHub {
                 c.setRequestProperty("Content-Type","application/json");
                 try(OutputStream out=c.getOutputStream()){out.write(body.toString().getBytes(StandardCharsets.UTF_8));}
             }
-            if(c.getResponseCode()!=200) throw new IOException("Хаб не принял запрос ("+c.getResponseCode()+").");
+            if(c.getResponseCode()!=200) {
+                String error="Хаб не принял запрос ("+c.getResponseCode()+").";
+                try(InputStream in=c.getErrorStream()) { if(in!=null)error=new JSONObject(new String(in.readAllBytes(),StandardCharsets.UTF_8)).optString("error",error); }
+                catch(Exception ignored) {}
+                throw new IOException(error);
+            }
             try(BufferedReader r=new BufferedReader(new InputStreamReader(c.getInputStream(),StandardCharsets.UTF_8))){
                 StringBuilder s=new StringBuilder(); String line;
                 while((line=r.readLine())!=null)s.append(line);
@@ -71,10 +76,13 @@ public final class HomeHub {
         polling=true;
         worker.execute(() -> {
             try {
+                long radioSent=System.nanoTime();
                 JSONObject state=request("state",null,credential);
+                double radioTravel=(System.nanoTime()-radioSent)/2e9;
                 Gdx.app.postRunnable(() -> {
                     if (epoch != generation) return;
                     polling=false; lastSuccess=System.currentTimeMillis();
+                    HubRadio.accept(state.optJSONObject("radio"),radioTravel);
                     MATCH_RUNNING=state.optBoolean("running",false);
                     AWAY_FROM_MATCH=state.optBoolean("away",false);
                     String target=state.optString("target","");

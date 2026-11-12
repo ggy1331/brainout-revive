@@ -514,8 +514,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         InstrumentData held = playerData.getCurrentInstrument();
         boolean carrying = getState() == Player.State.tacticalRun && held instanceof WeaponData
             && held.getInstrument().getSlot() != null && !"slot-melee".equals(held.getInstrument().getSlot().getID())
-            && (topAnimationState == InstrumentAnimationStates.State.hold || topAnimationState == InstrumentAnimationStates.State.aim)
-            && !isAim();
+            // both weapon stances: low (hold, cursor close) and high (aim, cursor far)
+            && (topAnimationState == InstrumentAnimationStates.State.hold || topAnimationState == InstrumentAnimationStates.State.aim);
         float rate = carrying ? 5.5f : 6.5f;
         carryBlend = MathUtils.clamp(carryBlend + (carrying ? dt : -dt) * rate, 0, 1);
         boolean sidearm = held != null && held.getInstrument().getSlot() != null &&

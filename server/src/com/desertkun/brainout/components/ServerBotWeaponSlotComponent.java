@@ -577,13 +577,7 @@ public class ServerBotWeaponSlotComponent extends WeaponSlotComponent
                     playerData.getX(), playerData.getY(), angles,
                     weaponData, bullet, slot, silent));
 
-                ServerTeamVisibilityComponentData stv =
-                    playerData.getComponent(ServerTeamVisibilityComponentData.class);
-
-                if (stv != null && !wslot.isSilent())
-                {
-                    stv.show();
-                }
+                // revive: shooting no longer reveals a bot through walls (see ServerPlayerControllerComponentData)
             }
         }
     }

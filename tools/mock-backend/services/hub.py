@@ -8,6 +8,8 @@ from pathlib import Path
 
 from .lan_visit import Visit
 from . import game
+from .radio import Radio
+from . import radio_media
 from .common import HttpError
 from .login import token_from
 
@@ -18,6 +20,7 @@ QUERY = b"BrainOut hub discovery/10"
 class Hub:
     def __init__(self, app, name, key):
         self.app = app
+        radio_media.clear_legacy_cache(app)
         self.secret = key
         self.name = name
         self.uid = secrets.token_hex(12)
@@ -86,6 +89,11 @@ class Hub:
                 raise HttpError(404)
             return info
         account = str(token_from(ctx)["account"])
+        # Media preparation always runs on the listener's own machine, including guests.
+        if action in ("radio-resolve", "radio-media"):
+            if ctx.headers.get("X-Hub-Key", "") != self.secret:
+                raise HttpError(403)
+            return radio_media.resolve(self.app, ctx.arg("url", required=True)) if action == "radio-resolve" else radio_media.media(self.app, ctx.arg("video", required=True), ctx.arg("position", 0))
         master = game._master(self.app)
         owner = secrets.compare_digest(ctx.headers.get("X-Hub-Key", ""), self.secret)
         if action in ("visit", "unvisit"):
@@ -114,10 +122,10 @@ class Hub:
                 return {"target": lobby.id}
         visit = self.visits.get(account) if owner else None
         if visit:
-            if action not in ("state", "maps", "zone"):
+            if action not in ("state", "maps", "zone", "radio"):
                 raise HttpError(403)
             try:
-                result = visit.request("/hub/" + action, {} if ctx.method == "POST" else None,
+                result = visit.request("/hub/" + action, ctx.args if ctx.method == "POST" else None,
                                        90 if action == "zone" else 3)
                 if action == "state" and time.monotonic() - visit.last_read > 3:
                     visit.sync()
@@ -125,6 +133,8 @@ class Hub:
             except OSError as exc:
                 raise HttpError(503) from exc
         with self.lock:
+            if not hasattr(self, "radio"):
+                self.radio = Radio(getattr(self.app, "storage", None))
             if owner:
                 self.owner = account
             if action == "leave" and ctx.method == "POST" and not owner:
@@ -132,6 +142,11 @@ class Hub:
                 self.pending.pop(account, None)
                 self.seen.pop(account, None)
                 return {"ok": True}
+            if action == "radio" and ctx.method == "POST":
+                if not self.in_lobby(account):
+                    raise HttpError(403)
+                self.radio.snapshot(self.in_lobby)
+                return self.radio.command(account, owner, ctx.args)
             if action == "maps":
                 return {"maps": self.maps}
             if action == "state":
@@ -154,7 +169,8 @@ class Hub:
                     target = None
                 return {"target": target or "", "room": room.game if room else "",
                         "match": bool(self.match and account in self.members),
-                        "running": bool(self.match), "away": account in self.away}
+                        "running": bool(self.match), "away": account in self.away,
+                        "radio": self.radio.snapshot(self.in_lobby)}
         if action not in ("match", "return", "zone", "home", "rejoin") or ctx.method != "POST":
             raise HttpError(404)
         with self.transition:

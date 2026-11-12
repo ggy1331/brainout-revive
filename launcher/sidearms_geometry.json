@@ -1,0 +1,1326 @@
+{
+ "aps": {
+  "size": [
+   40,
+   28
+  ],
+  "slide_top": 0,
+  "slide_bottom": 5,
+  "hammer": 5,
+  "base_row": 27,
+  "base_cols": [
+   5,
+   11
+  ],
+  "base": [
+   8.5,
+   27.5
+  ],
+  "axis": 83.61583606048755,
+  "grip": [
+   7.733333333333333,
+   15.946666666666667
+  ],
+  "front": [
+   12.5,
+   13
+  ],
+  "rear": [
+   7,
+   2.5
+  ],
+  "mag": [
+   4,
+   19
+  ],
+  "mag_img": [
+   7,
+   20
+  ],
+  "split": [
+   0,
+   1
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-digital": 1
+  },
+  "body_slot": "body"
+ },
+ "baltiets": {
+  "size": [
+   40,
+   28
+  ],
+  "slide_top": 0,
+  "slide_bottom": 5,
+  "hammer": 5,
+  "base_row": 25,
+  "base_cols": [
+   0,
+   10
+  ],
+  "base": [
+   5.5,
+   25.5
+  ],
+  "axis": 80.20015133113236,
+  "grip": [
+   7.521739130434782,
+   14.753623188405797
+  ],
+  "front": [
+   17.5,
+   12
+  ],
+  "rear": [
+   7,
+   2.5
+  ],
+  "mag": [
+   6,
+   17
+  ],
+  "mag_img": [
+   11,
+   18
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "weapon-default"
+ },
+ "beretta": {
+  "size": [
+   37,
+   26
+  ],
+  "slide_top": 0,
+  "slide_bottom": 7,
+  "hammer": 4,
+  "base_row": 25,
+  "base_cols": [
+   3,
+   8
+  ],
+  "base": [
+   6.0,
+   25.5
+  ],
+  "axis": 81.7241071729248,
+  "grip": [
+   5.53030303030303,
+   15.954545454545455
+  ],
+  "front": [
+   12.5,
+   13
+  ],
+  "rear": [
+   6,
+   3.5
+  ],
+  "mag": [
+   3,
+   15
+  ],
+  "mag_img": [
+   6,
+   16
+  ],
+  "split": [
+   1,
+   0,
+   2
+  ],
+  "skins": {
+   "weapon-coyote": 0,
+   "weapon-default": 1,
+   "weapon-snake": 2
+  },
+  "body_slot": "body"
+ },
+ "browning": {
+  "size": [
+   43,
+   30
+  ],
+  "slide_top": 1,
+  "slide_bottom": 8,
+  "hammer": 5,
+  "base_row": 29,
+  "base_cols": [
+   3,
+   11
+  ],
+  "base": [
+   7.5,
+   29.5
+  ],
+  "axis": 79.19176905968021,
+  "grip": [
+   7.666666666666667,
+   18.5
+  ],
+  "front": [
+   18.5,
+   15
+  ],
+  "rear": [
+   7,
+   4.5
+  ],
+  "mag": [
+   5,
+   18
+  ],
+  "mag_img": [
+   9,
+   19
+  ],
+  "split": [
+   0,
+   1
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-rais": 1
+  },
+  "body_slot": "body"
+ },
+ "cz75": {
+  "size": [
+   33,
+   23
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 4,
+  "base_row": 22,
+  "base_cols": [
+   2,
+   9
+  ],
+  "base": [
+   6.0,
+   22.5
+  ],
+  "axis": 92.86240522611176,
+  "grip": [
+   5.0,
+   14.0
+  ],
+  "front": [
+   9.5,
+   12
+  ],
+  "rear": [
+   6,
+   3.0
+  ],
+  "mag": [
+   4,
+   14
+  ],
+  "mag_img": [
+   8,
+   15
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "desert": {
+  "size": [
+   41,
+   24
+  ],
+  "slide_top": 0,
+  "slide_bottom": 7,
+  "hammer": 5,
+  "base_row": 23,
+  "base_cols": [
+   3,
+   11
+  ],
+  "base": [
+   7.5,
+   23.5
+  ],
+  "axis": 81.46923439005187,
+  "grip": [
+   8.352941176470589,
+   14.897058823529411
+  ],
+  "front": [
+   12.5,
+   13
+  ],
+  "rear": [
+   7,
+   3.5
+  ],
+  "mag": [
+   5,
+   14
+  ],
+  "mag_img": [
+   9,
+   15
+  ],
+  "split": [
+   1,
+   0,
+   2,
+   3,
+   4
+  ],
+  "skins": {
+   "weapon-black": 0,
+   "weapon-default": 1,
+   "weapon-frosty": 2,
+   "weapon-gold": 3,
+   "weapon-soprano": 4
+  },
+  "body_slot": "weapon-default"
+ },
+ "desert50ae": {
+  "size": [
+   56,
+   25
+  ],
+  "slide_top": 0,
+  "slide_bottom": 5,
+  "hammer": 7,
+  "base_row": 24,
+  "base_cols": [
+   3,
+   11
+  ],
+  "base": [
+   7.5,
+   24.5
+  ],
+  "axis": 81.7241071729248,
+  "grip": [
+   9.65079365079365,
+   14.301587301587302
+  ],
+  "front": [
+   16.5,
+   12
+  ],
+  "rear": [
+   9,
+   2.5
+  ],
+  "mag": [
+   5,
+   16
+  ],
+  "mag_img": [
+   9,
+   17
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "weapon-default"
+ },
+ "fiveseven": {
+  "size": [
+   41,
+   29
+  ],
+  "slide_top": 0,
+  "slide_bottom": 9,
+  "hammer": 5,
+  "base_row": 28,
+  "base_cols": [
+   1,
+   5
+  ],
+  "base": [
+   3.5,
+   28.5
+  ],
+  "axis": 66.4252937980874,
+  "grip": [
+   6.904761904761905,
+   18.53968253968254
+  ],
+  "front": [
+   12.5,
+   16
+  ],
+  "rear": [
+   7,
+   4.5
+  ],
+  "mag": [
+   3,
+   16
+  ],
+  "mag_img": [
+   5,
+   17
+  ],
+  "split": [
+   0,
+   1,
+   2
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-dream": 1,
+   "weapon-martian": 2
+  },
+  "body_slot": "body"
+ },
+ "fnx45": {
+  "size": [
+   35,
+   26
+  ],
+  "slide_top": 0,
+  "slide_bottom": 7,
+  "hammer": 4,
+  "base_row": 25,
+  "base_cols": [
+   4,
+   7
+  ],
+  "base": [
+   6.0,
+   25.5
+  ],
+  "axis": 80.03164382952617,
+  "grip": [
+   5.2,
+   16.033333333333335
+  ],
+  "front": [
+   10.5,
+   13
+  ],
+  "rear": [
+   6,
+   3.5
+  ],
+  "mag": [
+   3,
+   15
+  ],
+  "mag_img": [
+   5,
+   16
+  ],
+  "split": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-jaws": 1,
+   "weapon-tough": 2,
+   "weapon-untactical": 3
+  },
+  "body_slot": "body"
+ },
+ "fort12": {
+  "size": [
+   30,
+   21
+  ],
+  "slide_top": 0,
+  "slide_bottom": 5,
+  "hammer": 4,
+  "base_row": 20,
+  "base_cols": [
+   1,
+   7
+  ],
+  "base": [
+   4.5,
+   20.5
+  ],
+  "axis": 76.6075022462489,
+  "grip": [
+   5.239130434782608,
+   12.391304347826088
+  ],
+  "front": [
+   11.5,
+   10
+  ],
+  "rear": [
+   6,
+   2.5
+  ],
+  "mag": [
+   4,
+   13
+  ],
+  "mag_img": [
+   7,
+   14
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "jericho": {
+  "size": [
+   32,
+   23
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 4,
+  "base_row": 22,
+  "base_cols": [
+   1,
+   8
+  ],
+  "base": [
+   5.0,
+   22.5
+  ],
+  "axis": 76.86597769360368,
+  "grip": [
+   5.892307692307693,
+   13.984615384615385
+  ],
+  "front": [
+   10.5,
+   12
+  ],
+  "rear": [
+   6,
+   3.0
+  ],
+  "mag": [
+   4,
+   14
+  ],
+  "mag_img": [
+   8,
+   15
+  ],
+  "split": [
+   0,
+   1
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-spiegel": 1
+  },
+  "body_slot": "weapon-default"
+ },
+ "makarov": {
+  "size": [
+   29,
+   22
+  ],
+  "slide_top": 0,
+  "slide_bottom": 5,
+  "hammer": 3,
+  "base_row": 21,
+  "base_cols": [
+   2,
+   9
+  ],
+  "base": [
+   6.0,
+   21.5
+  ],
+  "axis": 84.28940686250036,
+  "grip": [
+   5.888888888888889,
+   12.968253968253968
+  ],
+  "front": [
+   12.5,
+   11
+  ],
+  "rear": [
+   5,
+   2.5
+  ],
+  "mag": [
+   4,
+   14
+  ],
+  "mag_img": [
+   8,
+   15
+  ],
+  "split": [
+   0,
+   1,
+   3
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-gold": 1,
+   "weapon-watermelon": 3
+  },
+  "body_slot": "body"
+ },
+ "mp443": {
+  "size": [
+   36,
+   27
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 4,
+  "base_row": 26,
+  "base_cols": [
+   3,
+   9
+  ],
+  "base": [
+   6.5,
+   26.5
+  ],
+  "axis": 77.69198418257209,
+  "grip": [
+   6.808219178082192,
+   15.876712328767123
+  ],
+  "front": [
+   15.5,
+   13
+  ],
+  "rear": [
+   6,
+   3.0
+  ],
+  "mag": [
+   4,
+   17
+  ],
+  "mag_img": [
+   7,
+   18
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "ots33": {
+  "size": [
+   37,
+   24
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 4,
+  "base_row": 23,
+  "base_cols": [
+   4,
+   10
+  ],
+  "base": [
+   7.5,
+   23.5
+  ],
+  "axis": 84.28940686250036,
+  "grip": [
+   6.854838709677419,
+   14.35483870967742
+  ],
+  "front": [
+   16.5,
+   12
+  ],
+  "rear": [
+   6,
+   3.0
+  ],
+  "mag": [
+   4,
+   14
+  ],
+  "mag_img": [
+   7,
+   15
+  ],
+  "split": [
+   1,
+   0
+  ],
+  "skins": {
+   "weapon-cossack": 0,
+   "weapon-default": 1
+  },
+  "body_slot": "body"
+ },
+ "p99": {
+  "size": [
+   27,
+   21
+  ],
+  "slide_top": 0,
+  "slide_bottom": 5,
+  "hammer": 3,
+  "base_row": 20,
+  "base_cols": [
+   2,
+   7
+  ],
+  "base": [
+   5.0,
+   20.5
+  ],
+  "axis": 79.2157021324374,
+  "grip": [
+   4.653061224489796,
+   12.428571428571429
+  ],
+  "front": [
+   11.5,
+   10
+  ],
+  "rear": [
+   5,
+   2.5
+  ],
+  "mag": [
+   3,
+   13
+  ],
+  "mag_img": [
+   6,
+   14
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "pistol": {
+  "size": [
+   35,
+   21
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 4,
+  "base_row": 20,
+  "base_cols": [
+   1,
+   8
+  ],
+  "base": [
+   5.0,
+   20.5
+  ],
+  "axis": 72.18111108547723,
+  "grip": [
+   7.030769230769231,
+   12.830769230769231
+  ],
+  "front": [
+   15.5,
+   11
+  ],
+  "rear": [
+   6,
+   3.0
+  ],
+  "mag": [
+   4,
+   12
+  ],
+  "mag_img": [
+   8,
+   13
+  ],
+  "split": [
+   1,
+   0,
+   2,
+   3
+  ],
+  "skins": {
+   "weapon-apple": 0,
+   "weapon-default": 1,
+   "weapon-opal": 2,
+   "weapon-sand": 3
+  },
+  "body_slot": "body"
+ },
+ "pistol-s": {
+  "size": [
+   50,
+   22
+  ],
+  "slide_top": 1,
+  "slide_bottom": 5,
+  "hammer": 6,
+  "base_row": 21,
+  "base_cols": [
+   2,
+   9
+  ],
+  "base": [
+   6.0,
+   21.5
+  ],
+  "axis": 85.23635830927383,
+  "grip": [
+   6.363636363636363,
+   12.803030303030303
+  ],
+  "front": [
+   16.5,
+   11
+  ],
+  "rear": [
+   8,
+   3.0
+  ],
+  "mag": [
+   4,
+   14
+  ],
+  "mag_img": [
+   8,
+   15
+  ],
+  "split": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-flash": 1,
+   "weapon-garland": 2,
+   "weapon-old": 3,
+   "weapon-soot": 4
+  },
+  "body_slot": "body"
+ },
+ "qsz92": {
+  "size": [
+   36,
+   25
+  ],
+  "slide_top": 1,
+  "slide_bottom": 6,
+  "hammer": 4,
+  "base_row": 24,
+  "base_cols": [
+   0,
+   10
+  ],
+  "base": [
+   5.5,
+   24.5
+  ],
+  "axis": 82.40535663140857,
+  "grip": [
+   6.632352941176471,
+   15.132352941176471
+  ],
+  "front": [
+   13.5,
+   12
+  ],
+  "rear": [
+   6,
+   3.5
+  ],
+  "mag": [
+   6,
+   15
+  ],
+  "mag_img": [
+   11,
+   16
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "sigsauer": {
+  "size": [
+   27,
+   20
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 3,
+  "base_row": 19,
+  "base_cols": [
+   2,
+   8
+  ],
+  "base": [
+   5.5,
+   19.5
+  ],
+  "axis": 90.0,
+  "grip": [
+   5.090909090909091,
+   12.386363636363637
+  ],
+  "front": [
+   8.5,
+   11
+  ],
+  "rear": [
+   5,
+   3.0
+  ],
+  "mag": [
+   4,
+   11
+  ],
+  "mag_img": [
+   7,
+   12
+  ],
+  "split": [
+   0,
+   1
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-reward": 1
+  },
+  "body_slot": "body"
+ },
+ "taurus": {
+  "size": [
+   39,
+   26
+  ],
+  "slide_top": 0,
+  "slide_bottom": 7,
+  "hammer": 5,
+  "base_row": 23,
+  "base_cols": [
+   0,
+   8
+  ],
+  "base": [
+   4.5,
+   23.5
+  ],
+  "axis": 76,
+  "grip": [
+   6.408450704225352,
+   14.929577464788732
+  ],
+  "front": [
+   15.5,
+   13
+  ],
+  "rear": [
+   7,
+   3.5
+  ],
+  "mag": [
+   5,
+   14
+  ],
+  "mag_img": [
+   9,
+   15
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "tt": {
+  "size": [
+   42,
+   28
+  ],
+  "slide_top": 1,
+  "slide_bottom": 7,
+  "hammer": 5,
+  "base_row": 27,
+  "base_cols": [
+   2,
+   11
+  ],
+  "base": [
+   7.0,
+   27.5
+  ],
+  "axis": 80.20015133113236,
+  "grip": [
+   8.974358974358974,
+   16.641025641025642
+  ],
+  "front": [
+   18.5,
+   14
+  ],
+  "rear": [
+   7,
+   4.0
+  ],
+  "mag": [
+   6,
+   17
+  ],
+  "mag_img": [
+   10,
+   18
+  ],
+  "split": [
+   1,
+   0
+  ],
+  "skins": {
+   "weapon-award": 0,
+   "weapon-default": 1
+  },
+  "body_slot": "body"
+ },
+ "usp": {
+  "size": [
+   41,
+   25
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 5,
+  "base_row": 24,
+  "base_cols": [
+   1,
+   10
+  ],
+  "base": [
+   6.0,
+   24.5
+  ],
+  "axis": 79.02434482718745,
+  "grip": [
+   6.702702702702703,
+   14.91891891891892
+  ],
+  "front": [
+   13.5,
+   12
+  ],
+  "rear": [
+   7,
+   3.0
+  ],
+  "mag": [
+   6,
+   15
+  ],
+  "mag_img": [
+   10,
+   16
+  ],
+  "split": [
+   0,
+   1,
+   2
+  ],
+  "skins": {
+   "weapon-default": 0,
+   "weapon-era": 1,
+   "weapon-prewar": 2
+  },
+  "body_slot": "body"
+ },
+ "usp-match": {
+  "size": [
+   46,
+   27
+  ],
+  "slide_top": 1,
+  "slide_bottom": 7,
+  "hammer": 6,
+  "base_row": 26,
+  "base_cols": [
+   4,
+   10
+  ],
+  "base": [
+   7.5,
+   26.5
+  ],
+  "axis": 88.26429541107161,
+  "grip": [
+   5.82258064516129,
+   16.532258064516128
+  ],
+  "front": [
+   11.5,
+   14
+  ],
+  "rear": [
+   8,
+   4.0
+  ],
+  "mag": [
+   4,
+   16
+  ],
+  "mag_img": [
+   7,
+   17
+  ],
+  "split": [
+   1,
+   0,
+   2
+  ],
+  "skins": {
+   "weapon-corporate": 0,
+   "weapon-default": 1,
+   "weapon-malorian": 2
+  },
+  "body_slot": "body"
+ },
+ "vp70": {
+  "size": [
+   37,
+   27
+  ],
+  "slide_top": 0,
+  "slide_bottom": 6,
+  "hammer": 4,
+  "base_row": 26,
+  "base_cols": [
+   5,
+   11
+  ],
+  "base": [
+   8.5,
+   26.5
+  ],
+  "axis": 75.71890426402918,
+  "grip": [
+   8.25,
+   15.960526315789474
+  ],
+  "front": [
+   16.5,
+   13
+  ],
+  "rear": [
+   6,
+   3.0
+  ],
+  "mag": [
+   4,
+   17
+  ],
+  "mag_img": [
+   7,
+   18
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "m93r": {
+  "support": [
+   31.0,
+   17.5
+  ],
+  "support_angle": 115,
+  "size": [
+   42,
+   30
+  ],
+  "slide_top": 2,
+  "slide_bottom": 3,
+  "hammer": 5,
+  "base_row": 29,
+  "base_cols": [
+   1,
+   6
+  ],
+  "base": [
+   4.0,
+   29.5
+  ],
+  "axis": 75.69740410386416,
+  "grip": [
+   5.91044776119403,
+   15.925373134328359
+  ],
+  "front": [
+   11.5,
+   12
+  ],
+  "rear": [
+   7,
+   2.5
+  ],
+  "mag": [
+   3,
+   22
+  ],
+  "mag_img": [
+   6,
+   23
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "luger": {
+  "box": [
+   0,
+   0,
+   15,
+   4
+  ],
+  "pivot": [
+   15.5,
+   4.5
+  ],
+  "size": [
+   39,
+   23
+  ],
+  "slide_top": 1,
+  "slide_bottom": 4,
+  "hammer": 5,
+  "base_row": 22,
+  "base_cols": [
+   2,
+   5
+  ],
+  "base": [
+   4.0,
+   22.5
+  ],
+  "axis": 62.74467162505693,
+  "grip": [
+   6.887096774193548,
+   12.741935483870968
+  ],
+  "front": [
+   15.5,
+   10
+  ],
+  "rear": [
+   7,
+   2.5
+  ],
+  "mag": [
+   3,
+   15
+  ],
+  "mag_img": [
+   5,
+   16
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ },
+ "mauser": {
+  "box": [
+   2,
+   0,
+   13,
+   2
+  ],
+  "fixed_mag": true,
+  "size": [
+   39,
+   21
+  ],
+  "slide_top": 0,
+  "slide_bottom": 2,
+  "hammer": 5,
+  "base_row": 20,
+  "base_cols": [
+   1,
+   3
+  ],
+  "base": [
+   2.5,
+   20.5
+  ],
+  "axis": 72.82409638425325,
+  "grip": [
+   4.829268292682927,
+   10.707317073170731
+  ],
+  "front": [
+   10.5,
+   8
+  ],
+  "rear": [
+   7,
+   1.0
+  ],
+  "mag": [
+   3,
+   15
+  ],
+  "mag_img": [
+   6,
+   11
+  ],
+  "split": [
+   0
+  ],
+  "skins": {
+   "weapon-default": 0
+  },
+  "body_slot": "body"
+ }
+}

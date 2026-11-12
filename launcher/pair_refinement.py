@@ -112,6 +112,12 @@ def refine(z,c,actor,changes):
         for part in c[item]["components"]:
             if part.get("class","").endswith(".IconComponent"):
                 part.update(icon="restored-"+name,**{"big-icon":"restored-"+name})
+    # the Akimbo perk gets an icon in the style of the other perks
+    # (textures/ICONS/icon-shop-special-akimbo.png, tools/weapon-art/akimbo_perk_icon.py)
+    for part in c["sl-pl-akimbo"]["components"]:
+        if part.get("class","").endswith(".IconComponent"):
+            part.pop("big-icon",None)
+            part["icon"]="icon-shop-special-akimbo"
     clips=actor["animations"]
     for key,item in list(c.items()):
         if item.get("slot")!="slot-secondary" or not key.startswith("sl-sec-"):continue

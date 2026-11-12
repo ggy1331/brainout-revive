@@ -88,3 +88,6 @@ __pycache__/
 connect-online-last.txt
 solo-data/
 client-solo.*
+
+# Portable radio executables are assembled locally, never committed.
+tools/mock-backend/radio-tools/

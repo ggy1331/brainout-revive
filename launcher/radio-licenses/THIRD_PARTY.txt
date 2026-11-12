@@ -1,0 +1,14 @@
+Separate portable executables used by BrainOut radio; unmodified binaries.
+FFmpeg 9.0.2 full build by Gyan, GPL v3. License and exact build information included.
+Build/download: https://www.gyan.dev/ffmpeg/builds/
+Corresponding FFmpeg source revision: https://github.com/FFmpeg/FFmpeg/commit/946fcce07b
+
+Node.js v24.22.1. MIT and bundled third-party licenses: Node-LICENSE.txt.
+Source: https://github.com/nodejs/node/tree/v24.22.1
+
+yt-dlp 2026.10.26. Source project: Unlicense; the standalone executable bundles
+additional components under their respective licenses (including GPLv3+).
+Source and binary license details: https://github.com/yt-dlp/yt-dlp/tree/2026.10.26
+Release: https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.26
+
+The game source retains its original MIT license in LICENSE.txt.

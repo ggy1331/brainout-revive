@@ -10,6 +10,7 @@ import com.desertkun.brainout.BrainOutServer;
 import com.desertkun.brainout.Constants;
 import com.desertkun.brainout.client.Client;
 import com.desertkun.brainout.client.PlayerClient;
+import com.desertkun.brainout.client.TrainingDummyClient;
 import com.desertkun.brainout.common.enums.NotifyAward;
 import com.desertkun.brainout.common.enums.NotifyMethod;
 import com.desertkun.brainout.common.enums.NotifyReason;
@@ -18,6 +19,7 @@ import com.desertkun.brainout.common.msg.server.ShootingRangeHitMsg;
 import com.desertkun.brainout.common.msg.server.ShootingRangeStartedMsg;
 import com.desertkun.brainout.common.msg.server.ShootingRangeWarmupMsg;
 import com.desertkun.brainout.components.PlayerOwnerComponent;
+import com.desertkun.brainout.content.Content;
 import com.desertkun.brainout.content.Layout;
 import com.desertkun.brainout.content.Team;
 import com.desertkun.brainout.content.active.ShootingRange;
@@ -197,6 +199,14 @@ public class ServerLobbyRealization extends ServerRealization<GameModeLobby> imp
                 if (sp == null)
                     continue;
 
+                // revive: in the hub map every spawner has an empty group, so no group matched the
+                // timers and the targets never came up. Take the group of the nearest shooting
+                // range stand in the same dimension (its practice counts hits by that group).
+                if (sp.getTargetGroup() == null || sp.getTargetGroup().isEmpty())
+                {
+                    sp.setTargetGroup(nearestRangeGroup(map, activeData));
+                }
+
                 TargetGroup tg = targetGroups.get(sp.getTargetGroup());
 
                 if (tg == null)
@@ -226,10 +236,39 @@ public class ServerLobbyRealization extends ServerRealization<GameModeLobby> imp
 
     private void setupTargets()
     {
-        setupTarget("primary", 2000, 1200);
-        setupTarget("secondary", 2000, 1000);
-        setupTarget("sniper", 1500, 1500);
-        setupTarget("base", 1500, 2000);
+        // the original timings for the known groups, a default one for any other group
+        for (ObjectMap.Entry<String, TargetGroup> group : targetGroups)
+        {
+            switch (group.key)
+            {
+                case "primary": setupTarget("primary", 2000, 1200); break;
+                case "secondary": setupTarget("secondary", 2000, 1000); break;
+                case "sniper": setupTarget("sniper", 1500, 1500); break;
+                case "base": setupTarget("base", 1500, 2000); break;
+                default: setupTarget(group.key, 1500, 1500); break;
+            }
+        }
+    }
+
+    private static String nearestRangeGroup(Map map, ActiveData spawner)
+    {
+        String best = map.getDimension();
+        float bestDist = Float.MAX_VALUE;
+
+        for (ActiveData range : map.getActivesForTag(Constants.ActiveTags.SHOOTING_RANGE, false))
+        {
+            if (!(range.getContent() instanceof ShootingRange))
+                continue;
+
+            float d = Vector2.dst2(range.getX(), range.getY(), spawner.getX(), spawner.getY());
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = ((ShootingRange) range.getContent()).getGroup();
+            }
+        }
+
+        return best;
     }
 
     private void spawnTargets(String name)
@@ -324,6 +363,10 @@ public class ServerLobbyRealization extends ServerRealization<GameModeLobby> imp
     @Override
     public void onClientDeath(Client client, Client killer, PlayerData playerData, InstrumentInfo info)
     {
+        // a training dummy comes back on its own spot (TrainingDummyClient), not at a spawn point
+        if (client instanceof TrainingDummyClient)
+            return;
+
         if (client instanceof PlayerClient)
         {
             PlayerClient playerClient = ((PlayerClient) client);
@@ -389,6 +432,16 @@ public class ServerLobbyRealization extends ServerRealization<GameModeLobby> imp
         if (poc == null || pcc == null || pac == null)
             return;
 
+        // A perk is the player type itself (e.g. player-fast for the tactical sprint): it is
+        // fixed when the player is created, so changing it needs a new player. In the hub we
+        // recreate the player right where it stands, so a new perk works at once.
+        com.desertkun.brainout.content.active.Player wanted = playerClient.getShopCart().getPlayer();
+        if (wanted != null && wanted != playerData.getPlayer())
+        {
+            respawnInPlace(playerClient, playerData);
+            return;
+        }
+
         ConsumableContainer cc = poc.getConsumableContainer();
         cc.clear();
 
@@ -415,13 +468,127 @@ public class ServerLobbyRealization extends ServerRealization<GameModeLobby> imp
                 PlayerSkinSlotItem.PlayerSkinSlotSelection skin =
                         ((PlayerSkinSlotItem.PlayerSkinSlotSelection) selection);
 
-                pac.setSkin(skin.getItem().getSkin());
+                skin.applySkin(pac, playerClient.getProfile());
             }
         }
 
         pcc.consumablesUpdated();
         pcc.selectFirstInstrument(poc);
         pac.updated(playerData);
+
+        playerClient.getProfile().setDirty();
+        playerClient.sendUserProfile();
+    }
+
+    // --- training dummies ---------------------------------------------------------------------
+
+    private static final int MAX_TRAINING_DUMMIES = 10;
+
+    /** Players are teammates in the hub; only training dummies can be hit. */
+    @Override
+    public boolean isEnemies(Client a, Client b)
+    {
+        // a player and a dummy only: dummies never fight each other
+        return (a instanceof TrainingDummyClient) != (b instanceof TrainingDummyClient);
+    }
+
+    /** Place a dummy where the player stands, with the player's current loadout, facing the same way. */
+    public void placeTrainingDummy(PlayerClient playerClient)
+    {
+        PlayerData playerData = playerClient.getPlayerData();
+        if (playerData == null || playerData.getMap() == null)
+            return;
+
+        int count = 0;
+        for (ObjectMap.Entry<Integer, Client> entry : new ObjectMap.Entries<>(BrainOutServer.Controller.getClients()))
+        {
+            if (entry.value instanceof TrainingDummyClient)
+                count++;
+        }
+        if (count >= MAX_TRAINING_DUMMIES)
+            return;
+
+        float angle = playerData.getAngle();
+        boolean faceRight = Math.cos(Math.toRadians(angle)) >= 0;
+
+        TrainingDummyClient dummy = BrainOutServer.Controller.getClients().newTrainingDummy(
+            playerClient.getTeam(), playerClient, playerData.getX(), playerData.getY(),
+            playerData.getDimension(), faceRight);
+
+        dummy.init();
+        dummy.spawnNow();
+        playerClient.log("Placed a training dummy " + dummy.getId());
+    }
+
+    /** Remove the training dummy nearest to the player. */
+    public void removeTrainingDummy(PlayerClient playerClient)
+    {
+        PlayerData playerData = playerClient.getPlayerData();
+        TrainingDummyClient nearest = null;
+        float best = Float.MAX_VALUE;
+
+        for (ObjectMap.Entry<Integer, Client> entry : new ObjectMap.Entries<>(BrainOutServer.Controller.getClients()))
+        {
+            if (!(entry.value instanceof TrainingDummyClient))
+                continue;
+
+            TrainingDummyClient dummy = ((TrainingDummyClient) entry.value);
+            PlayerData body = dummy.getPlayerData();
+            float d = (playerData == null || body == null) ? Float.MAX_VALUE - 1 :
+                Vector2.dst2(body.getX(), body.getY(), playerData.getX(), playerData.getY());
+
+            if (nearest == null || d < best)
+            {
+                nearest = dummy;
+                best = d;
+            }
+        }
+
+        if (nearest == null)
+            return;
+
+        if (nearest.isAlive())
+            nearest.kill(false, false);
+
+        BrainOutServer.Controller.getClients().releaseClient(nearest);
+        playerClient.log("Removed a training dummy " + nearest.getId());
+    }
+
+    private void respawnInPlace(PlayerClient playerClient, PlayerData playerData)
+    {
+        final float x = playerData.getX(), y = playerData.getY();
+        final String dimension = playerData.getDimension();
+        final Team team = playerClient.getTeam();
+
+        Spawnable here = new Spawnable()
+        {
+            @Override public float getSpawnX() { return x; }
+            @Override public float getSpawnY() { return y; }
+            @Override public Team getTeam() { return team; }
+            @Override public float getSpawnRange() { return 0; }
+            @Override public String getDimension() { return dimension; }
+            @Override public boolean canSpawn(Team teamFor) { return true; }
+            @Override public com.desertkun.brainout.content.SpawnTarget getTarget()
+            {
+                return com.desertkun.brainout.content.SpawnTarget.normal;
+            }
+        };
+
+        // Remove the old body directly instead of kill(): kill() sends a delayed DestroyEvent that
+        // runs after the new player is created — it then unbinds the NEW player from the client
+        // (leaving a clone on the map) and counts a death, which makes the hub respawn us at a
+        // random spawn point. Here: no death, no ragdoll, no drop; clients just get "removed".
+        Map map = playerData.getMap();
+        playerClient.clearPlayerData();
+        if (map != null)
+        {
+            map.removeActive(playerData, true, true, false);
+        }
+
+        Spawnable previous = playerClient.getSpawnAt();
+        playerClient.setSpawnAt(here);
+        playerClient.doSpawn();
+        playerClient.setSpawnAt(previous);
 
         playerClient.getProfile().setDirty();
         playerClient.sendUserProfile();
@@ -489,6 +656,39 @@ public class ServerLobbyRealization extends ServerRealization<GameModeLobby> imp
         }
 
         return super.onEvent(event);
+    }
+
+    private ShootingRange findShootingRange(String key)
+    {
+        Content content = BrainOutServer.ContentMgr.get(key);
+        return content instanceof ShootingRange ? ((ShootingRange) content) : null;
+    }
+
+    public boolean hasShootingRangePreset(String key, String preset)
+    {
+        ShootingRange range = findShootingRange(key);
+        return range != null && preset != null && range.hasWeapon(preset);
+    }
+
+    /** The preset for the weapon in the player's hands, or a random preset of this range. */
+    public String pickShootingRangePreset(PlayerClient playerClient, String key)
+    {
+        ShootingRange range = findShootingRange(key);
+        if (range == null || range.getWeapons().size == 0)
+            return null;
+
+        PlayerData playerData = playerClient.getPlayerData();
+        InstrumentData held = playerData != null ? playerData.getCurrentInstrument() : null;
+
+        Array<String> keys = new Array<>();
+        for (ObjectMap.Entry<String, ShootingRange.WeaponPreset> entry : range.getWeapons())
+        {
+            keys.add(entry.key);
+            if (held != null && entry.value.info.instrument == held.getInstrument())
+                return entry.key;
+        }
+
+        return keys.random();
     }
 
     public boolean startShootingRange(PlayerClient playerClient, String key, String weapon)

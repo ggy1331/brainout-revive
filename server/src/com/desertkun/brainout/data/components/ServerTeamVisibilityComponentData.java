@@ -155,7 +155,15 @@ public class ServerTeamVisibilityComponentData extends VisibilityComponentData<S
         if (map == null)
             return VisibilityResult.invisible;
 
-        boolean bot = BrainOutServer.Controller.getClients().get(currentPlayerData.getOwnerId()) instanceof BotClient;
+        Client ownerClient = BrainOutServer.Controller.getClients().get(currentPlayerData.getOwnerId());
+        boolean bot = ownerClient instanceof BotClient;
+
+        // hub training dummies are "enemies" only so that they can be hit: everybody sees them
+        if (ownerClient instanceof com.desertkun.brainout.client.TrainingDummyClient &&
+            toPlayerDimensionMatches(toClient, currentPlayerData))
+        {
+            return VisibilityResult.direct;
+        }
 
         ChunkData chunkData = map.getChunkAt((int)currentPlayerData.getX(), (int)currentPlayerData.getY());
         if (chunkData != null && chunkData.hasFlag(ChunkData.ChunkFlag.hideOthers))
@@ -269,6 +277,35 @@ public class ServerTeamVisibilityComponentData extends VisibilityComponentData<S
         }
 
         return VisibilityResult.invisible;
+    }
+
+    /**
+     * Re-send "visible" to every player. The first visibility message of a freshly spawned
+     * active can reach a client before the active itself and gets dropped; a training dummy
+     * never changes its visibility afterwards, so without this it stayed invisible.
+     */
+    public void resendVisible()
+    {
+        ActiveData current = ((ActiveData) getComponentObject());
+        if (current.getMap() == null)
+            return;
+
+        // own iterator: this runs from a dummy's update, inside the server's loop over the clients
+        for (ObjectMap.Entry<Integer, Client> entry : new ObjectMap.Entries<>(BrainOutServer.Controller.getClients()))
+        {
+            if (!(entry.value instanceof PlayerClient) || entry.value.getId() == current.getOwnerId())
+                continue;
+            if (!toPlayerDimensionMatches(entry.value, current))
+                continue;
+
+            ((PlayerClient) entry.value).sendTCP(generateVisibilityMessage(current, true));
+        }
+    }
+
+    private static boolean toPlayerDimensionMatches(Client toClient, ActiveData current)
+    {
+        PlayerData to = toClient.getPlayerData();
+        return to == null || to.getDimension().equals(current.getDimension());
     }
 
     private ServerActiveVisibilityMsg generateVisibilityMessage(ActiveData activeData, boolean visible)

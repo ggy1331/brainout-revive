@@ -82,10 +82,16 @@ public abstract class ServerRealization<G extends GameMode> extends GameModeReal
 
         if (getGameMode().hasWarmUp())
         {
-            getGameMode().setTimer(45, this::warmUpComplete);
+            getGameMode().setTimer(warmUpTime(), this::warmUpComplete);
             startWarmup();
             BrainOutServer.PostRunnable(this::updated);
         }
+    }
+
+    /** Seconds of warm-up before the match starts. */
+    protected float warmUpTime()
+    {
+        return 45;
     }
 
     private void startWarmup()

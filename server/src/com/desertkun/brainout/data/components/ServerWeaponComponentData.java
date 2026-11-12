@@ -531,6 +531,12 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
             }
             cylinderCount = 0;
 
+            if (!full && weaponData.getWeapon().isPaired() && weaponProperties.hasChambering() &&
+                getRounds() + getChambered() >= clipSize.asInt())
+            {
+                return false;   // akimbo: magazine + chamber already make a full clip
+            }
+
             if (loadTime)
             {
                 state = State.reloading;
@@ -568,8 +574,17 @@ public class ServerWeaponComponentData extends Component<ServerWeaponComponent> 
                         unload(playerOwnerComponent, false);
                     }
 
+                    // akimbo pistols: the round in the chamber counts toward the clip size, so a
+                    // reload never gives "+1 in the chamber"; the chamber only matters for the
+                    // rack after an empty magazine
+                    int want = clipSize.asInt();
+                    if (weaponData.getWeapon().isPaired() && weaponProperties.hasChambering())
+                    {
+                        want = Math.max(0, want - getChambered());
+                    }
+
                     ConsumableContainer.AcquiredConsumables b =
-                        playerOwnerComponent.getAmmo(clipSize.asInt(), getBullet());
+                        playerOwnerComponent.getAmmo(want, getBullet());
                     reloadBuffer = b.amount;
                     reloadBufferQuality = b.quality;
 

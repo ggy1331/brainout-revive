@@ -125,17 +125,20 @@ public class MyWeaponComponent extends Component
                     {
                         case beginLaunch: current.beginLaunching(); return true;
                         case endLaunch: current.endLaunching(); return true;
+                        // paired pistols: RMB still fires the second pistol (no high-stance aiming)
+                        case beginAimHold:
                         case beginLaunchSecondary: right.beginLaunching(); return true;
+                        case endAimHold:
                         case endLaunchSecondary: right.endLaunching(); return true;
                         case reload:
                             if (right.isReloadingOrChambering()) return true;
                             if (current.isReloadingOrChambering())
                             {
-                                reloadRightAfterLeft = right.getRounds() < right.getClipSize().asInt();
+                                reloadRightAfterLeft = right.getLoadedRounds() < right.getClipSize().asInt();
                                 return true;
                             }
-                            boolean rightNeedsAmmo = right.getRounds() < right.getClipSize().asInt();
-                            if (current.getRounds() < current.getClipSize().asInt() && current.doReload(true))
+                            boolean rightNeedsAmmo = right.getLoadedRounds() < right.getClipSize().asInt();
+                            if (current.getLoadedRounds() < current.getClipSize().asInt() && current.doReload(true))
                                 reloadRightAfterLeft = rightNeedsAmmo;
                             else if (rightNeedsAmmo)
                                 right.doReload(true);
@@ -351,7 +354,7 @@ public class MyWeaponComponent extends Component
             if (reloadRightAfterLeft && !currentSlot.isReloadingOrChambering())
             {
                 reloadRightAfterLeft = false;
-                if (right.getRounds() < right.getClipSize().asInt()) right.doReload(true);
+                if (right.getLoadedRounds() < right.getClipSize().asInt()) right.doReload(true);
             }
         }
     }

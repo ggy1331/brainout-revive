@@ -15,6 +15,8 @@ public class Greenlight
 {
     public static boolean show()
     {
+        // revive: no "the game is out on Steam" popup in the hub
+        if (true) return false;
         if (!checkGreenlight())
             return false;
 

@@ -68,6 +68,113 @@ public class BotControllerComponentData extends ServerPlayerControllerComponentD
     private float vStuckCounter;
     private float recentTimer;
 
+    // revive: bot senses. A target has to stay in sight for a human-like reaction time before the
+    // bot fires, and its aim starts wide and settles; jumps only when the path needs one (the
+    // movement punishes jumping again right after landing); a duck behind low cover to reload.
+    private static final float BOT_HOP_WAIT = 0.3f;
+    private ActiveData seenTarget;
+    private long seenAt, lastSeenAt;
+    private float reaction;
+    private float groundedFor, jumpPress;
+    private boolean ducking;
+    private long lastGrenadeAt;
+
+    /** The target is in sight right now (called by the visibility check). */
+    public void sawTarget(ActiveData target)
+    {
+        long now = System.currentTimeMillis();
+        if (target != seenTarget || now - lastSeenAt > 400)
+        {
+            seenTarget = target;
+            seenAt = now;
+            reaction = com.badlogic.gdx.math.MathUtils.random(0.28f, 0.55f);
+        }
+        lastSeenAt = now;
+    }
+
+    /** How long the target has been in sight without a break (seconds). */
+    public float sightTime(ActiveData target)
+    {
+        if (target != seenTarget) return 0;
+        return (System.currentTimeMillis() - seenAt) / 1000f;
+    }
+
+    /** Seconds since the target was last in sight (a large number if never). */
+    public float sinceSeen(ActiveData target)
+    {
+        if (target != seenTarget) return 999;
+        return (System.currentTimeMillis() - lastSeenAt) / 1000f;
+    }
+
+    /** Past the reaction time: the bot may pull the trigger. */
+    public boolean reacted(ActiveData target)
+    {
+        return target == seenTarget && sightTime(target) >= reaction;
+    }
+
+    /** Aim spread multiplier: wide when the target has just appeared, settles in ~0.9 s. */
+    public float aimSpread(ActiveData target)
+    {
+        return 1f + 2.5f * Math.max(0f, 1f - sightTime(target) / 0.9f);
+    }
+
+    public boolean canThrowGrenade()
+    {
+        return System.currentTimeMillis() - lastGrenadeAt > 12000 && findGrenade() != null;
+    }
+
+    private ConsumableRecord findGrenade()
+    {
+        PlayerData playerData = getPlayerData();
+        if (playerData == null) return null;
+        PlayerOwnerComponent poc = playerData.getComponent(PlayerOwnerComponent.class);
+        if (poc == null) return null;
+        for (ConsumableRecord record : poc.getConsumableContainer().getData().values())
+        {
+            if (record.getAmount() > 0 && record.getItem() instanceof InstrumentConsumableItem &&
+                ((InstrumentConsumableItem) record.getItem()).getInstrumentData()
+                    instanceof com.desertkun.brainout.data.instrument.GrenadeData)
+                return record;
+        }
+        return null;
+    }
+
+    /** Lob a grenade towards (x, y): selected, cooked and thrown the way a player's would be. */
+    public boolean throwGrenadeAt(float x, float y)
+    {
+        PlayerData playerData = getPlayerData();
+        ConsumableRecord record = findGrenade();
+        if (playerData == null || record == null) return false;
+        PlayerOwnerComponent poc = playerData.getComponent(PlayerOwnerComponent.class);
+        com.desertkun.brainout.components.PlayerRemoteComponent remote =
+            playerData.getComponent(com.desertkun.brainout.components.PlayerRemoteComponent.class);
+        InstrumentData instrument = ((InstrumentConsumableItem) record.getItem()).getInstrumentData();
+        instrumentSelected(record);
+        changeInstrument(record.getId());
+        if (remote != null) remote.setCurrentInstrument(instrument);
+        playerData.setCurrentInstrument(instrument);
+        ServerGrenadeComponentData tc = instrument.getComponent(ServerGrenadeComponentData.class);
+        com.desertkun.brainout.content.active.ThrowableActive active =
+            ((com.desertkun.brainout.data.instrument.GrenadeData) instrument).getThrowActive();
+        if (tc != null && active != null)
+        {
+            com.desertkun.brainout.content.components.TimeToLiveComponent ttl =
+                active.getComponent(com.desertkun.brainout.content.components.TimeToLiveComponent.class);
+            tc.cook(ttl != null ? ttl.getTime() : 3f);
+        }
+        float fromX = playerData.getX(), fromY = playerData.getY() + 1f;
+        float dx = x - fromX, dy = y - fromY;
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+        // a lob: the farther, the higher, never straight at the wall in front
+        float base = com.badlogic.gdx.math.MathUtils.atan2(dy, dx) * com.badlogic.gdx.math.MathUtils.radiansToDegrees;
+        float lift = com.badlogic.gdx.math.MathUtils.clamp(14f + distance * 1.4f, 18f, 52f);
+        float angle = dx >= 0 ? base + lift : base - lift;
+        playerData.setAngle(angle);
+        boolean done = launchThrowable(record, fromX, fromY, angle);
+        if (done) lastGrenadeAt = System.currentTimeMillis();
+        return done;
+    }
+
     public interface GotBlocksInWayCallback
     {
         void got(Queue<WayPointMap.BlockCoordinates> blocks);
@@ -141,8 +248,71 @@ public class BotControllerComponentData extends ServerPlayerControllerComponentD
             }
         }
 
+        SimplePhysicsComponentData body = getComponentObject().getComponentWithSubclass(SimplePhysicsComponentData.class);
+        if (body != null && body.hasContact(SimplePhysicsComponentData.Contact.bottom)) groundedFor += dt;
+        else groundedFor = 0;
+        jumpPress = Math.max(0, jumpPress - dt);
+
         updateFollow(dt);
         stack.update(dt);
+        updateDuck();
+
+        if (DEBUG)
+        {
+            debugTimer += dt;
+            PlayerData pd = getPlayerData();
+            if (debugTimer > 5 && pd != null)
+            {
+                debugTimer = 0;
+                com.esotericsoftware.minlog.Log.info("bot " + pd.getOwnerId() + " at " + (int) pd.getX() + "," +
+                    (int) pd.getY() + " task " + (stack.isEmpty() ? "-" : stack.toString()) +
+                    " following " + (followTarget != null) + " stuck " + vStuckCounter);
+            }
+        }
+    }
+
+    // BRAINOUT_BOT_DEBUG=1: every bot logs where it is every 5 s (to see they leave the spawn)
+    private static final boolean DEBUG = System.getenv("BRAINOUT_BOT_DEBUG") != null;
+    private float debugTimer;
+
+    /** Reloading with an enemy around: crouch if there is a low wall between us. */
+    private void updateDuck()
+    {
+        PlayerData playerData = getPlayerData();
+        if (playerData == null) return;
+        boolean reloading = false;
+        WeaponData weapon = getCurrentWeapon();
+        if (weapon != null)
+        {
+            ServerBotWeaponComponent sw = weapon.getComponent(ServerBotWeaponComponent.class);
+            WeaponSlotComponent slot = sw == null ? null : sw.getSlot(Constants.Properties.SLOT_PRIMARY);
+            reloading = slot != null && slot.isReloadingOrChambering();
+        }
+        boolean threat = seenTarget != null && seenTarget.isAlive() && sinceSeen(seenTarget) < 2.5f;
+        boolean cover = false;
+        if (reloading && threat && followTarget == null)
+        {
+            Map map = getMap();
+            float dir = Math.signum(seenTarget.getX() - playerData.getX());
+            for (float step = 0.8f; step <= 2.2f && !cover; step += 0.7f)
+            {
+                BlockData low = map.getBlockAt(playerData.getX() + dir * step, playerData.getY() - 0.4f,
+                    Constants.Layers.BLOCK_LAYER_FOREGROUND);
+                BlockData high = map.getBlockAt(playerData.getX() + dir * step, playerData.getY() + 1.2f,
+                    Constants.Layers.BLOCK_LAYER_FOREGROUND);
+                cover = low != null && low.isConcrete() && (high == null || !high.isConcrete());
+            }
+        }
+        if (cover && !ducking)
+        {
+            ducking = true;
+            setState(Player.State.sit);
+        }
+        else if (!cover && ducking)
+        {
+            ducking = false;
+            setState(Player.State.normal);
+        }
     }
 
     @Override
@@ -713,18 +883,35 @@ public class BotControllerComponentData extends ServerPlayerControllerComponentD
                     yCoef = 0.25f;
                 }
 
-                if (jump)
+                if (phy != null && phy.hasFixture())
                 {
-                    moveDirectionY = 1.0f;
+                    // on a ladder: climb towards the point
+                    moveDirectionY = Math.abs(diffY) > 0.25f ? Math.signum(diffY) : 0;
                 }
                 else
                 {
-                    moveDirectionY = Math.abs(diffY) > yCoef ? Math.signum(diffY) : 0;
-                }
-
-                if (forceUp)
-                {
-                    moveDirectionY = Math.signum(followPath.last().y - playerData.getY());
+                    // "up" on the ground is a jump: only for a gap, a wall in the way or a step
+                    // that is really higher, and not again right after landing (the movement
+                    // slows down repeated jumps - bots used to hop in place)
+                    // an obstacle right in front of the feet (a crate, a step) needs a jump even
+                    // when the next path point is on top of it (then it is barely "higher")
+                    boolean wallAhead = false;
+                    if (phy != null && moveDirectionX != 0)
+                    {
+                        float ahead = playerData.getX() + moveDirectionX * (phy.getHalfSize().x + 0.45f);
+                        float feet = playerData.getY() - phy.getHalfSize().y + 0.5f;
+                        BlockData low = map.getBlockAt(ahead, feet, Constants.Layers.BLOCK_LAYER_FOREGROUND);
+                        wallAhead = low != null && low.isConcrete();
+                    }
+                    boolean stuck = vStuckCounter > 0.25f;
+                    boolean needUp = jump || forceUp || stuck || wallAhead ||
+                        (diffY > 0.9f && Math.abs(diffX) < 3.5f);
+                    // wait out the landing (repeated jumps are slowed down) unless really stuck
+                    boolean rested = groundedFor >= BOT_HOP_WAIT || vStuckCounter > 0.8f;
+                    if (needUp && jumpPress <= 0 && rested) jumpPress = 0.15f;
+                    if (jumpPress > 0) moveDirectionY = 1.0f;
+                    else if (diffY < -yCoef && !needUp) moveDirectionY = -1.0f;
+                    else moveDirectionY = 0;
                 }
 
                 boolean canRun = followTarget != null &&
@@ -932,7 +1119,31 @@ public class BotControllerComponentData extends ServerPlayerControllerComponentD
             return false;
 
         float halfHeight = phy.getHalfSize().y;
+        // revive: the muzzle can poke through a wall the bot is leaning on - the eyes must see too
+        SimplePhysicsComponentData me = playerData.getComponentWithSubclass(SimplePhysicsComponentData.class);
+        float eyeX = playerData.getX(), eyeY = playerData.getY() + (me != null ? me.getHalfSize().y * 0.6f : 0.8f);
+        boolean seen = seesPoint(map, launch, eyeX, eyeY, target.getX(), target.getY(), maximumDistance, out) ||
+            seesPoint(map, launch, eyeX, eyeY, target.getX(), target.getY() + halfHeight, maximumDistance, out) ||
+            seesPoint(map, launch, eyeX, eyeY, target.getX(), target.getY() - halfHeight, maximumDistance, out);
+        if (seen && out != null) sawTarget(target);
+        return seen;
+    }
 
+    private boolean seesPoint(Map map, BonePointData launch, float eyeX, float eyeY, float x, float y,
+                              float maximumDistance, VisibilityCheckOutput out)
+    {
+        tmp.set(x, y).sub(launch.getX(), launch.getY());
+        if (tmp.len2() > maximumDistance * maximumDistance) return false;
+        if (map.rayCast(launch.getX(), launch.getY(), x, y)) return false;
+        if (map.rayCast(eyeX, eyeY, x, y)) return false;
+        if (out != null) out.angle = tmp.angleDeg();
+        return true;
+    }
+
+    @SuppressWarnings("unused")
+    private boolean oldCheckVisibility(Map map, BonePointData launch, ActiveData target, float halfHeight,
+                                       float maximumDistance, VisibilityCheckOutput out)
+    {
         // check center of the body fist
 
         {

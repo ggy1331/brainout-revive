@@ -421,6 +421,7 @@ public class Types
             ActiveLayer.class, Weapon.ShootMode.class,
 
             UpdateGlobalContentIndex.class, SpawnActionMsg.class, RemoveLoadoutMsg.class,
+            TrainingDummyMsg.class,
         });
     }
 }

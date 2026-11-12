@@ -1957,9 +1957,16 @@ public class PlayerHandlers implements Disposable
             }
         }
 
-        if (!hasEvent)
+        if (!hasEvent || !lobby.hasShootingRangePreset(key, weapon))
         {
-            request.error(id, "No event");
+            // no online shooting-range event (the official event service is gone): the weapon in
+            // the hands if this range has it, otherwise a random one from the range
+            weapon = lobby.pickShootingRangePreset(playerClient, key);
+        }
+
+        if (weapon == null)
+        {
+            request.error(id, "No weapon");
             return;
         }
 

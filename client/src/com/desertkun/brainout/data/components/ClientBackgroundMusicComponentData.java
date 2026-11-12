@@ -102,6 +102,7 @@ public class ClientBackgroundMusicComponentData extends Component<ClientBackgrou
 
     protected void play()
     {
+        if (com.desertkun.brainout.menu.impl.HubRadio.replacesBackground()) { stop(); return; }
         if (music.isPlaying())
             return;
 

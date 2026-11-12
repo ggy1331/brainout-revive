@@ -292,6 +292,34 @@ public class ServerZombieRealization extends ServerRealization<GameModeZombie<Se
         map.setCustom("ambient-light", "0.2");
     }
 
+    // The base mode starts the warm-up only with 2+ clients (bots count). A zombie room from the
+    // hub has no bots, so one player waited forever on an empty map: here one live player is
+    // enough, and the warm-up is short (the first wave still comes after wavePause).
+    @Override
+    public void checkWarmUp()
+    {
+        if (getGameMode().getPhase() != GameMode.Phase.none)
+            return;
+
+        if (!BrainOutServer.getInstance().isAutoStart())
+            return;
+
+        for (Client client : BrainOutServer.Controller.getClients().values())
+        {
+            if (client instanceof PlayerClient)
+            {
+                warmUp();
+                return;
+            }
+        }
+    }
+
+    @Override
+    protected float warmUpTime()
+    {
+        return 10;
+    }
+
     @Override
     protected void warmUpComplete()
     {

@@ -29,6 +29,11 @@ class HomeHTTPServer(ThreadingHTTPServer):
 
 
 def run():
+    # A running JVM must never have its open jar overwritten. Apply a staged radio
+    # upgrade before starting the next client, after the previous launcher exited.
+    pending = ROOT / "client" / "brainout-desktop.jar.radio-update"
+    if pending.exists():
+        pending.replace(ROOT / "client" / "brainout-desktop.jar")
     logs = ROOT / "logs"
     logs.mkdir(exist_ok=True)
     logging.basicConfig(filename=logs / "hub.log", filemode="w", level=logging.INFO)

@@ -224,6 +224,8 @@ public class ShopCart
             if (s != null)
             {
                 if ("sl-pl-sc-clip".equals(s)) s = "sl-pl-clip";
+                // the M98k sawn-off is no longer a sidearm: it is a conversion of the rifle now
+                if ("sl-sec-m98kobrez".equals(s) || "sl-pair-m98kobrez".equals(s)) continue;
                 // Translate saved standalone variants the first time an old loadout opens.
                 if ("sl-pri-mosinobrez".equals(s) || s.startsWith("sl-spc-electro-guitar"))
                 {
@@ -241,7 +243,7 @@ public class ShopCart
                     continue;
 
                 SlotItem.Selection selection = static_ ? slotItem.getStaticSelection() : slotItem.getSelection();
-                selection.init(userProfile);
+                selection.init(userProfile, key);
                 selectItem(slot, selection);
             }
         }

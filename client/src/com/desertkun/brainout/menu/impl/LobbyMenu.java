@@ -1044,10 +1044,25 @@ public class LobbyMenu extends PlayerSelectionMenu
                 });
 
                 buttons.add(blogButton).expandY().bottom().size(64, 64).padLeft(12).left();
+
+                // training dummies (also keys J / K in the hub, see KeyboardController): square icon
+                // buttons like chat / GitHub, icons from tools/weapon-art/hub_icons.py
+                TextButton place = iconButton("icon-dummy-add", "Поставить манекен (J)", () ->
+                    BrainOutClient.ClientController.sendTCP(new com.desertkun.brainout.common.msg.client.TrainingDummyMsg(
+                        com.desertkun.brainout.common.msg.client.TrainingDummyMsg.PLACE)));
+                if (place != null) buttons.add(place).expandY().bottom().size(64, 64).padLeft(12).left();
+                TextButton remove = iconButton("icon-dummy-remove", "Убрать манекен (K)", () ->
+                    BrainOutClient.ClientController.sendTCP(new com.desertkun.brainout.common.msg.client.TrainingDummyMsg(
+                        com.desertkun.brainout.common.msg.client.TrainingDummyMsg.REMOVE)));
+                if (remove != null) buttons.add(remove).expandY().bottom().size(64, 64).padLeft(12).left();
                 if (System.getenv("BRAINOUT_HUB_NEXT") != null)
                 {
-                    updateButton = HubPanel.button(checkingUpdate ? "Проверяю…" : "Обновить игру", this::checkForGameUpdate);
-                    buttons.add(updateButton).height(32).bottom().padLeft(4);
+                    updateButton = iconButton("icon-update", "Обновить игру", this::checkForGameUpdate);
+                    if (updateButton != null)
+                    {
+                        showUpdateChecking(checkingUpdate);
+                        buttons.add(updateButton).expandY().bottom().size(64, 64).padLeft(12).left();
+                    }
                 }
 
             }
@@ -1058,11 +1073,43 @@ public class LobbyMenu extends PlayerSelectionMenu
     private static boolean checkingUpdate;
     private TextButton updateButton;
 
+    /** A 64x64 hub button with an icon, like the chat / GitHub ones; the hint shows on hover. */
+    private TextButton iconButton(String region, String hint, Runnable action)
+    {
+        TextureRegion icon = BrainOutClient.getRegion(region);
+        if (icon == null) return null;
+        TextButton button = new TextButton("", BrainOutClient.Skin, "button-default");
+        Image image = new Image(icon);
+        image.setScaling(Scaling.none);
+        image.setFillParent(true);
+        image.setTouchable(Touchable.disabled);
+        button.addActor(image);
+        button.addListener(new ClickOverListener()
+        {
+            @Override
+            public void clicked(InputEvent event, float x, float y)
+            {
+                Menu.playSound(MenuSound.select);
+                action.run();
+            }
+        });
+        com.desertkun.brainout.menu.ui.Tooltip.RegisterToolTip(button, hint, this);
+        return button;
+    }
+
+    private void showUpdateChecking(boolean checking)
+    {
+        if (updateButton == null) return;
+        // the icon dims while the release is being checked
+        for (com.badlogic.gdx.scenes.scene2d.Actor child : updateButton.getChildren())
+            if (child instanceof Image) child.getColor().a = checking ? .35f : 1f;
+    }
+
     private void checkForGameUpdate()
     {
         if (checkingUpdate) return;
         checkingUpdate = true;
-        updateButton.setText("Проверяю…");
+        showUpdateChecking(true);
         Thread worker = new Thread(() -> {
             try
             {
@@ -1078,7 +1125,7 @@ public class LobbyMenu extends PlayerSelectionMenu
                 int status = process.waitFor();
                 Gdx.app.postRunnable(() -> {
                     checkingUpdate = false;
-                    updateButton.setText("Обновить игру");
+                    showUpdateChecking(false);
                     if (status == 2)
                         pushMenu(new com.desertkun.brainout.menu.popups.ConfirmationPopup(message)
                         {
@@ -1091,7 +1138,7 @@ public class LobbyMenu extends PlayerSelectionMenu
             {
                 Gdx.app.postRunnable(() -> {
                     checkingUpdate = false;
-                    updateButton.setText("Обновить игру");
+                    showUpdateChecking(false);
                     pushMenu(new AlertPopup("Ошибка обновления: " + e.getMessage()));
                 });
             }

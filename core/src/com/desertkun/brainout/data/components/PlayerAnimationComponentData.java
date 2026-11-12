@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.desertkun.brainout.BrainOut;
 import com.desertkun.brainout.content.PlayerSkin;
+import com.desertkun.brainout.content.PlayerSkinParts;
 import com.desertkun.brainout.content.active.Player;
 import com.desertkun.brainout.content.components.AnimationComponent;
 import com.desertkun.brainout.content.components.PlayerAnimationComponent;
@@ -36,6 +37,8 @@ public class PlayerAnimationComponentData extends AnimationComponentData<PlayerA
 
     private final PlayerData playerData;
     private PlayerSkin skin;
+    // optional per-part skins (null = same as skin)
+    private PlayerSkin legsSkin, torsoSkin, headSkin;
     private BonePointData primaryBonePointData;
     private BonePointData secondaryBonePointData;
     private BonePointData bleedingBonePointData;
@@ -79,6 +82,37 @@ public class PlayerAnimationComponentData extends AnimationComponentData<PlayerA
             return;
 
         this.skin = skin;
+        this.legsSkin = null;
+        this.torsoSkin = null;
+        this.headSkin = null;
+    }
+
+    /** Parts of the skin taken from other skins; null = same as the main skin. */
+    public void setSkinParts(PlayerSkin legs, PlayerSkin torso, PlayerSkin head)
+    {
+        this.legsSkin = legs == skin ? null : legs;
+        this.torsoSkin = torso == skin ? null : torso;
+        this.headSkin = head == skin ? null : head;
+    }
+
+    public PlayerSkin getLegsSkin()
+    {
+        return legsSkin != null ? legsSkin : skin;
+    }
+
+    public PlayerSkin getTorsoSkin()
+    {
+        return torsoSkin != null ? torsoSkin : skin;
+    }
+
+    public PlayerSkin getHeadSkin()
+    {
+        return headSkin != null ? headSkin : skin;
+    }
+
+    public boolean hasSkinParts()
+    {
+        return legsSkin != null || torsoSkin != null || headSkin != null;
     }
 
     @Override
@@ -192,7 +226,17 @@ public class PlayerAnimationComponentData extends AnimationComponentData<PlayerA
 
         if (playerData.getTeam() != null && skeleton != null && getSkin() != null)
         {
-            skeleton.setSkin(getSkin().getData());
+            com.esotericsoftware.spine.Skin composed = PlayerSkinParts.compose(skeleton.getData(),
+                getLegsSkin(), getTorsoSkin(), getHeadSkin());
+
+            if (composed != null)
+            {
+                PlayerSkinParts.apply(skeleton, composed);
+            }
+            else
+            {
+                skeleton.setSkin(getSkin().getData());
+            }
         }
     }
 
@@ -267,6 +311,10 @@ public class PlayerAnimationComponentData extends AnimationComponentData<PlayerA
         if (skin != null)
         {
             json.writeValue("skin", skin.getID());
+
+            if (legsSkin != null) json.writeValue("skin-legs", legsSkin.getID());
+            if (torsoSkin != null) json.writeValue("skin-torso", torsoSkin.getID());
+            if (headSkin != null) json.writeValue("skin-head", headSkin.getID());
         }
     }
 
@@ -286,11 +334,17 @@ public class PlayerAnimationComponentData extends AnimationComponentData<PlayerA
         if (jsonData.has("skin"))
         {
             PlayerSkin previousSkin = skin;
+            PlayerSkin previousLegs = getLegsSkin(), previousTorso = getTorsoSkin(), previousHead = getHeadSkin();
 
             setSkin(BrainOut.ContentMgr.get(jsonData.getString("skin"), PlayerSkin.class));
+            setSkinParts(
+                BrainOut.ContentMgr.get(jsonData.getString("skin-legs", null), PlayerSkin.class),
+                BrainOut.ContentMgr.get(jsonData.getString("skin-torso", null), PlayerSkin.class),
+                BrainOut.ContentMgr.get(jsonData.getString("skin-head", null), PlayerSkin.class));
             updateSkin();
 
-            if (previousSkin != skin)
+            if (previousSkin != skin || previousLegs != getLegsSkin() ||
+                previousTorso != getTorsoSkin() || previousHead != getHeadSkin())
             {
                 BrainOut.EventMgr.sendDelayedEvent(getComponentObject(),
                     SimpleEvent.obtain(SimpleEvent.Action.skinUpdated));

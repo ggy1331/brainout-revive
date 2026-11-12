@@ -686,9 +686,17 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
         if (mpc != null)
         {
             float h = (Math.min(BrainOutClient.getWidth(),
-                BrainOutClient.getHeight()) / Constants.Graphics.RES_SIZE) * 0.4f;
+                BrainOutClient.getHeight()) / Constants.Graphics.RES_SIZE) * 0.16f; // low stance circle (was 0.4, then 0.25), keep in sync with MyPlayerComponent.lowStanceRadius
 
-            if (pointPos.len() < h)
+            if (mpc.isHighStanceHeld())
+            {
+                // high stance on RMB: the camera follows the aim mark itself. Checked first: on
+                // the edge of the circle the mark length is h +- rounding, and a "len < h" frame
+                // used to drop the camera offset to 0 for a moment — the camera jerked.
+                setAim(true);
+                aimOffset.set(pointPos);
+            }
+            else if (pointPos.len() < h)
             {
                 aimOffset.set(0, 0);
                 setAim(false);
@@ -753,7 +761,9 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
 
         float len2 = aimOffset.len2();
 
-        if (len2 > aimOffsetFolowing.len2() && len2 > ClientConstants.Aiming.AIM_ZOOMING_IN_MIN_DISTANCE *
+        // following the mark in the high stance keeps the normal speed (no slow zoom-in)
+        if (!(mpc != null && mpc.isHighStanceHeld()) &&
+            len2 > aimOffsetFolowing.len2() && len2 > ClientConstants.Aiming.AIM_ZOOMING_IN_MIN_DISTANCE *
                 ClientConstants.Aiming.AIM_ZOOMING_IN_MIN_DISTANCE)
         {
             float len = aimOffset.len() - ClientConstants.Aiming.AIM_ZOOMING_IN_MIN_DISTANCE;
