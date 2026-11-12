@@ -15,6 +15,7 @@ public abstract class Bullet extends ConsumableContent
 {
     private float speed;
     private float power;
+    private boolean penetrating;
     private float mass;
     private float powerDistance;
     private float headMultiplier;
@@ -71,6 +72,8 @@ public abstract class Bullet extends ConsumableContent
         dropable = jsonData.getBoolean("dropable", true);
         speed = jsonData.getFloat("speed");
         power = jsonData.getFloat("power");
+        // 7.62 mm and larger rifle rounds go through light obstacles (penetrable blocks)
+        penetrating = jsonData.getBoolean("penetrating", false);
         mass = jsonData.getFloat("mass");
         damageCoeficient = jsonData.getFloat("damageCoeficient", 1);
         headMultiplier = jsonData.getFloat("headMultiplier", 1f);
@@ -134,6 +137,11 @@ public abstract class Bullet extends ConsumableContent
     public float getPower()
     {
         return power;
+    }
+
+    public boolean isPenetrating()
+    {
+        return penetrating;
     }
 
     public int getAmountPerLaunch()

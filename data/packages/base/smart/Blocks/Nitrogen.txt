@@ -67,3 +67,4 @@ id = nitrogen
 canBeSeenTrough = true
 name = ITEM_BG_NITROGEN
 resist = 5
+penetrable = true

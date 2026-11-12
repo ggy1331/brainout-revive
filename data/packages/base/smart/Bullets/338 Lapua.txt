@@ -109,3 +109,4 @@ id = bullet-338-Lapua
 speed = 320
 class = content.bullet.ShotBullet
 good = 5
+penetrating = true

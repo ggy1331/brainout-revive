@@ -112,3 +112,4 @@ contactTo = core, brick, ground, carbon, platform
 id = brick
 name = ITEM_BG_BRICK
 resist = 20
+penetrable = true

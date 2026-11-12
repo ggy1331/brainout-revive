@@ -124,13 +124,34 @@ def release_info(current):
                 raise
             time.sleep(attempt + 1)
 
+def report(kind, *values):
+    # Progress for the game's update window (LobbyMenu.checkForGameUpdate): "@stage <text>",
+    # "@progress <done> <total>". Only in "prepare": the game reads the first other line as the result.
+    if REPORT:
+        print("@"+kind, *values, flush=True)
+
+REPORT = False
+
+def copy_reporting(src, out, total):
+    done, last = 0, 0.0
+    report("progress", 0, total)
+    for block in iter(lambda: src.read(262144), b""):
+        out.write(block)
+        done += len(block)
+        now = time.monotonic()
+        if now - last >= 0.2:
+            last = now
+            report("progress", done, total)
+    report("progress", done, total)
+
 def download_asset(asset, archive):
     direct = asset["browser_download_url"]
     urls = (direct, asset.get("url",direct), direct)
     for attempt, url in enumerate(urls):
         try:
             with open_url(url,accept="application/octet-stream") as src, archive.open("wb") as out:
-                shutil.copyfileobj(src,out)
+                total = asset.get("size") or int(src.headers.get("Content-Length") or 0)
+                copy_reporting(src, out, total)
             if "size" not in asset or archive.stat().st_size == asset["size"]:
                 return
             if attempt == 2:
@@ -142,6 +163,7 @@ def download_asset(asset, archive):
 
 def prepare(root):
     current=(root/MARKER).read_text().strip() if (root/MARKER).exists() else BASELINE
+    report("stage","Проверяю обновления…")
     release=release_info(current)
     tag=release["tag_name"]
     if version(tag)<=version(current):
@@ -152,7 +174,9 @@ def prepare(root):
     cache=root/CACHE;cache.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=cache) as tmp:
         archive=Path(tmp)/"release.zip"
+        report("stage","Скачиваю "+tag+"…")
         download_asset(asset,archive)
+        report("stage","Проверяю и распаковываю "+tag+"…")
         dest=Path(tmp)/"files";unpack(archive,dest,digest[7:])
         if (cache/"ready").exists():shutil.rmtree(cache/"ready")
         os.replace(dest,cache/"ready")
@@ -216,6 +240,8 @@ def schedule(root):
 
 def main():
     if sys.argv[1]=="prepare":
+        global REPORT
+        REPORT=True
         sys.stdout.reconfigure(encoding="utf-8")
         try:return prepare(ROOT)
         except (URLError, TimeoutError, ConnectionError, IncompleteRead) as exc:

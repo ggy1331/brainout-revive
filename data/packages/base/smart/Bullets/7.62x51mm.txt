@@ -109,3 +109,4 @@ id = bullet-7.62x51
 speed = 320
 class = content.bullet.ShotBullet
 good = 8
+penetrating = true

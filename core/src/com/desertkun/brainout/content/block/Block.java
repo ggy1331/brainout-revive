@@ -16,6 +16,7 @@ public abstract class Block extends ConsumableContent
     protected BlockData instance;
 
     private float resist;
+    private boolean penetrable;
     private String contactId;
     private Array<String> contactTo;
     private boolean hasContact;
@@ -34,6 +35,8 @@ public abstract class Block extends ConsumableContent
         static_ = jsonData.getBoolean("static", false);
 
         resist = jsonData.getFloat("resist", 0);
+        // a light obstacle (glass, wood): only penetrating (rifle) bullets go through it
+        penetrable = jsonData.getBoolean("penetrable", false);
         hasContact = jsonData.getBoolean("hasContact", true);
 
         if (jsonData.has("contactId"))
@@ -66,6 +69,11 @@ public abstract class Block extends ConsumableContent
     public float getResist()
     {
         return resist;
+    }
+
+    public boolean isPenetrable()
+    {
+        return penetrable;
     }
 
     public String getContactId()

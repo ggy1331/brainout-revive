@@ -1105,33 +1105,93 @@ public class LobbyMenu extends PlayerSelectionMenu
             if (child instanceof Image) child.getColor().a = checking ? .35f : 1f;
     }
 
+    // the update window and what the updater reported last: the window can be hidden and opened
+    // again with the button while the download goes on
+    private static com.desertkun.brainout.menu.popups.UpdateProgressPopup updatePopup;
+    private static String updateStatus = "Проверяю обновления…";
+    private static long updateDone = -1, updateTotal = -1;
+
+    private void showUpdatePopup()
+    {
+        if (updatePopup != null && !updatePopup.isClosed()) return;
+        updatePopup = new com.desertkun.brainout.menu.popups.UpdateProgressPopup();
+        updatePopup.setStatus(updateStatus);
+        updatePopup.setProgress(updateDone, updateTotal);
+        pushMenu(updatePopup);
+    }
+
+    private static void closeUpdatePopup()
+    {
+        if (updatePopup != null && !updatePopup.isClosed()) updatePopup.pop();
+        updatePopup = null;
+    }
+
     private void checkForGameUpdate()
     {
-        if (checkingUpdate) return;
+        if (checkingUpdate)
+        {
+            showUpdatePopup();
+            return;
+        }
         checkingUpdate = true;
+        updateStatus = "Проверяю обновления…";
+        updateDone = updateTotal = -1;
         showUpdateChecking(true);
+        showUpdatePopup();
         Thread worker = new Thread(() -> {
             try
             {
-                Process process = new ProcessBuilder("../python/python.exe", "../support/release_update.py", "prepare")
+                Process process = new ProcessBuilder("../python/python.exe", "-u", "../support/release_update.py", "prepare")
                     .redirectErrorStream(true).start();
-                String message;
+                String message = null;
                 try (java.io.BufferedReader reader = new java.io.BufferedReader(
                     new java.io.InputStreamReader(process.getInputStream(), "UTF-8")))
                 {
-                    message = reader.readLine();
-                    while (reader.readLine() != null) { }
+                    // "@stage <text>" and "@progress <done> <total>" lines (v0.13.2 updater) report
+                    // the progress; the first other line is the result
+                    String line;
+                    while ((line = reader.readLine()) != null)
+                    {
+                        if (line.startsWith("@stage "))
+                        {
+                            String text = line.substring(7);
+                            Gdx.app.postRunnable(() -> {
+                                updateStatus = text;
+                                if (updatePopup != null) updatePopup.setStatus(text);
+                            });
+                        }
+                        else if (line.startsWith("@progress "))
+                        {
+                            String[] parts = line.split(" ");
+                            try
+                            {
+                                long done = Long.parseLong(parts[1]), total = Long.parseLong(parts[2]);
+                                Gdx.app.postRunnable(() -> {
+                                    updateDone = done;
+                                    updateTotal = total;
+                                    if (updatePopup != null) updatePopup.setProgress(done, total);
+                                });
+                            }
+                            catch (RuntimeException ignored) { }
+                        }
+                        else if (message == null && !line.trim().isEmpty())
+                        {
+                            message = line;
+                        }
+                    }
                 }
                 int status = process.waitFor();
+                String result = message;
                 Gdx.app.postRunnable(() -> {
                     checkingUpdate = false;
                     showUpdateChecking(false);
+                    closeUpdatePopup();
                     if (status == 2)
-                        pushMenu(new com.desertkun.brainout.menu.popups.ConfirmationPopup(message)
+                        pushMenu(new com.desertkun.brainout.menu.popups.ConfirmationPopup(result)
                         {
                             @Override public void yes() { HomeHub.installUpdate(); }
                         });
-                    else pushMenu(new AlertPopup(message == null ? "Не удалось проверить обновления." : message));
+                    else pushMenu(new AlertPopup(result == null ? "Не удалось проверить обновления." : result));
                 });
             }
             catch (Exception e)
@@ -1139,6 +1199,7 @@ public class LobbyMenu extends PlayerSelectionMenu
                 Gdx.app.postRunnable(() -> {
                     checkingUpdate = false;
                     showUpdateChecking(false);
+                    closeUpdatePopup();
                     pushMenu(new AlertPopup("Ошибка обновления: " + e.getMessage()));
                 });
             }

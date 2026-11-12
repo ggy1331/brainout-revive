@@ -2,6 +2,7 @@ package com.desertkun.brainout.data.bullet;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.World;
@@ -304,6 +305,12 @@ public abstract class BulletData extends ComponentObject implements Renderable, 
 
             if (blockIn != blockData)
             {
+                // coming out of a light obstacle (glass, wood): the bullet has lost speed
+                if (blockIn != null && blockIn.getCreator().isPenetrable())
+                {
+                    speed.scl(penetrationSpeedLeft(blockIn.getCreator().getResist()));
+                }
+
                 LaunchData hitLaunchData = null;
 
                 if ((blockIn == null) != (blockData == null))
@@ -374,6 +381,15 @@ public abstract class BulletData extends ComponentObject implements Renderable, 
                         DamageBlockEvent.obtain(map, damage, blockX, blockY,
                             Constants.Layers.BLOCK_LAYER_FOREGROUND,
                             instrumentInfo, this));
+
+                    // light obstacles stop everything but rifle rounds of 7.62 mm and larger;
+                    // those go through, losing power (damage) on the way and speed on the way out
+                    if (blockData.getCreator().isPenetrable() && !bullet.isPenetrating())
+                    {
+                        done = true;
+
+                        return;
+                    }
                 }
             }
 
@@ -399,6 +415,12 @@ public abstract class BulletData extends ComponentObject implements Renderable, 
         time -= dt;
 
         distance += speed.len() * dt;
+    }
+
+    /** share of the speed a bullet keeps after going through a light obstacle: glass ~0.94, wood 0.75 */
+    public static float penetrationSpeedLeft(float resist)
+    {
+        return MathUtils.clamp(1.0f - resist / 80.0f, 0.5f, 1.0f);
     }
 
     private void collide(float x, float y)

@@ -120,3 +120,4 @@ powerDistance = {
 }
 speed = 240
 good = 100
+penetrating = true

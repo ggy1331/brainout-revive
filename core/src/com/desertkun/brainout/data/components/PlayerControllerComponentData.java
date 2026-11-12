@@ -47,7 +47,9 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private static final float SPRINT_TAP_WINDOW = 0.35f; // release -> press again within this = sprint
     private static final float HOP_RECOVERY = 0.24f;
     // Ladder inertia: only up/down reversals are slowed down (against fast ladder "strafing");
-    // starting and stopping stay almost instant. Vertical speed on a ladder is ~15.
+    // starting and stopping stay almost instant. Vertical speed on a ladder is ~15 × LADDER_SPEED.
+    // climbing speed relative to the movement input (v0.13.2: 15 % slower)
+    private static final float LADDER_SPEED = 0.85f;
     private static final float LADDER_ACCEL = 200f;    // gain per second: full speed in ~0.08 s
     private static final float LADDER_BRAKE = 260f;    // loss per second when stopping: ~0.06 s
     private static final float LADDER_REVERSE = 75f;   // loss per second when reversing: ~0.2 s to turn
@@ -826,7 +828,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
                 if (hasFixture)
                 {
                     // ladder inertia: a reversal brakes slowly, a start / stop is quick
-                    float target = moveDirection.y;
+                    float target = moveDirection.y * LADDER_SPEED;
                     int targetDir = target > 0.01f ? 1 : (target < -0.01f ? -1 : 0);
                     // a reversal: against the current motion, or right after moving the other way
                     // (a quick stop-and-go counts too)
