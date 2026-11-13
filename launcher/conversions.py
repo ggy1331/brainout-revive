@@ -394,6 +394,10 @@ def family(c, skeletons, base, members, borrow=()):
         kept.update({sl: att_name for sl in slots_used})
         rep["replace"] = kept
 
+    # stock parts keyed by the models' own animations would cover the chosen upgrades in the hands
+    for m in models:
+        strip_slot_keys(skeletons[m], managed_slots(skeletons[m]) | set(DEFAULTS.get(m, {})))
+
     # 3. the base weapon's menu: every shared upgrade under the row of its slot
     for row in [k for k in rows if k in KINDS]:
         del rows[row]
@@ -453,6 +457,28 @@ class _NoZip:
         return False
 
 
+def managed_slots(skel):
+    """slots that hold shared ("cv-") attachments"""
+    return {slot for sk in skel["skins"] for slot, atts in sk.get("attachments", {}).items()
+            if any(n.startswith("cv-") for n in atts)}
+
+
+def strip_slot_keys(skel, slots):
+    """Kit models (AK-74M, AKM-74/2, M4A1 Desert, HK416, AR-57, PKP) key their stock attachments in
+    the weapon's own animations ("animation", "parts"); played in the hands, those keys put the stock
+    parts back over whatever upgrade was chosen. The setup pose keeps the stock look instead."""
+    for anim in skel.get("animations", {}).values():
+        keys = anim.get("slots", {})
+        for slot in list(keys):
+            if slot in slots:
+                keys[slot].pop("attachment", None)
+                if not keys[slot]:
+                    del keys[slot]
+        if "slots" in anim and not anim["slots"]:
+            del anim["slots"]
+    return skel
+
+
 def copy_attachments(skel, paired):
     """every "cv-" attachment (and its slot) of a model's skeleton into its akimbo copy"""
     names = [sl["name"] for sl in paired["slots"]]
@@ -472,7 +498,7 @@ def copy_attachments(skel, paired):
     for s in paired["skins"]:
         for slot, atts in cv.items():
             s.setdefault("attachments", {}).setdefault(slot, {}).update(deepcopy(atts))
-    return paired
+    return strip_slot_keys(paired, set(cv))
 
 
 def build(source, destination):
