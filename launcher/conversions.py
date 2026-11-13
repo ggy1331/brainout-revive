@@ -33,6 +33,7 @@ from gameplay_package import encode
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools" / "weapon-art"))
 import gunsmith  # noqa: E402  (barrel_y: the height of the bore in a body picture)
+import conversion_fit as fit  # noqa: E402
 
 # base -> members (conversions, menu order); borrow: other families' bases whose attachments are
 # offered too (the AKMS takes the AK-74 gunsmith set: the same Kalashnikov mounts)
@@ -99,7 +100,7 @@ for _m in AR_HOLDER:
 for _m in ("ar15", "aac", "hk417", "rsaas"):
     SLOT_ALIAS.setdefault(_m, {})["scope"] = "optic"      # the "scope" slot shows their top rail: keep it
 # kinds a model can't take (AR-57: a P90 magazine on top; M16A2: the M203 is part of its body)
-NO_KIND = {"ar57": {"clip"}, "m16": {"gl"}, "l86": {"scope"}}   # L86: its sight is part of the body
+NO_KIND = {"ar57": {"clip"}, "m16": {"gl"}, "l86": {"scope"}, "mp5sd6": {"silencer"}}   # MP5SD6: integral suppressor   # L86: its sight is part of the body
 DEFAULTS = {"ak74m": {"cap": None, "holder": None}}
 
 # upgrade row key -> (slot in the skeletons, anchor)
@@ -108,7 +109,8 @@ KINDS = {
     "on": ("grip", "grip"), "holder": ("grip", "grip"), "tactical": ("tactical", "tac"),
     "clip": ("clip", "clip"), "gl": ("gl", "gl"), "laser": ("tactical", "tac"),
 }
-MODEL_ONLY = {"upgrade-ak74-butt-old", "upgrade-aksu-holder", "upgrade-rpk16-holder", "upgrade-ak105-holder",
+MODEL_ONLY = {"upgrade-rpk74-scope-tulpan",     # its big side bracket is a black block on other receivers
+              "upgrade-ak74-butt-old", "upgrade-aksu-holder", "upgrade-rpk16-holder", "upgrade-ak105-holder",
               "upgrade-m16a3-holder"}
 ONE_OF = {"gl"}     # one launcher per family is enough (five models had their own M203)
 # where a new slot goes: drawn behind the body (gl) or over it
@@ -138,6 +140,21 @@ def note_skin(c, model, skel):
 def default_atts(skel):
     name = SKIN_OF.get(id(skel), "weapon-default")
     return next(s for s in skel["skins"] if s["name"] == name)["attachments"]
+
+
+REPORT = []        # (family, model, upgrade, what is off) after fitting
+
+
+def gun(skel):
+    """the gun's own solid pixels for conversion_fit (a model whose "scope" slot shows its top rail
+    counts the rail as part of the gun)"""
+    model = SKEL_MODEL.get(id(skel))
+    not_body = NOT_BODY - ({"scope"} if SLOT_ALIAS.get(model, {}).get("scope") == "optic" else set())
+    # slots that take shared attachments are replaced by them (HK416: its grip is the "holder")
+    not_body = not_body | set(SLOT_ALIAS.get(model, {}).values())
+    shown = {sl["name"]: sl.get("attachment") for sl in skel["slots"]}
+    pts, cols = fit.body(skel, default_atts(skel), shown, not_body, id(skel))
+    return pts, cols, px(skel)
 
 
 def body_att(skel):
@@ -362,6 +379,7 @@ def family(c, skeletons, base, members, borrow=()):
         new_slot, anchor = KINDS[key]
         att_name = "cv-" + u
         original = default_atts(skeletons[src])[slot][name]
+        att_src = dict(original, name=original.get("name", name))
         a_src = anchor_point(src, skeletons[src], anchor)
         slots_used = set()
         for m in models:
@@ -373,6 +391,7 @@ def family(c, skeletons, base, members, borrow=()):
             ensure_slot(skel, slot_m)
             att = dict(original)
             att.setdefault("name", name)
+            kind = fit.KIND.get(new_slot)
             if m != src:
                 # same offset from the anchor in texture pixels, at the target's pixel scale
                 ks, kd = px(skeletons[src]), px(skel)
@@ -386,6 +405,15 @@ def family(c, skeletons, base, members, borrow=()):
                     att.pop("scaleX", None)
                     att.pop("scaleY", None)
                 snap(att, skel)
+                # then settled on the target's pixels the way it sat on its own model
+                if kind:
+                    ref = fit.measure(kind, att_src, gun(skeletons[src]))
+                    fit.settle(kind, att, gun(skel), ref, lambda a, sk=skel: snap(a, sk))
+            if kind:
+                why = fit.off(kind, fit.measure(kind, att, gun(skel)),
+                              fit.measure(kind, att_src, gun(skeletons[src])), gun(skel)[2])
+                if why:
+                    REPORT.append((base, m, u, why))
             for s in skel["skins"]:
                 s.setdefault("attachments", {}).setdefault(slot_m, {})[att_name] = dict(att)
         rep = next(comp for comp in c[u]["components"] if comp["class"].endswith("ReplaceSlotComponent"))
@@ -552,6 +580,10 @@ def preview(out_dir):
     allm = {m for base, f in FAMILIES.items() for m in [base] + f["members"]}
     skel = {m: note_skin(c, m, json.loads(z.read(model_path(c, c[item_key(c, m)]["instrument"]["id"])))) for m in allm}
     report = apply(c, skel)
+    with open(os.path.join(out_dir, "fit-report.txt"), "w", encoding="utf-8") as f:
+        for row in REPORT:
+            f.write("%-10s %-14s %-36s %s" % row + chr(10))
+    print("fit report:", len(REPORT), "off")
     game = root / "data/packages/base/textures/GAME"
     VIEW = {"scope": (-12, 62, 4, 36), "silencer": (40, 150, -2, 28), "clip": (0, 50, -28, 16)}
     os.makedirs(out_dir, exist_ok=True)
@@ -585,6 +617,8 @@ def preview(out_dir):
             by_slot.setdefault(KINDS[key][0], []).append(u)
         for slot, ups in by_slot.items():
             view = VIEW.get(slot, (10, 110, -6, 26))
+            if any(item_key(c, m).startswith("sl-sec-") for m in models):
+                view = (-14, 46, -10, 24)                 # sidearms
             tiles = [[draw(m, {SLOT_ALIAS.get(m, {}).get(slot, slot): "cv-" + u}, view) for u in ups] for m in models]
             w, h = tiles[0][0].size
             sheet = Image.new("RGBA", (w * len(ups), h * len(models)))
