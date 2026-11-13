@@ -37,6 +37,12 @@ with ZipFile(ROOT/'bin/client/packages/base.zip') as z:
             a=skin['attachments']
             if 'body' not in a:continue
             body=pixels(a['body']['default'],'body')
+            native=Image.open(ROOT/'data/packages/base/textures/GAME'/(weapon+'-skin.png')).convert('RGBA')
+            rows=[y for y in range(native.height) if native.getpixel((native.width-1,y))[3]]
+            expected_axis=oy-(min(rows)+max(rows)+1)/2
+            assert abs(bones['vg-tip'][1]-expected_axis)<.001, (weapon,'native muzzle axis')
+            for key,attachment in a['silencer'].items():
+                assert attachment['y']==0, (key,'muzzle device must share bore axis')
             for slot in ('butt','barrel','scope','rear-grip','clip'):
                 for key,part in a[slot].items():
                     if key=='default':continue

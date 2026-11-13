@@ -705,6 +705,8 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
                 // used to drop the camera offset to 0 for a moment — the camera jerked.
                 setAim(true);
                 aimOffset.set(pointPos);
+                if (aimOffset.isZero(.001f)) aimOffset.set(1,0).setAngleDeg(playerData.getAngle());
+                aimOffset.nor().scl(mpc.getAimCameraDistance());
             }
             else if (pointPos.len() < h)
             {
@@ -763,6 +765,7 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
         }
 
         float folowingSpeed = dt * ClientConstants.Aiming.AIM_FOLLOWING_SPEED;
+        if (mpc != null && mpc.isHighStanceHeld()) folowingSpeed=1f-(float)Math.exp(-32f*dt);
 
         if (mpc != null && mpc.isControllerUsed())
         {
@@ -782,9 +785,10 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
                     1.0f, ClientConstants.Aiming.AIM_ZOOMING_IN_COEFFICIENT);
         }
 
-        aimOffsetFolowing.lerp(aimOffset, folowingSpeed);
+        aimOffsetFolowing.lerp(aimOffset, MathUtils.clamp(folowingSpeed,0,1));
 
-        if (lerpAim)
+        if (mpc != null && mpc.isHighStanceHeld()) pointPosLerp.set(pointPosRotated);
+        else if (lerpAim)
         {
             float dst = pointPosLerp.dst(pointPosRotated);
             float coef = Interpolation.exp10Out.apply(MathUtils.clamp(dst / 16.0f, 0, 1.0f));

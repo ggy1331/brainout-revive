@@ -551,6 +551,31 @@ public class PlayerSelectionMenu extends Menu implements EventReceiver
             icon.setTouchable(Touchable.disabled);
             icon.init();
             item.add(icon);
+            InstrumentSlotItem equippedItem = (InstrumentSlotItem)slotItem;
+            if (equippedItem.getUpgrades().size > 0 || equippedItem.getSkins().size > 1)
+            {
+                CornerButtons corners = new CornerButtons();
+                corners.setFillParent(true);
+                corners.setTouchable(Touchable.childrenOnly);
+                ImageButton tuning = new ImageButton(BrainOutClient.Skin, "button-upgrades");
+                tuning.setName("loadout-tuning-" + equippedItem.getID());
+                tuning.addListener(new ClickOverListener()
+                {
+                    @Override public void clicked(InputEvent event, float x, float y)
+                    {
+                        event.stop();
+                        playSound(MenuSound.select);
+                        save();
+                        pushMenu(new UpgradeInstrumentMenu(equippedItem,
+                            shopCart.equippedInstrument(equippedItem), () -> {
+                                save(); updateSlotButtons();
+                            }));
+                    }
+                });
+                corners.setCorner(CornerButtons.Corner.bottomLeft, tuning, 24, 24);
+                corners.init();
+                item.addActor(corners);
+            }
         }
         else
         {

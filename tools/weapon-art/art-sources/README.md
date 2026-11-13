@@ -1,4 +1,24 @@
-# Weapon-specific artwork, revision 5
+# Weapon-specific artwork, revision 6
+
+Current selectable catalogue: **36 STG / 37 MP40**. Removed rear-grip upgrades,
+the marked 15 STG / 12 MP40 optics (original IDs kept for survivors), MP40 stock
+delete and lightweight magazine, and all three alternate weapon skins/cards.
+The default appearance remains. The bayonet is now labelled "Штык-нож".
+
+STG fronts now use **stg-fronts-v6.png**, a four-row built-in imagegen source.
+Each includes its own bridge above the magazine well and a distinct handguard:
+two broad slots, four oval vents, grooved wood, or three steel ribs. Exact prompt
+is in stg-fronts-v6.prompt.txt. The source already faces right. Crop boxes and
+final native sizes are explicit in vanguard_modules.py. The other STG parts
+still use v5 sources; curved magazines use native straight feed lips. MP40 stock
+and front-grip sizes are restored; handstop/short/angled/skeleton grips move back
+4 pixels while the requested five other front modules keep their new position.
+
+The actual STG muzzle is native rows 8..9 (world y=10.06), not y=11.56. All muzzle
+devices share the bore axis, including with replacement barrels. The packed
+atlas checker verifies this as well as 201 remaining connections/combinations.
+
+## Revision 5 sources
 
 STG now loads **stg-parts-v5.png**, a new 39-piece source atlas generated with
 the built-in image generator. References were mp40-parts-v3.png (the user's

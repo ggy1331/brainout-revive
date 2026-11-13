@@ -29,6 +29,9 @@ public class MyWeaponComponent extends Component
     private final WeaponData data;
     private WeaponSlotComponent currentSlot;
     private boolean reloadRightAfterLeft;
+    private float rightReloadDelay = -1;
+    private long rightReloadFrame;
+    public static final float PAIRED_RELOAD_DELAY = 0.002f;
     private ObjectMap<String, WeaponSlotComponent> slots;
 
     public MyWeaponComponent(WeaponData weaponData, ConsumableRecord record)
@@ -127,15 +130,24 @@ public class MyWeaponComponent extends Component
                         case endLaunch: current.endLaunching(); return true;
                         // paired pistols: RMB still fires the second pistol (no high-stance aiming)
                         case beginAimHold:
-                        case beginLaunchSecondary: right.beginLaunching(); return true;
+                        case beginLaunchSecondary: rightReloadDelay=-1; right.beginLaunching(); return true;
                         case endAimHold:
                         case endLaunchSecondary: right.endLaunching(); return true;
                         case reload:
                             if (!data.getWeapon().hasSequentialPairedReload())
                             {
                                 reloadRightAfterLeft = false;
-                                if (current.getLoadedRounds() < current.getClipSize().asInt()) current.doReload(true);
-                                if (right.getLoadedRounds() < right.getClipSize().asInt()) right.doReload(true);
+                                if (rightReloadDelay >= 0) return true;
+                                boolean startedLeft = current.getLoadedRounds() < current.getClipSize().asInt() && current.doReload(true);
+                                if (right.getLoadedRounds() < right.getClipSize().asInt())
+                                {
+                                    if (startedLeft)
+                                    {
+                                        rightReloadDelay = PAIRED_RELOAD_DELAY;
+                                        rightReloadFrame = com.badlogic.gdx.Gdx.graphics.getFrameId();
+                                    }
+                                    else right.doReload(true);
+                                }
                                 return true;
                             }
                             if (right.isReloadingOrChambering()) return true;
@@ -358,6 +370,21 @@ public class MyWeaponComponent extends Component
         {
             WeaponSlotComponent right = getSlot(Constants.Properties.SLOT_SECONDARY);
             right.update(dt);
+            if (rightReloadDelay >= 0)
+            {
+                if (!(data.getOwner() instanceof PlayerData) ||
+                    ((PlayerData)data.getOwner()).getCurrentInstrument() != data ||
+                    !((PlayerData)data.getOwner()).isAlive()) rightReloadDelay = -1;
+                else if (com.badlogic.gdx.Gdx.graphics.getFrameId() > rightReloadFrame)
+                {
+                    rightReloadDelay -= dt;
+                    if (rightReloadDelay <= 0)
+                    {
+                        rightReloadDelay = -1;
+                        if (right.getLoadedRounds() < right.getClipSize().asInt()) right.doReload(true);
+                    }
+                }
+            }
             if (reloadRightAfterLeft && !currentSlot.isReloadingOrChambering())
             {
                 reloadRightAfterLeft = false;

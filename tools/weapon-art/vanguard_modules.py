@@ -22,11 +22,11 @@ STG_SIZES={
  'grip':[(9,14),(11,7),(9,10),(26,8),(21,9),(12,14),(19,10),(29,6),(10,13)],
  'rear-grip':[(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13)]}
 MP_SIZES={
- 'barrel':[(29,9),(35,10),(26,9),(21,9)],
- 'butt':[(28,13),(27,13),(4,7),(27,14),(25,12)],
+ 'barrel':[(29,10),(35,12),(26,10),(21,11)],
+ 'butt':[(31,15),(28,14),(5,7),(29,15),(24,13)],
  'clip':[(5,22),(5,31),(9,23),(7,31)],
  'silencer':[(10,4),(11,4),(12,4),(9,5),(22,5),(16,5),(12,5)],
- 'grip':[(8,12),(9,6),(7,8),(21,6),(17,7),(10,12),(15,8),(25,5),(8,11)],
+ 'grip':[(8,14),(10,7),(8,9),(23,7),(19,9),(11,13),(17,10),(27,6),(9,13)],
  'rear-grip':[(9,14),(10,14),(9,14),(10,14),(9,14),(9,14),(10,14),(9,14),(10,14),(9,14)]}
 STG_OPTICS=[(13,13),(25,10),(15,8),(22,10),(17,10),(24,14),(35,7),
  (19,9),(36,12),(11,10),(29,11),(35,8),(24,14),(34,13),
@@ -104,11 +104,24 @@ def stg_module():
 def raw(weapon,slot,index):
     if slot=='scope':return scope(weapon,index)
     if weapon=='stg':
+        if slot=='barrel':
+            source=load(HERE/'art-sources/stg-fronts-v6.png')
+            # Four complete horizontal front assemblies, each with its own
+            # receiver bridge. Their orientation already faces right.
+            bounds=[(0,0,source.width,330),(0,340,source.width,670),
+                    (0,680,source.width,1010),(0,1020,source.width,source.height)][index]
+            return fit(dominant(source.crop(bounds)),[(45,12),(68,15),(58,14),(36,13)][index])
         source=load(HERE/'art-sources/stg-parts-v5.png')
         bounds=json.loads((HERE/'art-sources/stg-parts-v5.json').read_text())[MP_OFFSETS[slot]+index]
         part=dominant(source.crop(bounds))
         if slot in ('barrel','butt','silencer'):part=ImageOps.mirror(part)
-        return fit(part,STG_SIZES[slot][index])
+        part=fit(part,STG_SIZES[slot][index])
+        if slot=='clip' and index!=2:
+            # Keep the receiver's narrow straight feed neck, not the slanted
+            # oversized collar in the source painting.
+            neck=load(NATIVE/'stg-clip-default.png').crop((0,0,7,3))
+            part.paste((0,0,0,0),(0,0,part.width,3));part.alpha_composite(neck,(0,0))
+        return trim(part)
     # The source sheet orders the padded stock before the stock-delete cap;
     # the upgrade catalogue orders these two choices the other way around.
     if slot=='butt' and index in (1,2):index=3-index

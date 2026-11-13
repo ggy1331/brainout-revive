@@ -38,6 +38,15 @@ public class InstrumentInfo
             info.skin == skin;
     }
 
+    /** A conversion's skin belongs to its resulting model, also for paired models. */
+    public Skin skinFor(Instrument model)
+    {
+        com.desertkun.brainout.content.shop.InstrumentSlotItem slot=model.getSlotItem();
+        if (slot==null && model.getDefaultSkin() instanceof com.desertkun.brainout.content.instrument.InstrumentSkin)
+            slot=((com.desertkun.brainout.content.instrument.InstrumentSkin)model.getDefaultSkin()).getSlotItem();
+        return skin!=null && slot!=null && slot.getSkins().contains(skin,true) ? skin : model.getDefaultSkin();
+    }
+
     public void parse(InstrumentInfoPart msg)
     {
         this.instrument = BrainOut.ContentMgr.get(msg.instrument, Instrument.class);

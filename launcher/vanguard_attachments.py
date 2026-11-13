@@ -34,7 +34,7 @@ GRIPS = [
     ('GF-59 — фонарь','light',{'accuracy':'+4'}),
     ('SMLE — пистолетная рукоятка','pistol',{'accuracy':'+7','recoil':'-3'}),
     ('M1930 — угловая рукоятка','angled',{'recoil':'-6','accuracy':'+4'}),
-    ('Штык','bayonet',{'damage':'*1.03','speed-coef':'*0.98'}),
+    ('Штык-нож','bayonet',{'damage':'*1.03','speed-coef':'*0.98'}),
     ('Mark VI — скелетная рукоятка','skeleton',{'speed-coef':'*1.03','accuracy':'+2'}),
 ]
 OPTICS = [
@@ -48,6 +48,9 @@ OPTICS = [
     ('Mk 18 Sunfilter','sun',6),('Открытый IS01M','iron',1),('Широкий IS02M','wideiron',2),
 ]
 REAR = ['Резиновая','Обмотка лентой','Кожаная','Тканевая','Рифлёная','С насечкой','Полимерная','Смоляная','Зернистая','Точечная']
+# Original IDs are stable: never renumber after removing the user-marked cells.
+REMOVED_SCOPES={'mp40':{0,2,4,6,7,8,12,13,14,16,18,20},
+                'stg':{0,1,2,3,4,6,10,11,12,13,15,16,19,20,21}}
 BARRELS = {
  'stg': [('VDD 320 — укороченный', 'short',{'accuracy':'-4','speed-coef':'*1.04'}),
          ('VDD 760 — длинное цевьё','long',{'accuracy':'+10','aim-distance':'+8','speed-coef':'*0.96'}),
@@ -113,6 +116,11 @@ def build(source,target):
     with ZipFile(source) as z:
         out={n:z.read(n) for n in z.namelist()}
     content=json.loads(out['content.json']);c=content['content']
+    retired_skins={'skin-weapon-stg-emile','skin-weapon-stg-wunderwaffe','skin-weapon-mp40-orange'}
+    for key in retired_skins:
+        c.pop(key,None)
+        c.pop(key.replace('skin-weapon-','gen-skin-'),None)
+        c.get('unlock-tree',{}).get('items',{}).pop(key,None)
     actor_path='content/animations/actor.json'
     actor=json.loads(out[actor_path])
     for name,clip in actor['animations'].items():
@@ -132,10 +140,15 @@ def build(source,target):
         put(name,im);return {'name':name,'path':name,'x':round(x,3),'y':round(y,3),'width':im.width,'height':im.height}
     for weapon in ('stg','mp40'):
         path='content/animations/weapon-'+weapon+'.json';m=json.loads(out[path]);upgrades={}
+        m['skins']=[skin for skin in m['skins'] if skin['name'] in ('default','weapon-default')]
+        c['sl-pri-'+weapon]['instrument']['skins']=['skin-weapon-'+weapon+'-default']
         # Split the stock body at natural seams. Default silhouette is pixel-identical.
         parts={'stg':(25,50),'mp40':(8,57)}[weapon]
         tip = 78.8 if weapon=='stg' else 75.52
-        m['bones'].append({'name':'vg-tip','parent':'root','x':tip,'y':11.56 if weapon=='stg' else 11.5})
+        # Native STG muzzle occupies rows 8..9: 19.06 - 9 = 10.06.
+        # The old 11.56 value was the front sight region, 1.5 pixels too high.
+        tip_y = 10.06 if weapon=='stg' else 11.5
+        m['bones'].append({'name':'vg-tip','parent':'root','x':tip,'y':tip_y})
         grip_x,grip_y=(34.8,8.06) if weapon=='stg' else (55.52,10.0)
         m['bones'].append({'name':'vg-underbarrel','parent':'root','x':grip_x,'y':grip_y})
         for slot in ('butt','barrel','scope','silencer','grip','rear-grip'):
@@ -177,6 +190,8 @@ def build(source,target):
         for slot,items in options.items():
             upgrades[slot]=[]
             for i,(label,shape,props) in enumerate(items):
+                if slot=='rear-grip' or (slot=='scope' and i in REMOVED_SCOPES[weapon]):continue
+                if weapon=='mp40' and ((slot=='butt' and i==1) or (slot=='clip' and i==1)):continue
                 key=f'vg-{weapon}-{slot}-{i}';art=sprite(weapon,slot,i);x,y=positions[slot]
                 delta = 0; delta_y = 0; grip_delta_y = 0
                 # All vertices share the native receiver's pixel grid. Measure
@@ -187,14 +202,15 @@ def build(source,target):
                          if art.getpixel((edge,j) if axis=='x' else (j,edge))[3]>128]
                     return (min(pts)+max(pts)+1)/2 if pts else (art.height if axis=='x' else art.width)/2
                 if slot=='silencer':
-                    x=art.width/2-1;y=edge_center('x',0)-art.height/2
+                    x=art.width/2-1;y=0
                 elif slot=='barrel':
                     seam=origin_x+parts[1]-1;seam_y=origin_y-(8 if weapon=='stg' else 5.5)
                     top=seam_y+edge_center('x',0)
+                    if weapon=='stg':top=tip_y+edge_center('x',art.width-1)
                     top=origin_y-round(origin_y-top)
                     x=seam+art.width/2;y=top-art.height/2
                     delta=seam+art.width-tip
-                    delta_y=(top-edge_center('x',art.width-1))-(11.56 if weapon=='stg' else 11.5)
+                    delta_y=(top-edge_center('x',art.width-1))-tip_y
                     mount_column=max(0,min(art.width-1,round(grip_x-seam)))
                     occupied=[row for row in range(art.height) if art.getpixel((mount_column,row))[3]>128]
                     if occupied:grip_delta_y=top-max(occupied)-1-grip_y
@@ -209,6 +225,7 @@ def build(source,target):
                 elif slot=='grip':
                     # Clamp/bipod/bayonet mounts are not centred in their images.
                     x=art.width/2-edge_center('y',0);y=1-art.height/2
+                    if weapon=='mp40' and i in (1,2,6,8):x-=4
                 elif slot=='rear-grip':
                     socket=origin_x+(38 if weapon=='stg' else 8)
                     x=socket+art.width/2-edge_center('y',0)
@@ -217,6 +234,11 @@ def build(source,target):
                     socket=23.31 if weapon=='stg' else 37.98
                     x=socket+art.width/2-edge_center('y',0)
                     y=(5.06 if weapon=='stg' else 11)-art.height/2
+                    if weapon=='mp40' and i==2:x-=1;y+=1
+                    if weapon=='stg' and i!=2:
+                        # Feed lips enter the native well; curved bodies lean
+                        # forward from the same socket rather than sideways.
+                        x-=1;y-=1
                 a=attachment(key,art,x,y)
                 for skin in m['skins']:
                     if 'body' not in skin['attachments']:continue
@@ -240,7 +262,7 @@ def build(source,target):
                     components.extend(deepcopy(c['gs-ak74-silencer-pbs1']['components'][2:]))
                 c[key]={'class':'content.upgrades.Upgrade','access':'byDefault','name':textkey,'description':textkey+'_DESC','properties':props,'components':components}
                 upgrades[slot].append(key);catalog.append({'weapon':weapon,'slot':slot,'id':key,'name':label,'properties':props})
-        c['sl-pri-'+weapon]['instrument']['upgrades']=upgrades
+        c['sl-pri-'+weapon]['instrument']['upgrades']={k:v for k,v in upgrades.items() if v}
         out[path]=json.dumps(m,ensure_ascii=False,separators=(',',':')).encode()
     labels['DESC_AKIMBO']={'RU':'Оружие в двух руках: ЛКМ/ПКМ — стрельба, R — одновременная перезарядка (Serbu и Peacemaker — поочерёдно). Взведение независимо. Точность ×0,5, отдача ×2.',
                           'EN':'Dual wield: left/right click fire, R reloads both hands (Serbu and Peacemaker reload sequentially). Independent chambering. Half accuracy, double recoil.'}

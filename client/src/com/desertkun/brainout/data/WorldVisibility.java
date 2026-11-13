@@ -34,12 +34,22 @@ public final class WorldVisibility
 
     public WorldVisibility(ClientMap map) { this.map = map; }
 
+    public static boolean isSolidSurface(BlockData block)
+    {
+        if (!(block instanceof com.desertkun.brainout.data.block.ConcreteBD)) return false;
+        com.desertkun.brainout.content.block.contact.ContactShape shape =
+            ((com.desertkun.brainout.data.block.ConcreteBD)block).getContactShape();
+        return !(shape instanceof com.desertkun.brainout.content.block.contact.CSPlatform) &&
+            !(shape instanceof com.desertkun.brainout.content.block.contact.CSTriangleNoBullets) &&
+            !(shape instanceof com.desertkun.brainout.content.block.contact.CSTeamLimit);
+    }
+
     private boolean opaque(int x, int y)
     {
         for (int layer : WALL_LAYERS)
         {
             BlockData block = map.getBlockAt(x, y, layer);
-            if (block != null && !block.getCreator().isCanBeSeenTrough()) return true;
+            if (isSolidSurface(block) && !block.getCreator().isCanBeSeenTrough()) return true;
         }
         return false;
     }
@@ -68,7 +78,7 @@ public final class WorldVisibility
                     for (int layer : WALL_LAYERS)
                     {
                         BlockData b = map.getBlockAt(x, y, layer);
-                        if (b != null && !b.getCreator().isCanBeSeenTrough() &&
+                        if (isSolidSurface(b) && !b.getCreator().isCanBeSeenTrough() &&
                             b.isContact(null, px - x, py - y, null, direction, 0, map, x, y)) return t;
                     }
                 }
@@ -173,7 +183,7 @@ public final class WorldVisibility
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.setProjectionMatrix(context.camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0.22f,0.23f,0.25f,0.35f);
+        shapes.setColor(0f,0f,0f,0.16f);
         shapes.rect(eyeX-radius,eyeY-radius,radius*2,radius*2);
         shapes.end();
         Gdx.gl.glDisable(GL20.GL_STENCIL_TEST);

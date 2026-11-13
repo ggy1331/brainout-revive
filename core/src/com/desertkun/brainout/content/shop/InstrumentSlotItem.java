@@ -87,19 +87,20 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
                 {
                     Upgrade upgrade = ((Upgrade) BrainOut.ContentMgr.get(keys));
 
-                    if (upgrade != null)
+                    if (upgrade != null && upgrades.get(slot).contains(upgrade,true))
                     {
                         getSelectedUpgrades().put(slot, upgrade);
                     }
                 }
             }
 
+            info.skin=getActiveDefaultSkin();
             String skinSelection = getSkinSelection(userProfile);
             if (skinSelection != null)
             {
                 Skin skin = ((Skin) BrainOut.ContentMgr.get(skinSelection));
 
-                if (skins.contains(skin, true))
+                if (getAvailableSkins().contains(skin, true))
                 {
                     setSkin(skin);
                 }
@@ -108,8 +109,19 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
 
         public void setSkin(Skin skin)
         {
-            info.skin = skin;
+            info.skin = getAvailableSkins().contains(skin,true) ? skin : getActiveDefaultSkin();
         }
+
+        public InstrumentSlotItem getSkinItem()
+        {
+            Upgrade conversion=activeConversion(null);
+            Instrument target=conversion==null ? null : BrainOut.ContentMgr.get(conversion.getConversion(),Instrument.class);
+            if (target!=null && target.getSlotItem()!=null) return target.getSlotItem();
+            return InstrumentSlotItem.this;
+        }
+
+        public Array<Skin> getAvailableSkins() { return getSkinItem().getSkins(); }
+        public Skin getActiveDefaultSkin() { return getSkinItem().getDefaultSkin(); }
 
         public Skin getSelectedSkin()
         {
@@ -154,11 +166,12 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
             }
 
             instrumentData.secondSpecial = "slot-special-extra".equals(slot.getID());
-            instrumentData.setSkin(conversion == null || equipped == instrumentContent ? info.skin : equipped.getDefaultSkin());
+            setSkin(info.skin);
+            instrumentData.setSkin(info.skinFor(equipped));
 
             if (profile != null)
             {
-                if (info.skin != getDefaultSkin())
+                if (info.skin != getActiveDefaultSkin())
                 {
                     profile.setSelection(getSkinKey(), info.skin.getID());
                 }
@@ -289,7 +302,8 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
                         String id = selectedUpgrade.asString();
                         Upgrade upgrade = id != null ? BrainOut.ContentMgr.get(id, Upgrade.class) : null;
 
-                        if (upgrade != null)
+                        if (upgrade != null && upgrades.containsKey(selectedUpgrade.name()) &&
+                            upgrades.get(selectedUpgrade.name()).contains(upgrade,true))
                         {
                             info.upgrades.put(selectedUpgrade.name(), upgrade);
                         }
@@ -309,10 +323,11 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
         public void saveSelection(UserProfile profile, Selection selection, String layout)
         {
             super.saveSelection(profile, selection, layout);
+            setSkin(info.skin);
 
             if (profile != null)
             {
-                if (info.skin != getDefaultSkin())
+                if (info.skin != getActiveDefaultSkin())
                 {
                     profile.setSelection(getSkinKey(), info.skin.getID());
                 }

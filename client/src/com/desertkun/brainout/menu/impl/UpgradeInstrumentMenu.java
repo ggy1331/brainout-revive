@@ -101,6 +101,10 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
     @Override
     public Table createUI()
     {
+        selection.setSkin(selection.getSelectedSkin());
+        info.skin=selection.getSelectedSkin();
+        info.upgrades.clear();
+        info.upgrades.putAll(selection.getSelectedUpgrades());
         Table data = new Table();
         data.align(Align.center);
 
@@ -281,12 +285,12 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
         skinGroup.setMinCheckCount(0);
         skinGroup.setMaxCheckCount(1);
 
-        for (Skin skin : item.getSkins())
+        for (Skin skin : selection.getAvailableSkins())
         {
             if (skin == null)
                 continue;
 
-            if (skin == item.getDefaultSkin())
+            if (skin == selection.getActiveDefaultSkin())
                 continue;
 
             if (!skin.hasItem(userProfile))
@@ -335,8 +339,8 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
                         } else
                         {
                             selectedSkinButton = null;
-                            instrumentIcon.setSkin(item.getDefaultSkin());
-                            selection.setSkin(item.getDefaultSkin());
+                            instrumentIcon.setSkin(selection.getActiveDefaultSkin());
+                            selection.setSkin(selection.getActiveDefaultSkin());
                         }
                     }
                 });
@@ -670,6 +674,7 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
                             selection.getSelectedUpgrades().remove(key);
                             updateChars();
                         }
+                        if ("conversion".equals(key)) reset();
                     }
                 }
             });

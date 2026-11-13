@@ -771,9 +771,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
             }
             else
             {
-                float ox = pointPos.x, oy = pointPos.y;
                 pointPos.add(tmp.x, tmp.y);
-                slideAroundInnerCircle(ox, oy, tmp.x, tmp.y);
             }
             tmp.set(pointPos);
 
@@ -839,8 +837,8 @@ public class MyPlayerComponent extends PlayerControllerComponentData
 
     /**
      * Weapon stances on the mouse: without RMB the cursor stays inside the low stance circle
-     * (weapon lowered); holding RMB raises the weapon (high stance) and the cursor lives in the
-     * ring between that circle and the weapon's max aim distance. Paired pistols (RMB fires the
+     * (weapon lowered); holding RMB raises the weapon and removes the inner limit.
+     * The cursor slides against solid geometry and living players. Paired pistols (RMB fires the
      * second one), other instruments and gamepads keep the old free cursor.
      */
     private void constrainAim(float maxAimDist)
@@ -873,19 +871,27 @@ public class MyPlayerComponent extends PlayerControllerComponentData
 
         if (held)
         {
-            if (pointPos.len() < 0.001f)
+            if (!wasAimHeld && pointPos.len() < 0.001f)
             {
                 pointPos.set(h, 0).setAngleDeg(playerData.getAngle());
             }
 
             if (!wasAimHeld)
             {
-                // raising the weapon again: the mark returns to the distance it had last time
-                pointPos.nor().scl(Math.max(h, rememberedAimRadius));
+                pointPos.nor().scl(Math.max(h, maxAimDist + h));
             }
-
-            pointPos.clamp(h, Math.max(h, maxAimDist + h));
-            rememberedAimRadius = pointPos.len();
+            pointPos.clamp(0, Math.max(h, maxAimDist + h));
+            float originX=playerData.getX(),originY=playerData.getY();
+            WeaponAnimationComponentData animation=current.getComponent(WeaponAnimationComponentData.class);
+            if (animation!=null)
+            {
+                originX=animation.getLaunchPointData().getX();
+                originY=animation.getLaunchPointData().getY();
+            }
+            if (!wasAimHeld) cursorWorld.set(originX,originY);
+            aimCollision.move(getMap(),playerData,cursorWorld.x,cursorWorld.y,
+                originX+pointPos.x,originY+pointPos.y,cursorWorld);
+            pointPos.set(cursorWorld.x-originX,cursorWorld.y-originY);
         }
         else
         {
@@ -897,7 +903,10 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     }
 
     private boolean wasAimHeld, highStanceHeld;
-    private float rememberedAimRadius;
+    private final com.desertkun.brainout.data.AimCursorCollision aimCollision = new com.desertkun.brainout.data.AimCursorCollision();
+    private final Vector2 cursorWorld = new Vector2();
+
+    public float getAimCameraDistance() { return currentMaxAimDistance()+lowStanceRadius(); }
 
     /** RMB is held with an ordinary weapon: the high stance whose mark the camera follows. */
     public boolean isHighStanceHeld()
@@ -946,6 +955,9 @@ public class MyPlayerComponent extends PlayerControllerComponentData
             return;
 
         constrainAim(currentMaxAimDistance());
+        ClientPlayerComponent cpc=playerData.getComponent(ClientPlayerComponent.class);
+        if (highStanceHeld && cpc!=null && !cpc.getMousePosition().isZero(.001f))
+            playerData.setAngle(cpc.getMousePosition().angleDeg());
     }
 
     private void showDamageMarker(float x, float y, float angle)

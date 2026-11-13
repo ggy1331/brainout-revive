@@ -20,12 +20,19 @@ with ZipFile(ROOT / 'bin/client/packages/base.zip') as archive:
             assert not re.search(r'(?:Р[А-Яа-я]|С[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏ]){2}',value), (key,value)
             assert all(c.isascii() or '\u0410'<=c<='\u044f' or c in 'Ёё' for c in value), (key,value)
             checked+=1
-    assert checked==244
+    assert checked==146
     print('RUSSIAN_TEXT_PASS',checked,'titles and descriptions')
     atlas = archive.read('content/textures/GAME.atlas').decode()
     page = Image.open(archive.open('content/textures/vanguard-modules.png')).convert('RGBA')
     for weapon in ('stg', 'mp40'):
         model = json.loads(archive.read('content/animations/weapon-' + weapon + '.json'))
+        assert content['sl-pri-'+weapon]['instrument']['skins']==['skin-weapon-'+weapon+'-default']
+        options=content['sl-pri-'+weapon]['instrument']['upgrades']
+        assert 'rear-grip' not in options
+        removed={'mp40':{0,2,4,6,7,8,12,13,14,16,18,20},'stg':{0,1,2,3,4,6,10,11,12,13,15,16,19,20,21}}[weapon]
+        assert {int(k.rsplit('-',1)[1]) for k in options['scope']}==set(range(22))-removed
+        assert len(options['scope'])==(7 if weapon=='stg' else 10)
+        assert texts['VG_'+weapon.upper()+'_GRIP_7']['RU'].endswith('Штык-нож')
         for skin in model['skins']:
             if 'body' not in skin['attachments']:
                 continue

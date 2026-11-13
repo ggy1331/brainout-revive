@@ -92,7 +92,7 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
 
         float scale = ClientConstants.Graphics.RES_SIZE * instrumentScale * (1f / 0.4f);
 
-        data.setSkin(displayed == info.instrument ? info.skin : displayed.getDefaultSkin());
+        data.setSkin(info.skinFor(displayed));
         data.getSkeleton().getRootBone().setScale(data.getSkeleton().getRootBone().getScaleX() * scale);
 
         data.init();
@@ -220,7 +220,7 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
     {
         clearToOriginalArrachments();
 
-        data.setSkin(displayed == info.instrument ? info.skin : displayed.getDefaultSkin());
+        data.setSkin(info.skinFor(displayed));
         data.updateSkin();
 
         updateOriginalAttachments();
