@@ -31,9 +31,24 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private Vector2 moveDirection, originalDirection;
     protected Player.State state;
     private float diveTime, diveCooldown;
-    // slide (sit while running): a boost, then friction; the sit collider, so it goes under low
-    // gaps; ends in a sit (or a run if Shift is held), a jump leaves it with its speed
-    private float slideTime, slideCooldown, slideAir;
+    // slide (Ctrl twice while running): a boost, then friction; the sit collider, so it goes under
+    // low gaps; ends in a sit (or a run if Shift is held). It can't be cancelled - no jump, dive or
+    // standing up out of it (no slide-cancel abuse). A single Ctrl while running sits after the
+    // double-tap window.
+    private float slideTime, slideCooldown, slideAir, slideTap;
+    private float sinceGround = 1;     // the bottom contact flickers while running: "on the ground" = touched it lately
+    private boolean slideTapExpired;
+    private static final float SLIDE_TAP_WINDOW = 0.25f;
+    private static final boolean SLIDE_DEBUG = System.getenv("BRAINOUT_SLIDE_DEBUG") != null;
+
+    private void slideLog(String what)
+    {
+        if (!SLIDE_DEBUG) return;
+        SimplePhysicsComponentData b = playerData.getComponentWithSubclass(SimplePhysicsComponentData.class);
+        System.out.println("[slide] " + (BrainOut.getInstance().getController().isServer() ? "server " : "client ") +
+            what + " state=" + state + " tap=" + slideTap + " cd=" + slideCooldown +
+            " vx=" + (b == null ? 0 : b.getSpeed().x) + " sinceGround=" + sinceGround);
+    }
     private static final float SLIDE_MIN_SPEED = 7f;     // |vx| needed to start (run is 12)
     private static final float SLIDE_BOOST = 1.12f;      // start speed = run speed x this
     private static final float SLIDE_FRICTION = 13f;     // speed lost per second
@@ -41,7 +56,6 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private static final float SLIDE_END_SPEED = 4.5f;   // slower than this: the slide is over
     private static final float SLIDE_MAX_TIME = 1.2f;
     private static final float SLIDE_COOLDOWN = 0.8f;
-    private static final float SLIDE_JUMP_AFTER = 0.12f;
     // getting up from prone: 0 = still lying, 1 = fully up. The speed climbs from the crawl speed
     // to the full speed of the new stance while the body comes up (STAND_UP_TIME), so Shift
     // pressed while prone doesn't give a sprint at once.
@@ -684,11 +698,12 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         if (isWounded() || slideCooldown > 0 || playerData.getPlayer().isFlying()) return false;
         if (state != Player.State.run && state != Player.State.tacticalRun) return false;
         SimplePhysicsComponentData body = playerData.getComponentWithSubclass(SimplePhysicsComponentData.class);
-        if (body == null || !hasBottomContact() || body.hasFixture()) return false;
+        if (body == null || sinceGround > 0.15f || body.hasFixture()) return false;
         float speed = body.getSpeed().x;
         // the server follows the client's state: a smaller threshold there, so they don't disagree
         float min = BrainOut.getInstance().getController().isServer() ? 3f : SLIDE_MIN_SPEED;
         if (Math.abs(speed) < min) return false;
+        slideLog("start");
         setState(Player.State.slide);
         slideTime = 0;
         slideAir = 0;
@@ -700,6 +715,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     /** The slide is over: a sit, or a run when Shift is held (or a jump) and there is headroom. */
     private void endSlide(boolean jumping)
     {
+        slideLog("end t=" + slideTime + " v=" + groundSpeed);
         slideCooldown = SLIDE_COOLDOWN;
         Player.State next = runHeld ? Player.State.run : (jumping ? Player.State.normal : Player.State.sit);
         if (next != Player.State.sit && hasTopContact()) next = Player.State.sit;
@@ -712,9 +728,21 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             return;
 
         if (state == Player.State.dive) return;
-        if (state == Player.State.slide && mode == PositionMode.sit) return;   // Ctrl again: keeps sliding
-        if (mode == PositionMode.sit && startSlide()) return;
-        if (state == Player.State.slide) slideCooldown = SLIDE_COOLDOWN;      // Z / standing up ends it
+        slideLog("mode " + mode);
+        if (state == Player.State.slide) return;                 // no cancelling a slide
+        if (mode == PositionMode.sit && !slideTapExpired && !BrainOut.getInstance().getController().isServer() &&
+            (state == Player.State.run || state == Player.State.tacticalRun))
+        {
+            // first Ctrl: wait for the second one; the second: slide (or sit if it can't)
+            if (slideTap <= 0)
+            {
+                slideTap = SLIDE_TAP_WINDOW;
+                return;
+            }
+            slideTap = 0;
+            if (startSlide()) return;
+        }
+        slideTapExpired = false;
         if (mode == PositionMode.crouch && startDive()) return;
         if (mode == PositionMode.normal && hasTopContact()) return;
         if (state == Player.State.crawl && mode != PositionMode.crouch) standUp = 0;
@@ -816,8 +844,20 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             }
         }
 
+        sinceGround = hasBottomContact ? 0 : sinceGround + dt;
         diveCooldown = Math.max(0, diveCooldown - dt);
         slideCooldown = Math.max(0, slideCooldown - dt);
+        if (slideTap > 0 && (slideTap -= dt) <= 0)
+        {
+            // a single Ctrl while running: sit, as before (just after the double-tap window)
+            slideTap = 0;
+            if (state == Player.State.run || state == Player.State.tacticalRun || state == Player.State.normal)
+            {
+                slideTapExpired = true;
+                setPositionMode(PositionMode.sit);
+                slideTapExpired = false;
+            }
+        }
         if (state == Player.State.crawl || state == Player.State.dive) standUp = 0;
         else standUp = Math.min(1, standUp + dt / STAND_UP_TIME);
         runTapWindow = Math.max(0, runTapWindow - dt);
@@ -880,12 +920,6 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
                 float brake = SLIDE_FRICTION + (moveDirection.x * groundSpeed < 0 ? SLIDE_BRAKE : 0);
                 groundSpeed = Math.signum(groundSpeed) * Math.max(0, Math.abs(groundSpeed) - brake * dt);
                 pcd.getSpeed().x = groundSpeed;
-                if (moveDirection.y > 0.2f && slideTime >= SLIDE_JUMP_AFTER && hasJumped <= 0)
-                {
-                    endSlide(true);                               // a jump out of the slide, with its speed
-                    jump();
-                    ended = true;
-                }
             }
             else
             {

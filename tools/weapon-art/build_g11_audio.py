@@ -3,7 +3,8 @@
   reload source (7.4 s): magazine slid in from the top 1.0-2.1 s, locks at 2.91 s; pause;
       rotary cocking handle turned 6.2-6.8 s (click at 6.81 s).
   fire source (5.3 s): three bursts at 460 rpm (0.13 s between shots); the LAST shot of every
-      burst has a free tail (0.495, 2.42, 4.385 s) -> three single-shot variants.
+      burst has a free tail (0.624, 2.416, 4.380 s) -> three single-shot variants (0.495 was the
+      one before the last: fire-1 had a second shot 0.13 s in, a burst sounded torn).
 
 Output (mono, 44100 Hz, PCM16) in build/g11/audio:
   fire-1..3.wav   one shot each, 0.8 s, mean loudness FIRE_MEAN dB like ASh-12 fire (-17),
@@ -23,7 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'build/g11/audio'
 
-FIRE_SHOTS = [0.495, 2.42, 4.385]
+FIRE_SHOTS = [0.6241, 2.4155, 4.3796]   # the LAST shot of each burst (onsets)
 FIRE_LEN, FIRE_MEAN, LIMIT = 0.8, -19.0, 0.7
 RELOAD_PARTS = [(1.10, 1.60, 0.25), (1.90, 3.05, 1.15)]   # source from, to, placed at
 RELOAD_LEN = 2.4
