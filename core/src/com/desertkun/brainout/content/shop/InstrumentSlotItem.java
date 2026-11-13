@@ -117,9 +117,8 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
             PlayerOwnerComponent ownerComponent = playerData.getComponent(PlayerOwnerComponent.class);
 
             Instrument equipped = shopCart.equippedInstrument(InstrumentSlotItem.this);
-            Upgrade conversion = info.upgrades.get("conversion");
-            if (conversion != null && conversion.getConversion() != null && upgrades.containsKey("conversion") &&
-                upgrades.get("conversion").contains(conversion, true) && (profile == null || conversion.hasItem(profile)))
+            Upgrade conversion = activeConversion(profile);
+            if (conversion != null)
             {
                 Instrument target = BrainOut.ContentMgr.get(conversion.getConversion(), Instrument.class);
                 if (target != null) equipped = target;
@@ -179,9 +178,42 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
             super.apply(shopCart, playerData, profile, slot, selection);
         }
 
+        /** The selected conversion (weapon family model), if it is one of this item's and owned. */
+        private Upgrade activeConversion(UserProfile profile)
+        {
+            Upgrade conversion = info.upgrades.get("conversion");
+            if (conversion != null && conversion.getConversion() != null && upgrades.containsKey("conversion") &&
+                upgrades.get("conversion").contains(conversion, true) && (profile == null || conversion.hasItem(profile)))
+                return conversion;
+            return null;
+        }
+
+        /** A conversion to another calibre gets its own ammo instead of the base weapon's. */
+        private Upgrade ammoConversion(ItemCargo cargo)
+        {
+            if (!(cargo.getContent() instanceof Bullet)) return null;
+            Upgrade conversion = activeConversion(null);
+            return conversion != null && conversion.getConversionAmmo() != null ? conversion : null;
+        }
+
+        @Override
+        protected Content cargoContent(ItemCargo cargo, ShopCart cart, Slot slot)
+        {
+            Upgrade conversion = ammoConversion(cargo);
+            if (conversion != null)
+            {
+                Content ammo = BrainOut.ContentMgr.get(conversion.getConversionAmmo());
+                if (ammo != null) return ammo;
+            }
+            return super.cargoContent(cargo, cart, slot);
+        }
+
         @Override
         protected int cargoAmount(ItemCargo cargo, ShopCart cart, Slot slot)
         {
+            Upgrade conversion = ammoConversion(cargo);
+            if (conversion != null && conversion.getConversionAmmoAmount() > 0)
+                return conversion.getConversionAmmoAmount();
             Instrument equipped = cart.equippedInstrument(InstrumentSlotItem.this);
             if (!(cargo.getContent() instanceof Bullet) || !(equipped instanceof Weapon) ||
                 !"slot-secondary".equals(slot.getID())) return super.cargoAmount(cargo,cart,slot);

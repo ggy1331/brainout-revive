@@ -6,6 +6,7 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.desertkun.brainout.BrainOut;
+import com.desertkun.brainout.content.upgrades.Upgrade;
 import com.desertkun.brainout.Constants;
 import com.desertkun.brainout.content.Layout;
 import com.desertkun.brainout.content.active.Player;
@@ -232,6 +233,16 @@ public class ShopCart
                     boolean mosin = s.equals("sl-pri-mosinobrez");
                     s = mosin ? "sl-pri-mosin" : s.replace("electro-guitar", "guitar");
                     userProfile.setSelection(s + "-upgrade-conversion", mosin ? "conversion-obrez" : "conversion-electric");
+                    userProfile.setSelection(key, s);
+                }
+                // a model that became a conversion of its family's base weapon (launcher/conversions.py)
+                final String hidden = s;
+                Upgrade family = BrainOut.ContentMgr.queryOneContentTpl(Upgrade.class,
+                    u -> hidden.equals(u.getConvertsFrom()) && u.getConversionBase() != null);
+                if (family != null)
+                {
+                    s = family.getConversionBase();
+                    userProfile.setSelection(s + "-upgrade-conversion", family.getID());
                     userProfile.setSelection(key, s);
                 }
                 SlotItem slotItem = ((SlotItem) BrainOut.ContentMgr.get(s));

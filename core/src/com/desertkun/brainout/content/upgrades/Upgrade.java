@@ -20,8 +20,17 @@ import com.desertkun.brainout.reflection.ReflectAlias;
 public class Upgrade extends OwnableContent
 {
     private String conversion;
+    // weapon families (launcher/conversions.py): the shop item this conversion replaced (old
+    // loadouts that selected it are translated), the base shop item, and the converted weapon's
+    // own ammo (another calibre / amount than the base weapon's)
+    private String convertsFrom, conversionBase, ammo;
+    private int ammoAmount;
 
     public String getConversion() { return conversion; }
+    public String getConvertsFrom() { return convertsFrom; }
+    public String getConversionBase() { return conversionBase; }
+    public String getConversionAmmo() { return ammo; }
+    public int getConversionAmmoAmount() { return ammoAmount; }
 
     private enum UpgradeKind
     {
@@ -180,6 +189,13 @@ public class Upgrade extends OwnableContent
     {
         super.read(json, jsonData);
         conversion = jsonData.getString("conversion", null);
+        convertsFrom = jsonData.getString("convertsFrom", null);
+        conversionBase = jsonData.getString("conversionBase", null);
+        if (jsonData.has("ammo"))
+        {
+            ammo = jsonData.get("ammo").getString("id", null);
+            ammoAmount = jsonData.get("ammo").getInt("amount", 0);
+        }
 
         if (jsonData.has("properties"))
         {
