@@ -62,9 +62,10 @@ def unpack(archive, dest, digest):
     if not {"brainout.exe","client/brainout-desktop.jar","server/brainout-server.jar","support/home.py"} <= seen:
         raise ValueError("Релиз не содержит полной Windows-сборки")
 
-def open_url(url,timeout=90,accept="application/vnd.github+json"):
-    return urlopen(Request(url,headers={"User-Agent":"BrainOut-Windows-Updater","Accept":accept,
-                                       "Accept-Language":"en"}),timeout=timeout)
+def open_url(url,timeout=90,accept="application/vnd.github+json",start=0):
+    headers={"User-Agent":"BrainOut-Windows-Updater","Accept":accept,"Accept-Language":"en"}
+    if start:headers["Range"]=f"bytes={start}-"
+    return urlopen(Request(url,headers=headers),timeout=timeout)
 
 def transient(error):
     return not isinstance(error, HTTPError) or error.code in (403,408,429,500,502,503,504)
@@ -132,9 +133,9 @@ def report(kind, *values):
 
 REPORT = False
 
-def copy_reporting(src, out, total):
-    done, last = 0, 0.0
-    report("progress", 0, total)
+def copy_reporting(src, out, done, total):
+    last = 0.0
+    report("progress", done, total)
     for block in iter(lambda: src.read(262144), b""):
         out.write(block)
         done += len(block)
@@ -145,21 +146,37 @@ def copy_reporting(src, out, total):
     report("progress", done, total)
 
 def download_asset(asset, archive):
+    # GitHub sometimes closes a long download in the middle (seen at 100-190 MB of 450 MB).
+    # Resume from the received size (Range) instead of starting over; give up only after
+    # several attempts in a row that brought nothing new.
     direct = asset["browser_download_url"]
-    urls = (direct, asset.get("url",direct), direct)
-    for attempt, url in enumerate(urls):
+    urls = (direct, asset.get("url",direct))
+    size = asset.get("size") or 0
+    archive.write_bytes(b"")
+    fails, attempt = 0, 0
+    while True:
+        done = archive.stat().st_size
+        if size and done >= size:
+            if done == size: return
+            archive.write_bytes(b""); done = 0
+        url = urls[attempt % len(urls)]; attempt += 1
         try:
-            with open_url(url,accept="application/octet-stream") as src, archive.open("wb") as out:
-                total = asset.get("size") or int(src.headers.get("Content-Length") or 0)
-                copy_reporting(src, out, total)
-            if "size" not in asset or archive.stat().st_size == asset["size"]:
-                return
-            if attempt == 2:
-                raise ValueError("Загрузка прервана")
-        except (URLError, TimeoutError, ConnectionError, IncompleteRead) as exc:
-            if not transient(exc) or attempt == 2:
+            with open_url(url,accept="application/octet-stream",start=done) as src:
+                if done and src.status != 206:
+                    done = 0  # server ignored Range: take the whole file again
+                total = size or done + int(src.headers.get("Content-Length") or 0)
+                with archive.open("ab" if done else "wb") as out:
+                    copy_reporting(src, out, done, total)
+            if not size: return
+        except (URLError, TimeoutError, ConnectionError, IncompleteRead, OSError) as exc:
+            if isinstance(exc, HTTPError) and not transient(exc) and exc.code != 416:
                 raise
-        time.sleep(attempt + 1)
+        if archive.stat().st_size > done:
+            fails = 0
+        else:
+            fails += 1
+            if fails >= 4: raise ValueError("Загрузка прервана")
+            time.sleep(fails)
 
 def prepare(root):
     current=(root/MARKER).read_text().strip() if (root/MARKER).exists() else BASELINE
