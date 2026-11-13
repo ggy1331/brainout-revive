@@ -18,8 +18,9 @@ Clips (states in smart/Weapons/g11/Weapon.txt):
   g11-reload (2.4 s): the support hand pulls the old magazine forward out of the top and lets it
       fall, takes a fresh one from the chest pouch, slides it in from the front, presses it home;
       timed to g11/reload.wav: slides 0.25-0.75 and 1.15-2.1 s, lock 2.16 s
-  g11-fetch (1.0 s, only after an empty magazine): the support hand turns the cocking handle one
-      full turn (click at 0.71 s of g11/fetch.wav)
+  g11-fetch (1.0 s, only after an empty magazine): the support hand keeps the rifle by the front,
+      the trigger hand lets go of the grip and turns the cocking handle one full turn (click at
+      0.71 s of g11/fetch.wav); the weapon animation "crank" keeps the gun in place meanwhile
 """
 from copy import deepcopy
 from math import cos, sin, pi, radians
@@ -63,7 +64,10 @@ TAKE = .94                   # fresh magazine out
 LINE = 1.18                  # lined up in front of the well
 SLID = 1.96                  # slid in
 LOCK = 2.16                  # pressed home: click
-CRANK_EVENT, CRANK_TURN = .22, .48   # the handle turns 0.22-0.70, click at 0.71
+CRANK_EVENT = .02                    # g11-crank action: the weapon animation starts
+LET_GO, TURN0, TURN1, REGRIP = .12, .26, .70, .84   # trigger hand off the grip / on the handle,
+                                     # one turn (click at 0.71), back on the grip
+CRANK_HAND = 70.0                    # fist angle on the handle, relative to the gun
 
 
 def lerp(a, b, f):
@@ -267,44 +271,76 @@ def clips(au, model):
             {"name": None}, {"time": TAKE - .04, "name": "mag"}, {"time": LINE, "name": None}]},
     })
 
-    # turning the handle: the rifle pushed out and the muzzle up, so the handle (behind the grip)
-    # comes away from the shoulder and the support arm is not folded up against the face
+    # turning the handle: the support hand keeps the rifle by the front of the housing, the trigger
+    # hand lets go of the grip and turns the handle (behind the grip). The rifle is pushed out and
+    # the muzzle up a little, so the handle comes away from the shoulder.
     crank_at, crank_pitch = work_at + CRANK_PUSH, work_pitch + CRANK_TILT
+    start_at, start_pitch = lerp(hold_at, work_at, .5), lerp(hold_pitch, work_pitch, .5)  # where a reload leaves it
+
+    def rifle(t):
+        go = ease(t, 0, LET_GO + .04) * (1 - ease(t, REGRIP, FETCH_TIME))
+        a = lerp(lerp(start_at, hold_at, ease(t, REGRIP, FETCH_TIME)), crank_at, go)
+        p = lerp(lerp(start_pitch, hold_pitch, ease(t, REGRIP, FETCH_TIME)), crank_pitch, go)
+        return a, p
+
+    def fetch_state(t):
+        """(trigger fist pos, angle), (gun pos, pitch)"""
+        a, p = rifle(t)
+        on = lambda q: au.on_gun(a, p, q)
+        turn = ease(t, TURN0, TURN1) * 360            # clockwise as seen
+        handle = CRANK + CRANK_R * direction(90 - turn)
+        twist = p + CRANK_HAND - 20 * sin(radians(turn))
+        if t < LET_GO or t >= REGRIP + .06:           # on the grip
+            return (a, p), (a, p)
+        if t < TURN0:                                 # off the grip, back to the handle
+            f = ease(t, LET_GO, TURN0)
+            hand = lerp(a, on(handle), f) + complex(.9, 0) * sin(pi * f)
+            return (hand, lerp(p, near(twist, p), f)), (a, p)
+        if t < TURN1:                                 # one turn
+            return (on(handle), twist), (a, p)
+        f = ease(t, TURN1, REGRIP + .06)              # back onto the grip
+        hand = lerp(on(handle), a, f) + complex(.9, 0) * sin(pi * f)
+        return (hand, lerp(twist, near(p, twist), f)), (a, p)
 
     def fetch(t):
-        # starts where a reload leaves the rifle (half way back to the hold)
-        a = lerp(lerp(hold_at, work_at, .5), crank_at, ease(t, 0, CRANK_EVENT))
-        p = lerp(lerp(hold_pitch, work_pitch, .5), crank_pitch, ease(t, 0, CRANK_EVENT))
-        back = ease(t, CRANK_EVENT + CRANK_TURN, FETCH_TIME)
-        a, p = lerp(a, hold_at, back), lerp(p, hold_pitch, back)
-        on = lambda q: au.on_gun(a, p, q)
-        turn = ease(t, CRANK_EVENT, CRANK_EVENT + CRANK_TURN) * 360   # clockwise as seen
-        handle = CRANK + CRANK_R * direction(90 - turn)
-        twist = p + support_rel + 40 - 25 * sin(radians(turn))
-        if t < CRANK_EVENT:                           # from under the housing (end of the reload) to the handle
-            f = ease(t, 0, CRANK_EVENT)
-            hand = lerp(on(SUPPORT), on(handle), f) + complex(.8, 0) * sin(pi * f)
-            ang = lerp(p + support_rel, near(twist, p + support_rel), f)
-        elif t < CRANK_EVENT + CRANK_TURN:            # one turn
-            hand, ang = on(handle), twist
-        else:                                         # back under the front of the housing
-            f = ease(t, CRANK_EVENT + CRANK_TURN, FETCH_TIME)
-            hand = lerp(on(handle), on(SUPPORT), f) + complex(1.0, 0) * sin(pi * f)
-            ang = lerp(twist, near(p + support_rel, twist), f)
-        return (a, p), (hand, ang), None
+        front, (a, p) = fetch_state(t)
+        return front, (au.on_gun(a, p, SUPPORT), p + support_rel), None
 
-    au.clip("g11-fetch", FETCH_TIME, fetch, [(CRANK_EVENT, "g11-crank")])
-    return grab_angle
+    au.clip("g11-fetch", FETCH_TIME, fetch, [(CRANK_EVENT, "g11-crank")],
+            extra_times=(LET_GO, TURN0, TURN1, REGRIP + .06))
+
+    # the weapon animation "crank": the gun is attached to the trigger fist, so while the fist is off
+    # the grip the g11-hand bone moves the gun in the fist by the difference; and the handle turns
+    off_t, off_r, crank_r = [], [], []
+    prev = 0.0
+    times = sorted({*(i / 30 for i in range(int(FETCH_TIME * 30) + 1)), LET_GO, TURN0, TURN1, REGRIP + .06})
+    for t in times:
+        if t < CRANK_EVENT:
+            continue
+        (h, hp), (g, pg) = fetch_state(t)
+        r = near(pg - hp, prev)
+        prev = r
+        rel = (g - h) / (direction(hp) * au.gpx)      # the gun origin (grip) in the fist's space
+        k = round(t - CRANK_EVENT, 4)
+        off_t.append({"time": k, "x": round(rel.real, 3), "y": round(rel.imag, 3)})
+        off_r.append({"time": k, "value": round(r, 2)})
+        crank_r.append({"time": k, "value": round(-ease(t, TURN0, TURN1) * 359, 2)})
+    crank_r.append({"time": round(FETCH_TIME - CRANK_EVENT + .01, 4)})
+    anim = {"bones": {"g11-hand": {"translate": off_t, "rotate": off_r}, "g11-crank": {"rotate": crank_r}}}
+    return grab_angle, anim
 
 
-def front_order(actor):
-    """drawOrder offsets that put the support arm (normally behind the rifle) in front of it"""
-    names = [sl["name"] for sl in actor["slots"]]
-    moved = [n for n in ("ghand2", "gpalm2", "g11-mag-hand") if n in names]
-    order = [n for n in names if n not in moved]
-    anchor = max(order.index(n) for n in ("slot-primary", "slot-primary-upper") if n in order)
-    order[anchor + 1:anchor + 1] = moved
-    return [{"slot": n, "offset": order.index(n) - names.index(n)} for n in moved]
+def model_changes(model, anim):
+    """g11-hand: one bone under the root carrying the whole gun (the fetch moves it in the fist)"""
+    if not any(b["name"] == "g11-hand" for b in model["bones"]):
+        for b in model["bones"]:
+            if b.get("parent") == "root":
+                b["parent"] = "g11-hand"
+        model["bones"].insert(1, {"name": "g11-hand", "parent": "root"})
+        for sl in model["slots"]:
+            if sl["bone"] == "root":
+                sl["bone"] = "g11-hand"
+    model["animations"]["crank"] = anim
 
 
 def content_changes(content):
@@ -332,12 +368,10 @@ def build(source, destination):
             setup = {b["name"]: b for b in actor["bones"]}
             gpx = world_scale(setup, ("hand1", "palm1", "holder-primary")) * model["bones"][0].get("scaleX", 1)
             au = Author(actor, gpx)
-            grab_angle = clips(au, model)
+            grab_angle, anim = clips(au, model)
             add_hand_magazine(actor, setup, gpx, model, grab_angle)
-            # the handle is on the visible side: the support hand turns it in front of the rifle,
-            # back behind it before the clip ends (a mix-out restores the setup order anyway)
-            actor["animations"]["g11-fetch"]["drawOrder"] = [
-                {"time": 0, "offsets": front_order(actor)}, {"time": round(FETCH_TIME - .15, 3)}]
+            model_changes(model, anim)
+            changes[MODEL] = encode(model)
             changes[ACTOR] = encode(actor)
         if "__H" in names:
             hashes = json.loads(src.read("__H"))
