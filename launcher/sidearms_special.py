@@ -549,6 +549,16 @@ def welrod_sound(item):
     add_action(item, {"for": "welrod-fetch-snd", "type": "effect", "effects": "colt-fetch"})
 
 
+def far_hand_front(actor):
+    """drawOrder offsets: the far arm (normally behind the torso) over the chest, behind the head"""
+    names = [sl["name"] for sl in actor["slots"]]
+    moved = [n for n in ("ghand2", "gpalm2", "sa-mag-hand") if n in names]
+    order = [n for n in names if n not in moved]
+    anchor = order.index("body")                # over the chest, behind the head and the gun
+    order[anchor + 1:anchor + 1] = moved
+    return [{"slot": n, "offset": order.index(n) - names.index(n)} for n in moved]
+
+
 def welrod(c, names, read, changes, encode, actor, setup):
     item = c.get("weapon-welrod")
     if item is None:
@@ -579,6 +589,12 @@ def welrod(c, names, read, changes, encode, actor, setup):
     W = "solo-weapon-welrod-"
     if states.get("fetch"):
         add_events(au, W + states["fetch"], [(WELROD_SND, "welrod-fetch-snd"), (WELROD_SND, "welrod-cycle")])
+    # the bolt handle is at the very back of the Welrod, over the chest: the far hand working it
+    # (and the magazine change) is drawn in front of the torso, still behind the gun
+    order = far_hand_front(actor)
+    for st in ("reload", "fetch"):
+        if states.get(st) and W + states[st] in au.clips:
+            au.clips[W + states[st]]["drawOrder"] = [{"time": 0, "offsets": order}]
     if states.get("reload"):
         matte = deepcopy(au.clips[W + states["reload"]])
         for key in matte.get("slots", {}).get("sa-mag-hand", {}).get("attachment", []):
