@@ -815,6 +815,12 @@ public class BrainOutServer extends BrainOut implements Runnable
     @Override
     public void run()
     {
+        // an error in one frame used to stop the whole server (ExceptionHandler -> System.exit):
+        // the match was gone and every player reconnected to a new room. Now it is logged and
+        // the game goes on; only a server failing frame after frame is stopped.
+        long windowStart = 0;
+        int errors = 0;
+
         while (working)
         {
             try
@@ -823,7 +829,22 @@ public class BrainOutServer extends BrainOut implements Runnable
             }
             catch (Exception e)
             {
-                ExceptionHandler.handle(e);
+                long now = System.currentTimeMillis();
+                if (now - windowStart > 10000)
+                {
+                    windowStart = now;
+                    errors = 0;
+                }
+
+                if (++errors > 50)
+                {
+                    ExceptionHandler.handle(e);
+                }
+                else
+                {
+                    if (Log.ERROR) Log.error("Error in the server loop (the game goes on):");
+                    e.printStackTrace();
+                }
             }
         }
     }

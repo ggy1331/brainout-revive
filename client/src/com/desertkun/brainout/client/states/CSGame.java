@@ -674,13 +674,19 @@ public class CSGame extends ControllerState
         if (map == null)
             return false;
 
-        final ActiveData activeData = map.getActiveData(msg.object);
-
-        if (activeData instanceof PlayerData)
+        // The player is looked up on the main thread, not here on the network thread: a player who
+        // just spawned or came into view is added by NewActiveDataMsg in a postRunnable, and this
+        // message (sent right after it) used to find nothing and was dropped - the player then ran
+        // around with no weapon in hands until the next switch.
+        Gdx.app.postRunnable(() ->
         {
+            final ActiveData activeData = map.getActiveData(msg.object);
+
+            if (!(activeData instanceof PlayerData))
+                return;
+
             if (Log.INFO) Log.info("Other player switching instrument: " + activeData.getOwnerId());
 
-            Gdx.app.postRunnable(() ->
             {
                 PlayerRemoteComponent prc = activeData.getComponent(PlayerRemoteComponent.class);
 
@@ -738,9 +744,8 @@ public class CSGame extends ControllerState
                     }
                 }
 
-            });
-
-        }
+            }
+        });
 
         return true;
     }

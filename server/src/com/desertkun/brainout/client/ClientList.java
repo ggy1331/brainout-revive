@@ -724,7 +724,8 @@ public class ClientList extends ObjectMap<Integer, Client>
 
     public void sendTCP(Object object)
     {
-        for (ObjectMap.Entry<Integer, Client> entry: this)
+        // own iterator: the shared one of the map must not be reset under another loop over it
+        for (ObjectMap.Entry<Integer, Client> entry: new ObjectMap.Entries<>(this))
         {
             Client client = entry.value;
             if (client instanceof PlayerClient)

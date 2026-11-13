@@ -1506,7 +1506,12 @@ public class PlayerClient extends Client
     {
         if (playerController != null)
         {
-            if (msg.moveX != 0 || msg.moveY != 0) endSpawnProtection();
+            // this handler runs on the network thread: ending the protection broadcasts to every
+            // client (iterates the client list), so it goes to the main thread like the others.
+            // Iterating there at the same time as the main loop crashed the server (libGDX
+            // "#iterator() cannot be used nested" -> System.exit -> everyone reconnects).
+            if ((msg.moveX != 0 || msg.moveY != 0) && playerData != null && playerData.hasSpawnProtection())
+                BrainOutServer.PostRunnable(this::endSpawnProtection);
             if (!playerController.move(msg.x, msg.y, msg.aimX, msg.aimY, msg.moveX, msg.moveY))
             {
                 UdpMessage res = playerController.generateMoveMessage(false);
