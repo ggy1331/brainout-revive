@@ -10,6 +10,7 @@ instrument = {
     id = weapon-spas12
     skins = skin-weapon-spas12-default, skin-weapon-spas12-reggae, skin-weapon-spas12-torgue, skin-weapon-spas12-companion
     upgrades = {
+        butt = upgrade-spas12-butt-unfolded
         recoil = upgrade-spas12-recoil
         reload-time = upgrade-spas12-reload-time
     }

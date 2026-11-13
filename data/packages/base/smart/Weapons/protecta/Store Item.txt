@@ -10,6 +10,7 @@ instrument = {
     id = weapon-protecta
     skins = skin-weapon-protecta-default, skin-weapon-protecta-river
     upgrades = {
+        butt = upgrade-protecta-butt-unfolded
         recoil = upgrade-protecta-recoil
         reload-time = upgrade-protecta-reload-time
     }
