@@ -31,6 +31,7 @@ import colt1911
 import sidearms
 import g11
 import conversions
+import vanguard_attachments
 import player_skins
 from finalize_sidearms import finalize
 
@@ -53,7 +54,8 @@ def side(name, fresh):
     colt1911.build(tmp / "5-final.zip", tmp / "6-colt.zip")
     sidearms.build(tmp / "6-colt.zip", tmp / "7-sidearms.zip")
     g11.build(tmp / "7-sidearms.zip", tmp / "8-g11.zip")
-    conversions.build(tmp / "8-g11.zip", pk / "base.zip")
+    conversions.build(tmp / "8-g11.zip", tmp / "9-conversions.zip")
+    vanguard_attachments.build(tmp / "9-conversions.zip", pk / "base.zip")
     welrod_graft.freeplay(keep_fp, pk / "freeplay.zip")
     print(name, "packages ready")
 

@@ -172,6 +172,12 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
 
     private void clearToOriginalArrachments()
     {
+        // Attachment geometry may move the muzzle; deselecting a barrel restores it.
+        for (com.esotericsoftware.spine.Bone bone : data.getSkeleton().getBones())
+            if (bone.getData().getName().equals("fire-bone") || bone.getData().getName().equals("vg-tip"))
+            {
+                bone.setX(bone.getData().getX()); bone.setY(bone.getData().getY());
+            }
         if (dynamic)
         {
             for (ObjectMap.Entry<Slot, Attachment> entry : originalAttachments)

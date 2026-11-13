@@ -59,7 +59,7 @@ public class PostEffects implements Disposable
                 this.h = BrainOutClient.getHeight() / postEffect.getDownscale();
 
                 fbo = new FrameBuffer(Pixmap.Format.RGBA8888, BrainOutClient.getWidth(),
-                    BrainOutClient.getHeight(), false);
+                    BrainOutClient.getHeight(), true, true);
                 fbo.getColorBufferTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
                 fboRegion = new TextureRegion(fbo.getColorBufferTexture());
                 fboRegion.flip(false, true);

@@ -131,6 +131,13 @@ public class MyWeaponComponent extends Component
                         case endAimHold:
                         case endLaunchSecondary: right.endLaunching(); return true;
                         case reload:
+                            if (!data.getWeapon().hasSequentialPairedReload())
+                            {
+                                reloadRightAfterLeft = false;
+                                if (current.getLoadedRounds() < current.getClipSize().asInt()) current.doReload(true);
+                                if (right.getLoadedRounds() < right.getClipSize().asInt()) right.doReload(true);
+                                return true;
+                            }
                             if (right.isReloadingOrChambering()) return true;
                             if (current.isReloadingOrChambering())
                             {

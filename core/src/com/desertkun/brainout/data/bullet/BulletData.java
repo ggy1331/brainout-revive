@@ -534,7 +534,7 @@ public abstract class BulletData extends ComponentObject implements Renderable, 
         // revive: a shot of several pellets (buckshot) - the weapon's damage is for the whole shot,
         // each pellet takes its share; all of them have to hit for the full damage
         int pellets = getBullet() == null ? 1 : getBullet().getAmountPerLaunch();
-        return pellets > 1 ? damage / pellets : damage;
+        return pellets > 1 ? damage * 1.30f / pellets : damage;
     }
 
     public float calculateDamage()

@@ -517,6 +517,9 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
             final String key = entry.key;
 
             // revive: one row per slot; slots with several parts get compact buttons in a row
+            if (item.getID().equals("sl-pri-stg") || item.getID().equals("sl-pri-mp40"))
+                sideButtons.add(new Label(L.get("ATTACHMENT_SLOT_" + key.replace('-', '_').toUpperCase(java.util.Locale.ROOT)),
+                    BrainOutClient.Skin, "title-small")).left().padTop(8).padBottom(4).row();
             Table slotRow = new Table();
             slotRow.align(Align.left);
             sideButtons.add(slotRow).left().row();
@@ -568,8 +571,10 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
             }
             else
             {
+                int column = 0;
                 for (final Upgrade upgrade : entry.value)
                 {
+                    if (column++ > 0 && (column - 1) % 3 == 0) slotRow.row();
                     ButtonGroup<Button> group = groups.get(key);
 
                     if (group == null)

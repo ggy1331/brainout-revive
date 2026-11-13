@@ -695,21 +695,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
     protected boolean startSlide()
     {
-        if (isWounded() || slideCooldown > 0 || playerData.getPlayer().isFlying()) return false;
-        if (state != Player.State.run && state != Player.State.tacticalRun) return false;
-        SimplePhysicsComponentData body = playerData.getComponentWithSubclass(SimplePhysicsComponentData.class);
-        if (body == null || sinceGround > 0.15f || body.hasFixture()) return false;
-        float speed = body.getSpeed().x;
-        // the server follows the client's state: a smaller threshold there, so they don't disagree
-        float min = BrainOut.getInstance().getController().isServer() ? 3f : SLIDE_MIN_SPEED;
-        if (Math.abs(speed) < min) return false;
-        slideLog("start");
-        setState(Player.State.slide);
-        slideTime = 0;
-        slideAir = 0;
-        groundSpeed = speed * SLIDE_BOOST;
-        body.getSpeed().x = groundSpeed;
-        return true;
+        return false;
     }
 
     /** The slide is over: a sit, or a run when Shift is held (or a jump) and there is headroom. */
@@ -728,21 +714,6 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
             return;
 
         if (state == Player.State.dive) return;
-        slideLog("mode " + mode);
-        if (state == Player.State.slide) return;                 // no cancelling a slide
-        if (mode == PositionMode.sit && !slideTapExpired && !BrainOut.getInstance().getController().isServer() &&
-            (state == Player.State.run || state == Player.State.tacticalRun))
-        {
-            // first Ctrl: wait for the second one; the second: slide (or sit if it can't)
-            if (slideTap <= 0)
-            {
-                slideTap = SLIDE_TAP_WINDOW;
-                return;
-            }
-            slideTap = 0;
-            if (startSlide()) return;
-        }
-        slideTapExpired = false;
         if (mode == PositionMode.crouch && startDive()) return;
         if (mode == PositionMode.normal && hasTopContact()) return;
         if (state == Player.State.crawl && mode != PositionMode.crouch) standUp = 0;

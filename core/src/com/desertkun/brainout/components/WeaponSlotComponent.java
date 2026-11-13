@@ -1284,7 +1284,7 @@ public abstract class WeaponSlotComponent extends Component
 
     public void doFetch()
     {
-        if (!isEnabled(false) || pairedHandBusy())
+        if (!isEnabled(false))
             return;
 
         if (state == State.fetching ||
@@ -1318,7 +1318,7 @@ public abstract class WeaponSlotComponent extends Component
 
     public boolean doReload(boolean fineToAutoLoadRounds)
     {
-        if (!isEnabled(false) || pairedHandBusy())
+        if (!isEnabled(false) || (data.getWeapon().hasSequentialPairedReload() && pairedHandBusy()))
             return false;
 
         builtUp = false;

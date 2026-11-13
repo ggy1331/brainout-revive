@@ -52,6 +52,7 @@ import java.nio.file.Path;
 
 public class ClientMap extends Map
 {
+    public WorldVisibility visibilityMask;
     protected ParallaxData parallax;
     protected Array<CompleteDataContainer<EffectData>> effects;
     protected MusicList musicList;
@@ -282,6 +283,7 @@ public class ClientMap extends Map
     @Override
     protected void initRoot()
     {
+        visibilityMask = new WorldVisibility(this);
         effects = new Array<>();
 
         for (int i = 0; i < Constants.Layers.EFFECT_LAYERS_COUNT; i++)
@@ -290,24 +292,30 @@ public class ClientMap extends Map
         }
 
         root.addUpdateItem(blocks);
+        root.addRenderableItem(visibilityMask.marker(true), RenderFilter.any);
 
-        root.addItem(effects.get(Constants.Layers.EFFECT_LAYER_1), RenderFilter.pre);
+        root.addUpdateItem(effects.get(Constants.Layers.EFFECT_LAYER_1));
+        root.addRenderableItem(visibilityMask.wrap(effects.get(Constants.Layers.EFFECT_LAYER_1)), RenderFilter.pre);
         root.addRenderableItem(actives.getRenderLayer(Constants.Layers.ACTIVE_LAYER_1), RenderFilter.pre);
         root.addRenderableItem(blocks.getRenderLayer(Constants.Layers.BLOCK_LAYER_BACKGROUND), RenderFilter.pre);
         root.addRenderableItem(actives.getRenderLayer(Constants.Layers.ACTIVE_LAYER_1TOP), RenderFilter.pre);
         root.addRenderableItem(blocks.getRenderLayer(Constants.Layers.BLOCK_LAYER_FOREGROUND), RenderFilter.pre);
         root.addRenderableItem(actives.getRenderLayer(Constants.Layers.ACTIVE_LAYER_2), RenderFilter.pre);
-        root.addItem(bullets, RenderFilter.pre);
-        root.addItem(effects.get(Constants.Layers.EFFECT_LAYER_2), RenderFilter.pre);
+        root.addUpdateItem(bullets);
+        root.addRenderableItem(visibilityMask.wrap(bullets), RenderFilter.pre);
+        root.addUpdateItem(effects.get(Constants.Layers.EFFECT_LAYER_2));
+        root.addRenderableItem(visibilityMask.wrap(effects.get(Constants.Layers.EFFECT_LAYER_2)), RenderFilter.pre);
         root.addRenderableItem(actives.getRenderLayer(Constants.Layers.ACTIVE_LAYER_3), RenderFilter.pre);
         root.addRenderableItem(blocks.getRenderLayer(Constants.Layers.BLOCK_LAYER_UPPER), RenderFilter.pre);
-        root.addItem(effects.get(Constants.Layers.EFFECT_LAYER_3), RenderFilter.post);
+        root.addUpdateItem(effects.get(Constants.Layers.EFFECT_LAYER_3));
+        root.addRenderableItem(visibilityMask.wrap(effects.get(Constants.Layers.EFFECT_LAYER_3)), RenderFilter.post);
 
         root.addItem(components, RenderFilter.post);
 
         root.addRenderableItem(ClientPlayerComponent.AimRenderable(), RenderFilter.post);
 
         root.addUpdateItem(actives);
+        root.addRenderableItem(visibilityMask.marker(false), RenderFilter.post);
     }
 
     public void preRender()
@@ -358,7 +366,11 @@ public class ClientMap extends Map
         if (lights != null && lightsEnabled)
         {
             lights.setCombinedMatrix(root.getCamera());
-            lights.render();
+            lights.prepareRender();
+            visibilityMask.rasterize(root.getCamera());
+            visibilityMask.clip(true);
+            try { lights.renderOnly(); }
+            finally { visibilityMask.clip(false); }
         }
     }
 
@@ -521,6 +533,7 @@ public class ClientMap extends Map
     public void dispose()
     {
         super.dispose();
+        if (visibilityMask != null) visibilityMask.dispose();
 
         if (lights != null)
         {

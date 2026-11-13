@@ -21,6 +21,7 @@ import com.desertkun.brainout.reflection.ReflectAlias;
 public class ReplaceSlotComponent extends ContentComponent implements UpgradeComponent
 {
     private ObjectMap<String, String> replace;
+    private final ObjectMap<String, com.badlogic.gdx.math.Vector2> boneOffsets = new ObjectMap<>();
     private Class<? extends AnimationComponentData> classToReplace;
 
     public ReplaceSlotComponent()
@@ -45,6 +46,9 @@ public class ReplaceSlotComponent extends ContentComponent implements UpgradeCom
     @Override
     public void read(Json json, JsonValue jsonData)
     {
+        if (jsonData.has("boneOffsets"))
+            for (JsonValue b : jsonData.get("boneOffsets"))
+                boneOffsets.put(b.name(), new com.badlogic.gdx.math.Vector2(b.getFloat("x", 0), b.getFloat("y", 0)));
         if (jsonData.has("replace"))
         {
             for (JsonValue r: jsonData.get("replace"))
@@ -77,6 +81,15 @@ public class ReplaceSlotComponent extends ContentComponent implements UpgradeCom
 
     public void upgradeSkeleton(Skeleton skeleton)
     {
+        for (ObjectMap.Entry<String, com.badlogic.gdx.math.Vector2> entry : boneOffsets)
+        {
+            com.esotericsoftware.spine.Bone bone = skeleton.findBone(entry.key);
+            if (bone != null)
+            {
+                bone.setX(bone.getData().getX() + entry.value.x * BrainOut.JsonSkeleton.getScale());
+                bone.setY(bone.getData().getY() + entry.value.y * BrainOut.JsonSkeleton.getScale());
+            }
+        }
         ObjectMap<String, String> array = replace;
 
         for (ObjectMap.Entry<String, String> entry : array)

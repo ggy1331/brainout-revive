@@ -186,6 +186,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
     private void resetHandAnimations()
     {
         animation.getState().clearTrack(ANIMATION_TOP);
+        animation.getState().clearTrack(2);
+        animation.getState().clearTrack(3);
     }
 
     private void updateHandAnimations(
@@ -256,8 +258,17 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                 {
                     try
                     {
-                        AnimationState.TrackEntry animationTop = animation.getState().setAnimation(ANIMATION_TOP,
+                        boolean pairedAction = held instanceof WeaponData && ((WeaponData)held).getWeapon().isPaired() &&
+                            (state == InstrumentAnimationStates.State.reload || state == InstrumentAnimationStates.State.reloadSecondary ||
+                             state == InstrumentAnimationStates.State.fetch || state == InstrumentAnimationStates.State.fetchSecondary);
+                        boolean rightHand = state == InstrumentAnimationStates.State.reloadSecondary || state == InstrumentAnimationStates.State.fetchSecondary;
+                        AnimationState.TrackEntry animationTop = animation.getState().setAnimation(pairedAction ? (rightHand ? 3 : 2) : ANIMATION_TOP,
                                 anim, loop);
+                        if (pairedAction)
+                        {
+                            animationTop.setMixDuration(0);
+                            animationTop.setTrackEnd(anim.getDuration());
+                        }
 
                         if (isMeleeEquipped() && (state == InstrumentAnimationStates.State.hit ||
                             state == InstrumentAnimationStates.State.aimHit)) animationTop.setMixDuration(0.025f);
@@ -274,6 +285,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                                 1.0f / animation.getContentComponent().getAnimation().getTimeScale());
                         }
 
+                        if (pairedAction) return;
                         if (listen)
                         {
                             lastInterruptedTop = null;

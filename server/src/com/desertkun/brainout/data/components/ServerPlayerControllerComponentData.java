@@ -439,11 +439,8 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
             if (this.state != state) startDive();
             return;
         }
-        if (state == Player.State.slide)
-        {
-            if (this.state != state) startSlide();
-            return;
-        }
+        // Old clients/saves cannot reintroduce sliding: interpret it as a normal crouch.
+        if (state == Player.State.slide) state = Player.State.sit;
         if (state == Player.State.tacticalRun && this.state != state && !startTacticalRun())
             state = Player.State.run;
 

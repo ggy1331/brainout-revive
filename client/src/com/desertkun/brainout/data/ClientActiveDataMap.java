@@ -19,6 +19,20 @@ public class ClientActiveDataMap extends ActiveDataMap
 {
     public class ClientRenderMap extends RenderMap
     {
+        @Override
+        public void render(Batch batch, RenderContext context)
+        {
+            for (Entry<Integer, ActiveData> item : this)
+            {
+                Map map = item.value.getMap();
+                WorldVisibility mask = map instanceof ClientMap ? ((ClientMap)map).visibilityMask : null;
+                boolean dynamic = !(item.value instanceof ActiveCache) && !(item.value instanceof Cacheble);
+                if (mask != null) mask.clip(batch, dynamic);
+                try { item.value.render(batch, context); }
+                finally { if (mask != null) mask.clip(batch, false); }
+            }
+        }
+
         public class ActiveCache extends ActiveData implements Comparator<ActiveData>
         {
             private SpriteCache cache;

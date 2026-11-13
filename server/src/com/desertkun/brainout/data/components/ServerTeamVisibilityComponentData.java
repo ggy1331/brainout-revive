@@ -60,6 +60,7 @@ public class ServerTeamVisibilityComponentData extends VisibilityComponentData<S
     @Override
     public boolean isVisibleTo(int to)
     {
+        if (BrainOutServer.Controller.getClients().get(to) instanceof PlayerClient) return true;
         Map map = getMap();
         ActiveData playerData = ((ActiveData) getComponentObject());
 
@@ -116,6 +117,7 @@ public class ServerTeamVisibilityComponentData extends VisibilityComponentData<S
 
     public boolean isVisibleTo(PlayerClient playerClient)
     {
+        if (playerClient != null) return true;
         if (currentlyVisibleDirectly.contains(playerClient.getId()) ||
             currentlyVisible.contains(playerClient.getId()))
         {
@@ -138,6 +140,7 @@ public class ServerTeamVisibilityComponentData extends VisibilityComponentData<S
 
     public VisibilityResult processVisibility(Client toClient)
     {
+        if (toClient instanceof PlayerClient) return VisibilityResult.direct;
         ServerController CC = BrainOutServer.Controller;
 
         ActiveData currentPlayerData = ((ActiveData) getComponentObject());

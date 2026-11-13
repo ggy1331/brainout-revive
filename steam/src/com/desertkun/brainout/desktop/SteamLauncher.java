@@ -50,6 +50,7 @@ public class SteamLauncher
         }
 
         Lwjgl3ApplicationConfiguration cfg = new Lwjgl3ApplicationConfiguration();
+        cfg.setBackBufferConfig(8, 8, 8, 8, 16, 8, 0);
         cfg.setTitle(environment.getAppName());
 
         if (settings.getFullscreen().getValue())

@@ -44,6 +44,7 @@ public class DesktopLauncher
         }
 
         Lwjgl3ApplicationConfiguration cfg = new Lwjgl3ApplicationConfiguration();
+        cfg.setBackBufferConfig(8, 8, 8, 8, 16, 8, 0);
 
         String name = System.getenv("DESKTOP_PROFILE_NAME");
 

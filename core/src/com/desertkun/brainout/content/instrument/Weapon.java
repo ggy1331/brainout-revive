@@ -29,6 +29,12 @@ public class Weapon extends Instrument
         return getID().startsWith("paired-");
     }
 
+    public boolean hasSequentialPairedReload()
+    {
+        return isPaired() && (getID().contains("shorty") || getID().contains("serbu") ||
+            getID().contains("peacemaker"));
+    }
+
     public static class WeaponProperties extends InstrumentProperties
     {
         private float accuracy;
