@@ -1195,7 +1195,7 @@ public class CSGame extends ControllerState
         float angle = com.badlogic.gdx.math.MathUtils.atan2(dy, dx) * com.badlogic.gdx.math.MathUtils.radiansToDegrees
             + com.badlogic.gdx.math.MathUtils.random(-14f, 14f);    // only a rough direction
         map.addEffect(new com.desertkun.brainout.data.effect.DamageEffectData(
-            new PointLaunchData(me.getX(), me.getY(), angle, me.getDimension()), "shot-marker", 1.1f));
+            new PointLaunchData(me.getX(), me.getY(), angle, me.getDimension()), "shot-marker", 2.5f, 0.4f));   // 1.5 s full, then fades
     }
 
     @SuppressWarnings("unused")

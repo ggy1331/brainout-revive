@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'build/g11/audio'
 
 FIRE_SHOTS = [0.6241, 2.4155, 4.3796]   # the LAST shot of each burst (onsets)
-FIRE_LEN, FIRE_MEAN, LIMIT = 0.8, -19.0, 0.7
+FIRE_LEN, FIRE_MEAN, LIMIT = 0.8, -12.0, 0.95   # ~ -21 dB mean after the limiter (was -25.8: too quiet; AK-74 shots ~ -19)
 RELOAD_PARTS = [(1.10, 1.60, 0.25), (1.90, 3.05, 1.15)]   # source from, to, placed at
 RELOAD_LEN = 2.4
 FETCH_PART = (6.1, 7.1)

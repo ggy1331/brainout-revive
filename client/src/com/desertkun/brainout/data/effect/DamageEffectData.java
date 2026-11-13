@@ -15,6 +15,15 @@ public class DamageEffectData extends EffectData
     private final CenterSprite sprite;
     private float time;
     private final float initTime;
+    // the share of the time at the end over which it fades out (1 = fades all the time)
+    private float fadeShare = 1;
+
+    /** Fully visible, fading out only over the last fadeShare of the time (the shot marker). */
+    public DamageEffectData(LaunchData launchData, String sprite, float time, float fadeShare)
+    {
+        this(launchData, sprite, time);
+        this.fadeShare = Math.max(0.01f, Math.min(1, fadeShare));
+    }
 
     public DamageEffectData(LaunchData launchData, String sprite, float time)
     {
@@ -56,7 +65,7 @@ public class DamageEffectData extends EffectData
 
         if (time > 0)
         {
-            sprite.setAlpha(time / initTime);
+            sprite.setAlpha(Math.min(1, time / (initTime * fadeShare)));
         }
     }
 
