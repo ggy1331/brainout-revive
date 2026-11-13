@@ -57,6 +57,7 @@ FAMILIES = {
     "mp5": {"members": ["mp5sd6"], "parts": True},
     "mp7": {"members": ["mp7a2", "mpx"], "parts": True},
     "m82": {"members": ["m95"], "parts": True},
+    "m14": {"members": ["m21"], "parts": True},
     # sidearms (secondary slot; with the akimbo perk the paired version of the model is given)
     "makarov": {"members": ["aps"], "parts": True},
     "fiveseven": {"members": ["fnx45"], "parts": True},

@@ -862,7 +862,9 @@ public class MyPlayerComponent extends PlayerControllerComponentData
         {
             highStanceHeld = false;
             wasAimHeld = false;
-            pointPos.clamp(0, maxAimDist + h);
+            // paired pistols (akimbo) can't aim: the mark stays in the inner circle
+            boolean paired = current instanceof WeaponData && ((WeaponData) current).getWeapon().isPaired();
+            pointPos.clamp(0, paired ? h : maxAimDist + h);
             return;
         }
 
