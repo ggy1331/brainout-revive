@@ -116,12 +116,16 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
         {
             Table upgrades = new Table();
             upgrades.align(Align.top);
+            boolean vanguard = item.getID().equals("sl-pri-stg") || item.getID().equals("sl-pri-mp40");
+            if (vanguard) upgrades.align(Align.topLeft).padLeft(8).padRight(8);
             // revive: many attachments per weapon -> rows per slot, scrollable
             ScrollPane upgradesPane = new ScrollPane(upgrades, BrainOutClient.Skin, "scroll-default");
             upgradesPane.setFadeScrollBars(false);
             upgradesPane.setScrollingDisabled(true, false);
-            data.add(upgradesPane).pad(10).expandX().right().top().maxHeight(
+            Cell<ScrollPane> upgradePaneCell = data.add(upgradesPane).pad(10).right().top().maxHeight(
                 Math.max(320, BrainOutClient.getHeight() - 160));
+            if (vanguard) upgradePaneCell.width(328);
+            else upgradePaneCell.expandX();
             data.add(main).pad(10).expandX().left().top().row();
             upgrades.add(new BorderActor(new Label(L.get("MENU_UPGRADES"),
                 BrainOutClient.Skin, "title-level"), "form-gray")).width(192).row();
@@ -571,10 +575,8 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
             }
             else
             {
-                int column = 0;
                 for (final Upgrade upgrade : entry.value)
                 {
-                    if (column++ > 0 && (column - 1) % 3 == 0) slotRow.row();
                     ButtonGroup<Button> group = groups.get(key);
 
                     if (group == null)
@@ -585,7 +587,9 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
                         groups.put(key, group);
                     }
 
-                    buttonW = compactRow ? 112 : 192; buttonH = compactRow ? 48 : 64; compactButtons = compactRow;
+                    boolean vanguard = item.getID().equals("sl-pri-stg") || item.getID().equals("sl-pri-mp40");
+                    buttonW = compactRow ? (vanguard ? 96 : 112) : 192;
+                    buttonH = compactRow ? 48 : 64; compactButtons = compactRow;
                     Button upgradeButton = addUpgradeButton(key, upgrade, group, true, true, slotRow);
                     if (upgradeButton != null)
                         UnlockTooltip.show(upgradeButton, upgrade, userProfile, this);
@@ -846,7 +850,8 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
         }
 
         Cell<Button> cell = sideButtons.add(upgradeButton).size(buttonW, buttonH);
-        if (!compactButtons || sideButtons.getCells().size % 4 == 0)
+        int columns = item.getID().equals("sl-pri-stg") || item.getID().equals("sl-pri-mp40") ? 3 : 4;
+        if (!compactButtons || sideButtons.getCells().size % columns == 0)
             cell.row();
 
         MenuBadge.apply(upgradeButton, upgrade);

@@ -48,6 +48,7 @@ public class GameplaySmoke {
             testHands(game.getPlayerData());
             testRules(game.getPlayerData());
             testMask(game);
+            attachmentMenu();
             System.out.println("GAMEPLAY_SMOKE_PASS");
         }catch(Throwable ex){ex.printStackTrace();System.out.println("GAMEPLAY_SMOKE_FAIL");}
         Gdx.app.exit();
@@ -118,6 +119,17 @@ public class GameplaySmoke {
             }
             b.end();Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,1100,1760);PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/"+w+"-mounted.png"),p,-1,true);p.dispose();f.end();f.dispose();font.dispose();b.dispose();
         }
+    }
+    static void attachmentMenu() {
+        InstrumentSlotItem item=BrainOut.ContentMgr.get("sl-pri-stg",InstrumentSlotItem.class);
+        Instrument w=BrainOut.ContentMgr.get("weapon-stg",Instrument.class);
+        InstrumentSlotItem.InstrumentSelection selection=(InstrumentSlotItem.InstrumentSelection)item.getStaticSelection();
+        selection.getInfo().skin=w.getDefaultSkin();
+        selection.getSelectedUpgrades().put("clip",BrainOut.ContentMgr.get("vg-stg-clip-2",Upgrade.class));
+        selection.getSelectedUpgrades().put("scope",BrainOut.ContentMgr.get("vg-stg-scope-1",Upgrade.class));
+        com.desertkun.brainout.menu.impl.UpgradeInstrumentMenu menu=new com.desertkun.brainout.menu.impl.UpgradeInstrumentMenu(item,w,()->{});
+        menu.onInit();menu.getViewport().update(1100,750,true);menu.act(.1f);menu.draw();png("attachment-menu.png");menu.onRelease();menu.dispose();
+        System.out.println("ATTACHMENT_MENU_PASS");
     }
     static void testHands(PlayerData player){
         for(String id:new String[]{"colt","welrod","supershorty","peacemaker"}){
