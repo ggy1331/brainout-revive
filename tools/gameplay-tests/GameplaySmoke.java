@@ -45,7 +45,8 @@ public class GameplaySmoke {
             require(stencil.get(0)>=8,"scene has no stencil buffer");
             validateAttachments();
             contactSheets();
-            stgShowcase();
+            attachmentShowcase("stg");
+            attachmentShowcase("mp40");
             testHands(game.getPlayerData());
             testRules(game.getPlayerData());
             testMask(game);
@@ -142,7 +143,7 @@ public class GameplaySmoke {
         menu.act(.1f);menu.draw();png("magazine-tooltip.png");menu.onRelease();menu.dispose();
         System.out.println("ATTACHMENT_MENU_PASS");
     }
-    static void stgShowcase(){
+    static void attachmentShowcase(String weapon){
         FrameBuffer f=new FrameBuffer(Pixmap.Format.RGBA8888,1400,420,false);f.begin();
         Gdx.gl.glClearColor(.13f,.14f,.14f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         OrthographicCamera camera=new OrthographicCamera();camera.setToOrtho(false,1400,420);
@@ -150,11 +151,11 @@ public class GameplaySmoke {
         String[] slots={"barrel","butt","clip","scope","silencer","grip","rear-grip"};
         int[][] choices={{0,0,1,0,0,1,0},{1,3,0,6,4,3,2},{2,4,2,10,1,0,1},{3,1,3,2,2,6,6}};
         for(int i=0;i<choices.length;i++){
-            InstrumentInfo info=new InstrumentInfo();info.instrument=BrainOut.ContentMgr.get("weapon-stg",Instrument.class);info.skin=info.instrument.getDefaultSkin();
-            for(int j=0;j<slots.length;j++)info.upgrades.put(slots[j],BrainOut.ContentMgr.get("vg-stg-"+slots[j]+"-"+choices[i][j],Upgrade.class));
+            InstrumentInfo info=new InstrumentInfo();info.instrument=BrainOut.ContentMgr.get("weapon-"+weapon,Instrument.class);info.skin=info.instrument.getDefaultSkin();
+            for(int j=0;j<slots.length;j++)info.upgrades.put(slots[j],BrainOut.ContentMgr.get("vg-"+weapon+"-"+slots[j]+"-"+choices[i][j],Upgrade.class));
             InstrumentIcon icon=new InstrumentIcon(info,3f,true);icon.setBounds(15+(i%2)*700,20+(1-i/2)*210,500,180);icon.resetAnimation();icon.draw(b,1);
         }
-        b.end();Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,1400,420);PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/stg-showcase.png"),p,-1,true);p.dispose();f.end();f.dispose();b.dispose();
+        b.end();Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,1400,420);PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/"+weapon+"-showcase.png"),p,-1,true);p.dispose();f.end();f.dispose();b.dispose();
     }
     static void testHands(PlayerData player){
         for(String id:new String[]{"colt","welrod","supershorty","peacemaker"}){

@@ -1,6 +1,6 @@
 """Weapon-specific artwork and deterministic conversion to native sprite assets.
 
-STG: native-grid drawings and adaptations of this game's own component artwork.
+STG: original generated parts atlas, native-game optics and drawn iron sights.
 MP40: original generated parts atlas and native-game optical bodies re-fitted to
 compact MP40 mounts. Each weapon and skin has its own colour palette.
 """
@@ -14,12 +14,19 @@ HERE=Path(__file__).resolve().parent
 NATIVE=HERE.parents[1]/'data/packages/base/textures/GAME'
 COUNTS={'barrel':4,'butt':5,'clip':4,'silencer':7,'scope':22,'grip':9,'rear-grip':10}
 MP_OFFSETS={'barrel':0,'butt':4,'clip':9,'silencer':13,'grip':20,'rear-grip':29}
+STG_SIZES={
+ 'barrel':[(44,11),(66,12),(54,12),(34,10)],
+ 'butt':[(30,14),(29,15),(4,7),(29,16),(28,16)],
+ 'clip':[(14,30),(10,18),(12,25),(14,25)],
+ 'silencer':[(12,5),(13,5),(14,5),(10,6),(27,6),(19,6),(15,6)],
+ 'grip':[(9,14),(11,7),(9,10),(26,8),(21,9),(12,14),(19,10),(29,6),(10,13)],
+ 'rear-grip':[(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13),(12,13)]}
 MP_SIZES={
- 'barrel':[(30,12),(37,12),(28,11),(23,11)],
- 'butt':[(31,15),(28,14),(5,7),(29,15),(24,13)],
+ 'barrel':[(29,9),(35,10),(26,9),(21,9)],
+ 'butt':[(28,13),(27,13),(4,7),(27,14),(25,12)],
  'clip':[(5,22),(5,31),(9,23),(7,31)],
- 'silencer':[(11,5),(12,5),(14,5),(10,6),(25,5),(18,5),(13,6)],
- 'grip':[(8,14),(10,7),(8,9),(21,7),(19,9),(11,13),(17,10),(27,6),(9,13)],
+ 'silencer':[(10,4),(11,4),(12,4),(9,5),(22,5),(16,5),(12,5)],
+ 'grip':[(8,12),(9,6),(7,8),(21,6),(17,7),(10,12),(15,8),(25,5),(8,11)],
  'rear-grip':[(9,14),(10,14),(9,14),(10,14),(9,14),(9,14),(10,14),(9,14),(10,14),(9,14)]}
 STG_OPTICS=[(13,13),(25,10),(15,8),(22,10),(17,10),(24,14),(35,7),
  (19,9),(36,12),(11,10),(29,11),(35,8),(24,14),(34,13),
@@ -72,7 +79,8 @@ def seated_optic(body,weapon):
     """Visible, connected low feet built for this receiver, not a tall donor rail."""
     body=trim(body);w,h=body.size;out=Image.new('RGBA',(w,h+2));out.alpha_composite(body)
     d=ImageDraw.Draw(out)
-    for desired in ([w//2] if w<15 else [round(w*.32),round(w*.70)]):
+    feet=([w//2] if w<15 else [round(w*.32),round(w*.70)])
+    for desired in feet:
         candidates=[x for x in range(w) if any(body.getpixel((x,y))[3] for y in range(h))]
         x=min(candidates,key=lambda x:abs(x-desired))
         last=max(y for y in range(h) if body.getpixel((x,y))[3])
@@ -81,6 +89,10 @@ def seated_optic(body,weapon):
         d.line((x,last,x,h),fill=colour)
         if x+1<w:d.line((x+1,last+1,x+1,h),fill=shadow)
         d.line((max(0,x-1),h+1,min(w-1,x+2),h+1),fill=shadow)
+    if weapon=='mp40':
+        # A continuous saddle joins the two feet; previously the thin feet
+        # disappeared at menu scale and left optical bodies looking detached.
+        d.line((max(0,feet[0]-2),h+1,min(w-1,feet[-1]+2),h+1),fill='#64645e')
     return trim(out)
 
 @lru_cache(None)
@@ -91,7 +103,12 @@ def stg_module():
 @lru_cache(None)
 def raw(weapon,slot,index):
     if slot=='scope':return scope(weapon,index)
-    if weapon=='stg':return trim(stg_module().draw(slot,index))
+    if weapon=='stg':
+        source=load(HERE/'art-sources/stg-parts-v5.png')
+        bounds=json.loads((HERE/'art-sources/stg-parts-v5.json').read_text())[MP_OFFSETS[slot]+index]
+        part=dominant(source.crop(bounds))
+        if slot in ('barrel','butt','silencer'):part=ImageOps.mirror(part)
+        return fit(part,STG_SIZES[slot][index])
     # The source sheet orders the padded stock before the stock-delete cap;
     # the upgrade catalogue orders these two choices the other way around.
     if slot=='butt' and index in (1,2):index=3-index

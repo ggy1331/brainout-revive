@@ -136,7 +136,7 @@ def build(source,target):
         parts={'stg':(25,50),'mp40':(8,57)}[weapon]
         tip = 78.8 if weapon=='stg' else 75.52
         m['bones'].append({'name':'vg-tip','parent':'root','x':tip,'y':11.56 if weapon=='stg' else 11.5})
-        grip_x,grip_y=(34.8,8.06) if weapon=='stg' else (51.52,10.0)
+        grip_x,grip_y=(34.8,8.06) if weapon=='stg' else (55.52,10.0)
         m['bones'].append({'name':'vg-underbarrel','parent':'root','x':grip_x,'y':grip_y})
         for slot in ('butt','barrel','scope','silencer','grip','rear-grip'):
             m['slots'].insert(-1,{'name':slot,'bone':'vg-tip' if slot=='silencer' else 'vg-underbarrel' if slot=='grip' else 'root',**({'attachment':'default'} if slot in ('butt','barrel','scope','rear-grip') else {})})
@@ -187,10 +187,11 @@ def build(source,target):
                          if art.getpixel((edge,j) if axis=='x' else (j,edge))[3]>128]
                     return (min(pts)+max(pts)+1)/2 if pts else (art.height if axis=='x' else art.width)/2
                 if slot=='silencer':
-                    x=art.width/2;y=edge_center('x',0)-art.height/2
+                    x=art.width/2-1;y=edge_center('x',0)-art.height/2
                 elif slot=='barrel':
-                    seam=origin_x+parts[1];seam_y=origin_y-(8 if weapon=='stg' else 5.5)
+                    seam=origin_x+parts[1]-1;seam_y=origin_y-(8 if weapon=='stg' else 5.5)
                     top=seam_y+edge_center('x',0)
+                    top=origin_y-round(origin_y-top)
                     x=seam+art.width/2;y=top-art.height/2
                     delta=seam+art.width-tip
                     delta_y=(top-edge_center('x',art.width-1))-(11.56 if weapon=='stg' else 11.5)
@@ -199,22 +200,23 @@ def build(source,target):
                     if occupied:grip_delta_y=top-max(occupied)-1-grip_y
                 elif slot=='butt':
                     seam=origin_x+parts[0];socket_y=origin_y-(9.5 if weapon=='stg' else 7)
-                    x=seam-art.width/2;y=socket_y+edge_center('x',art.width-1)-art.height/2
+                    x=seam-art.width/2+1;y=socket_y+edge_center('x',art.width-1)-art.height/2
                 elif slot=='scope':
-                    x=origin_x+(54 if weapon=='stg' else 29)
+                    x=origin_x+round((40 if weapon=='stg' else 26)-art.width/2)+art.width/2
                     # One native pixel of overlap keeps the actual mounting feet
                     # seated despite fractional render scales. Art is alpha-trimmed.
-                    y=origin_y-(6 if weapon=='stg' else 4)+art.height/2
+                    y=origin_y-(6 if weapon=='stg' else 5)+art.height/2
                 elif slot=='grip':
-                    x=0;y=-art.height/2
+                    # Clamp/bipod/bayonet mounts are not centred in their images.
+                    x=art.width/2-edge_center('y',0);y=1-art.height/2
                 elif slot=='rear-grip':
                     socket=origin_x+(38 if weapon=='stg' else 8)
                     x=socket+art.width/2-edge_center('y',0)
-                    y=origin_y-(16 if weapon=='stg' else 13)-art.height/2
+                    y=origin_y-(15 if weapon=='stg' else 12)-art.height/2
                 elif slot=='clip':
                     socket=23.31 if weapon=='stg' else 37.98
                     x=socket+art.width/2-edge_center('y',0)
-                    y=(2.23 if weapon=='stg' else 11)-art.height/2
+                    y=(5.06 if weapon=='stg' else 11)-art.height/2
                 a=attachment(key,art,x,y)
                 for skin in m['skins']:
                     if 'body' not in skin['attachments']:continue

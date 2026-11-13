@@ -1,4 +1,24 @@
-# Weapon-specific artwork, revision 4
+# Weapon-specific artwork, revision 5
+
+STG now loads **stg-parts-v5.png**, a new 39-piece source atlas generated with
+the built-in image generator. References were mp40-parts-v3.png (the user's
+preferred detail quality) and the revision-4 in-engine STG showcase (palette and
+receiver proportions). The full request is recorded in stg-parts-v5.prompt.txt.
+Explicit crop bounds are in stg-parts-v5.json. Stocks/barrels/muzzles are mirrored
+to face right; each part is fitted once with nearest-neighbour sampling to the
+weapon-specific STG_SIZES and mapped to each STG skin palette. The drum has a
+curved side flange and separate feed neck. No external game artwork was imported.
+
+MP40 retains its own atlas. Revision 5 adjusts every stock/barrel/muzzle/front
+grip size and the visible optic saddle. Mount placement uses the actual alpha
+edge of the attachment rather than its canvas centre, including asymmetrical
+bipod, flashlight and bayonet clamps. Scope centres are STG x=40 / MP40 x=26 in
+native sprite coordinates, seated on the receiver. STG magazine necks now overlap
+the well. Front/muzzle/rear/stock seams overlap by one native pixel. The new
+check_attachment_connections.py checks 625 contacts and barrel combinations
+across all five skins from the final packed atlas.
+
+## Revision 4 sources (retained for reference)
 
 The two weapons now use independent asset sets:
 
@@ -21,8 +41,8 @@ The two weapons now use independent asset sets:
   remains in the repository under its existing license. These are not COD assets.
 
 Other image-generation requests were rejected; there is no generated STG parts
-atlas. Editable code and this repository's own MIT-licensed sprites are the STG
-production sources. No external game's sprites were imported.
+atlas at that stage. Those editable drawings remain in stg_workshop.py as
+historical sources; only its two iron sights are used in revision 5.
 All output colours are quantized separately against the corresponding weapon
 and skin. Do not restore the old shared STG/MP40 palette or shared module drawing.
 The exported default sets contain 61 different assets each; alternate-skin atlas
