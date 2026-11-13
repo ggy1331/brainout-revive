@@ -141,26 +141,6 @@ class Author:
         self.clips[name] = pose
 
 
-def reindex_draw_orders(actor, old_names, new, after):
-    """drawOrder keys are offsets by slot index: a slot inserted later (here) would shift the clips
-    authored before (Welrod: far hand in front of the torso). Rebuild them for the new slot list,
-    the new slot following "after" wherever that one is drawn."""
-    names = [sl["name"] for sl in actor["slots"]]
-    for anim in actor["animations"].values():
-        for key in anim.get("drawOrder", []):
-            if not key.get("offsets"):
-                continue
-            moved = {o["slot"]: old_names.index(o["slot"]) + o["offset"] for o in key["offsets"]}
-            final = [None] * len(old_names)
-            for n, i in moved.items():
-                final[i] = n
-            rest = iter([n for n in old_names if n not in moved])
-            order = [n if n is not None else next(rest) for n in final]
-            order.insert(order.index(after) + 1, new)
-            key["offsets"] = [{"slot": n, "offset": order.index(n) - names.index(n)}
-                              for n in order if order.index(n) != names.index(n) and (n in moved or n == new)]
-
-
 def add_hand_magazine(actor, setup, gpx, model, grab_angle):
     """the g11-mag sprite on the support fist, so that the grab point sits on the fist and the
     magazine is parallel to the gun when the fist angle is pitch + grab_angle"""
@@ -170,7 +150,6 @@ def add_hand_magazine(actor, setup, gpx, model, grab_angle):
     names = [s["name"] for s in actor["slots"]]
     if "g11-mag-hand" not in names:
         actor["slots"].insert(names.index("gpalm2") + 1, {"name": "g11-mag-hand", "bone": "g11-mag-hold"})
-        reindex_draw_orders(actor, names, "g11-mag-hand", "gpalm2")
     att = next(s for s in model["skins"] if s["name"] == "weapon-default")["attachments"]["clip"]["default"]
     centre = complex(att["x"], att["y"])
     k = gpx / world_scale(setup, ("hand2", "palm2", "holder-secondary"))
