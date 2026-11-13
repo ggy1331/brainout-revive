@@ -31,6 +31,17 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private Vector2 moveDirection, originalDirection;
     protected Player.State state;
     private float diveTime, diveCooldown;
+    // slide (sit while running): a boost, then friction; the sit collider, so it goes under low
+    // gaps; ends in a sit (or a run if Shift is held), a jump leaves it with its speed
+    private float slideTime, slideCooldown, slideAir;
+    private static final float SLIDE_MIN_SPEED = 7f;     // |vx| needed to start (run is 12)
+    private static final float SLIDE_BOOST = 1.12f;      // start speed = run speed x this
+    private static final float SLIDE_FRICTION = 13f;     // speed lost per second
+    private static final float SLIDE_BRAKE = 22f;        // more while pressing the other way
+    private static final float SLIDE_END_SPEED = 4.5f;   // slower than this: the slide is over
+    private static final float SLIDE_MAX_TIME = 1.2f;
+    private static final float SLIDE_COOLDOWN = 0.8f;
+    private static final float SLIDE_JUMP_AFTER = 0.12f;
     // getting up from prone: 0 = still lying, 1 = fully up. The speed climbs from the crawl speed
     // to the full speed of the new stance while the body comes up (STAND_UP_TIME), so Shift
     // pressed while prone doesn't give a sprint at once.
@@ -613,7 +624,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     {
         if (pressed && runHeld) return;
         runHeld = pressed;
-        if (state == Player.State.dive) return;
+        if (state == Player.State.dive || state == Player.State.slide) return;
         if (isWounded()) return;
         if (!pressed)
         {
@@ -668,12 +679,42 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         return true;
     }
 
+    protected boolean startSlide()
+    {
+        if (isWounded() || slideCooldown > 0 || playerData.getPlayer().isFlying()) return false;
+        if (state != Player.State.run && state != Player.State.tacticalRun) return false;
+        SimplePhysicsComponentData body = playerData.getComponentWithSubclass(SimplePhysicsComponentData.class);
+        if (body == null || !hasBottomContact() || body.hasFixture()) return false;
+        float speed = body.getSpeed().x;
+        // the server follows the client's state: a smaller threshold there, so they don't disagree
+        float min = BrainOut.getInstance().getController().isServer() ? 3f : SLIDE_MIN_SPEED;
+        if (Math.abs(speed) < min) return false;
+        setState(Player.State.slide);
+        slideTime = 0;
+        slideAir = 0;
+        groundSpeed = speed * SLIDE_BOOST;
+        body.getSpeed().x = groundSpeed;
+        return true;
+    }
+
+    /** The slide is over: a sit, or a run when Shift is held (or a jump) and there is headroom. */
+    private void endSlide(boolean jumping)
+    {
+        slideCooldown = SLIDE_COOLDOWN;
+        Player.State next = runHeld ? Player.State.run : (jumping ? Player.State.normal : Player.State.sit);
+        if (next != Player.State.sit && hasTopContact()) next = Player.State.sit;
+        setState(next);
+    }
+
     protected void setPositionMode(PositionMode mode)
     {
         if (isWounded())
             return;
 
         if (state == Player.State.dive) return;
+        if (state == Player.State.slide && mode == PositionMode.sit) return;   // Ctrl again: keeps sliding
+        if (mode == PositionMode.sit && startSlide()) return;
+        if (state == Player.State.slide) slideCooldown = SLIDE_COOLDOWN;      // Z / standing up ends it
         if (mode == PositionMode.crouch && startDive()) return;
         if (mode == PositionMode.normal && hasTopContact()) return;
         if (state == Player.State.crawl && mode != PositionMode.crouch) standUp = 0;
@@ -776,6 +817,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         }
 
         diveCooldown = Math.max(0, diveCooldown - dt);
+        slideCooldown = Math.max(0, slideCooldown - dt);
         if (state == Player.State.crawl || state == Player.State.dive) standUp = 0;
         else standUp = Math.min(1, standUp + dt / STAND_UP_TIME);
         runTapWindow = Math.max(0, runTapWindow - dt);
@@ -819,6 +861,39 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
                 pcd.getSpeed().x = groundSpeed;
                 setState(Player.State.crawl);
             }
+        }
+        else if (state == Player.State.slide)
+        {
+            slideTime += dt;
+            hasJumped = Math.max(hasJumped - dt, 0);
+            boolean ended = false;
+            if (hasFixture)
+            {
+                endSlide(false);                                  // onto a ladder
+                ended = true;
+            }
+            else if (hasBottomContact || hadBottomContact || (slideAir += dt) < 0.12f)
+            {
+                if (hasBottomContact || hadBottomContact) slideAir = 0;  // a frame without contact isn't an edge
+                // ran into a wall: the physics stopped us
+                if (slideTime > 0.05f && Math.abs(pcd.getSpeed().x) < 1f) groundSpeed = 0;
+                float brake = SLIDE_FRICTION + (moveDirection.x * groundSpeed < 0 ? SLIDE_BRAKE : 0);
+                groundSpeed = Math.signum(groundSpeed) * Math.max(0, Math.abs(groundSpeed) - brake * dt);
+                pcd.getSpeed().x = groundSpeed;
+                if (moveDirection.y > 0.2f && slideTime >= SLIDE_JUMP_AFTER && hasJumped <= 0)
+                {
+                    endSlide(true);                               // a jump out of the slide, with its speed
+                    jump();
+                    ended = true;
+                }
+            }
+            else
+            {
+                endSlide(true);                                   // off an edge: falls as usual
+                ended = true;
+            }
+            if (!ended && (Math.abs(groundSpeed) <= SLIDE_END_SPEED || slideTime >= SLIDE_MAX_TIME))
+                endSlide(false);
         }
         else if (playerData.getPlayer().isFlying())
         {
@@ -1136,6 +1211,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         }
 
         tmp.x *= playerData.getSpeedCoef() * horizontalScale();
+        if (state == Player.State.slide) tmp.x = Math.max(tmp.x, Math.abs(groundSpeed));
 
         return tmp;
     }

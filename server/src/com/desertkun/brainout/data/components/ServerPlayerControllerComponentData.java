@@ -439,6 +439,11 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
             if (this.state != state) startDive();
             return;
         }
+        if (state == Player.State.slide)
+        {
+            if (this.state != state) startSlide();
+            return;
+        }
         if (state == Player.State.tacticalRun && this.state != state && !startTacticalRun())
             state = Player.State.run;
 

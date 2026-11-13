@@ -48,6 +48,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         woundedBackward,
         fly,
         diving,
+        sliding,
         crouch,
         crouchForward,
         crouchBackward,
@@ -619,6 +620,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
             gaitSpeed = MathUtils.lerp(gaitSpeed, speed, 0.6f);
             if (getState() == Player.State.dive)
                 newState = BottomAnimationState.diving;
+            else if (getState() == Player.State.slide)
+                newState = BottomAnimationState.sliding;
             else if (!hasBottomContact && !hasFixture && !playerData.isWounded())
             {
                 newState = BottomAnimationState.fly;
@@ -880,6 +883,19 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                 launch.setTimeScale(1f / animation.getContentComponent().getAnimation().getTimeScale());
                 launch.setMixDuration(0.05f);
                 rig.addAnimation(ANIMATION_BOTTOM,"crouch",true,clip.getDuration()).setMixDuration(0.04f);
+                break;
+            }
+            case sliding:
+            {
+                AnimationState rig = animation.getState();
+                AnimationState.TrackEntry active = rig.getCurrent(ANIMATION_BOTTOM);
+                if (active != null && active.getAnimation().getName().startsWith("slide")) break;
+                Animation clip = animation.getSkeleton().getData().findAnimation("slide-enter");
+                if (clip == null) { setBottomAnimation("sit"); break; }
+                AnimationState.TrackEntry enter = rig.setAnimation(ANIMATION_BOTTOM, clip, false);
+                enter.setTimeScale(1f / animation.getContentComponent().getAnimation().getTimeScale());
+                enter.setMixDuration(0.05f);
+                rig.addAnimation(ANIMATION_BOTTOM, "slide", true, clip.getDuration()).setMixDuration(0.03f);
                 break;
             }
             case fly:

@@ -42,6 +42,15 @@ def add_stance_clips(actor):
         "leg1":8,"knee1":-18,"leg2":-11,"knee2":-29,"foot1":-14,"foot2":14},
         {"root":(4.7,-3.6)})
     clips["dolphin-dive"] = [(0,stand),(.06,push),(.19,flight),(.32,prone)]
+
+    # slide (Ctrl while running): leaning back on the hip, the near leg stretched forward, the far
+    # one folded under; root-hands / head-root turn back by the lean, so the gun stays level
+    slide = pose(stand, {"root":30,"root-hands":-30,"head-root":-22,
+        "leg1":40,"knee1":35,"foot1":-15,"leg2":70,"knee2":-120}, {"root":(0,-15.5)})
+    drop = pose(stand, {"root":12,"root-hands":-12,"head-root":-8,
+        "leg1":30,"knee1":10,"foot1":-10,"leg2":55,"knee2":-105}, {"root":(0,-9)})
+    clips["slide-enter"] = [(0,stand),(.06,drop),(.14,slide)]
+    clips["slide"] = [(0,slide),(.5,slide)]
     for name,poses in clips.items():
         tracks = {}
         for bone in sorted(set().union(*(p for _,p in poses))):
