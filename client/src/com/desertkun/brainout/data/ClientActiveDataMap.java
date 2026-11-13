@@ -26,7 +26,8 @@ public class ClientActiveDataMap extends ActiveDataMap
             {
                 Map map = item.value.getMap();
                 WorldVisibility mask = map instanceof ClientMap ? ((ClientMap)map).visibilityMask : null;
-                boolean dynamic = !(item.value instanceof ActiveCache) && !(item.value instanceof Cacheble);
+                boolean dynamic = !(item.value instanceof ActiveCache) && !(item.value instanceof Cacheble) &&
+                    !WorldVisibility.isMapDecoration(item.value);
                 if (mask != null) mask.clip(batch, dynamic);
                 try { item.value.render(batch, context); }
                 finally { if (mask != null) mask.clip(batch, false); }

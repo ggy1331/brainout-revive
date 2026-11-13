@@ -183,7 +183,7 @@ public final class WorldVisibility
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapes.setProjectionMatrix(context.camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0f,0f,0f,0.16f);
+        shapes.setColor(0f,0f,0f,0.24f);
         shapes.rect(eyeX-radius,eyeY-radius,radius*2,radius*2);
         shapes.end();
         Gdx.gl.glDisable(GL20.GL_STENCIL_TEST);
@@ -211,6 +211,33 @@ public final class WorldVisibility
             public boolean hasRender() { return true; }
             public int getZIndex() { return original.getZIndex(); }
             public int getLayer() { return original.getLayer(); }
+        };
+    }
+
+    public static boolean isMapDecoration(com.desertkun.brainout.data.active.ActiveData active)
+    {
+        if (active instanceof PlayerData) return false;
+        // Campfires are physics items, but their flame belongs to the environment.
+        if (active.getComponent(com.desertkun.brainout.data.components.ClientCampFireComponentData.class)!=null) return true;
+        if (active.getComponentWithSubclass(SimplePhysicsComponentData.class)!=null) return false;
+        return active instanceof com.desertkun.brainout.data.active.AnimationData ||
+            active instanceof com.desertkun.brainout.data.active.SpriteData ||
+            active.getComponent(com.desertkun.brainout.data.components.ActiveParticleComponentData.class)!=null;
+    }
+
+    public Renderable effects(final com.desertkun.brainout.data.containers.CompleteDataContainer<com.desertkun.brainout.data.effect.EffectData> effects)
+    {
+        return new Renderable() {
+            public void render(Batch b, RenderContext c) {
+                try {
+                    for (com.desertkun.brainout.data.effect.EffectData effect : effects) {
+                        clip(b,!effect.isEnvironment()); effect.render(b,c);
+                    }
+                } finally { clip(b,false); }
+            }
+            public boolean hasRender(){return true;}
+            public int getZIndex(){return 0;}
+            public int getLayer(){return 0;}
         };
     }
 

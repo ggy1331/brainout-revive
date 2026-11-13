@@ -77,6 +77,7 @@ public class ActiveParticleComponentData extends Component<ActiveParticleCompone
                     return false;
                 }
             });
+            if (particle!=null) particle.setEnvironment(com.desertkun.brainout.data.WorldVisibility.isMapDecoration(activeData));
         }
     }
 

@@ -12,6 +12,10 @@ public abstract class EffectData implements Renderable, CompleteUpdatable
     private final LaunchData launchData;
     private boolean done;
     private float angleOffset;
+    private boolean environment;
+
+    public boolean isEnvironment() { return environment; }
+    public void setEnvironment(boolean value) { environment=value; }
 
     public EffectData(Effect effect, LaunchData launchData)
     {

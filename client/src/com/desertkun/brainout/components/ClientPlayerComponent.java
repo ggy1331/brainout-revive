@@ -705,8 +705,6 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
                 // used to drop the camera offset to 0 for a moment — the camera jerked.
                 setAim(true);
                 aimOffset.set(pointPos);
-                if (aimOffset.isZero(.001f)) aimOffset.set(1,0).setAngleDeg(playerData.getAngle());
-                aimOffset.nor().scl(mpc.getAimCameraDistance());
             }
             else if (pointPos.len() < h)
             {

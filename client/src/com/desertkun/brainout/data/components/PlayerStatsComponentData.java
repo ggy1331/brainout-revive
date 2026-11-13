@@ -37,6 +37,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
     private PlayerData playerData;
     private RemoteClient remoteClient;
     private Label nickName;
+    private boolean identityVisible = true;
     private ActiveProgressBar progressBar;
     private boolean progress;
 
@@ -143,7 +144,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
                     case hideInterface:
                     {
                         if (nickName != null)
-                            nickName.setVisible(gcEvent.flag);
+                            identityVisible = gcEvent.flag;
                     }
                 }
                 break;
@@ -216,6 +217,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
         if (playerData == null)
             return;
 
+        boolean ally = isAlliedPlayer(playerData);
         PlayerComponentData pc = playerData.getComponent(PlayerComponentData.class);
 
         GameMode gameMode = BrainOutClient.ClientController.getGameMode();
@@ -231,11 +233,20 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
 
             ClientRealization clientRealization = ((ClientRealization) gameMode.getRealization());
 
-            if (!clientRealization.doDisplayPlayerBadge(playerData))
+            if (!ally && !clientRealization.doDisplayPlayerBadge(playerData))
                 return;
         }
 
+        if (nickName != null) nickName.setVisible(false);
+        boolean iconVisible = teamIcon != null && teamIcon.isVisible();
+        if (ally && teamIcon != null) teamIcon.setVisible(false);
         super.render(batch, context);
+        if (ally)
+        {
+            if (nickName != null) nickName.setVisible(identityVisible);
+            if (teamIcon != null) teamIcon.setVisible(iconVisible);
+            renderIdentity(batch, nickName, teamIcon);
+        }
 
         if (progress)
         {

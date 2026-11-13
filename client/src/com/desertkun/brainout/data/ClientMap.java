@@ -295,7 +295,7 @@ public class ClientMap extends Map
         root.addRenderableItem(visibilityMask.marker(true), RenderFilter.any);
 
         root.addUpdateItem(effects.get(Constants.Layers.EFFECT_LAYER_1));
-        root.addRenderableItem(visibilityMask.wrap(effects.get(Constants.Layers.EFFECT_LAYER_1)), RenderFilter.pre);
+        root.addRenderableItem(visibilityMask.effects(effects.get(Constants.Layers.EFFECT_LAYER_1)), RenderFilter.pre);
         root.addRenderableItem(actives.getRenderLayer(Constants.Layers.ACTIVE_LAYER_1), RenderFilter.pre);
         root.addRenderableItem(blocks.getRenderLayer(Constants.Layers.BLOCK_LAYER_BACKGROUND), RenderFilter.pre);
         root.addRenderableItem(actives.getRenderLayer(Constants.Layers.ACTIVE_LAYER_1TOP), RenderFilter.pre);
@@ -304,11 +304,11 @@ public class ClientMap extends Map
         root.addUpdateItem(bullets);
         root.addRenderableItem(visibilityMask.wrap(bullets), RenderFilter.pre);
         root.addUpdateItem(effects.get(Constants.Layers.EFFECT_LAYER_2));
-        root.addRenderableItem(visibilityMask.wrap(effects.get(Constants.Layers.EFFECT_LAYER_2)), RenderFilter.pre);
+        root.addRenderableItem(visibilityMask.effects(effects.get(Constants.Layers.EFFECT_LAYER_2)), RenderFilter.pre);
         root.addRenderableItem(actives.getRenderLayer(Constants.Layers.ACTIVE_LAYER_3), RenderFilter.pre);
         root.addRenderableItem(blocks.getRenderLayer(Constants.Layers.BLOCK_LAYER_UPPER), RenderFilter.pre);
         root.addUpdateItem(effects.get(Constants.Layers.EFFECT_LAYER_3));
-        root.addRenderableItem(visibilityMask.wrap(effects.get(Constants.Layers.EFFECT_LAYER_3)), RenderFilter.post);
+        root.addRenderableItem(visibilityMask.effects(effects.get(Constants.Layers.EFFECT_LAYER_3)), RenderFilter.post);
 
         root.addItem(components, RenderFilter.post);
 

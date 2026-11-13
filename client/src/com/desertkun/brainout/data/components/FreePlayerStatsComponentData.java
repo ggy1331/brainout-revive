@@ -38,6 +38,7 @@ public class FreePlayerStatsComponentData extends ActiveStatsComponentData<FreeP
     private PlayerData playerData;
     private RemoteClient remoteClient;
     private Label nickName;
+    private boolean identityVisible = true;
     private ActiveProgressBar progressBar;
     private boolean progress;
 
@@ -237,6 +238,7 @@ public class FreePlayerStatsComponentData extends ActiveStatsComponentData<FreeP
         if (playerData == null)
             return;
 
+        boolean ally = isAlliedPlayer(playerData);
         PlayerComponentData pc = playerData.getComponent(PlayerComponentData.class);
 
         GameMode gameMode = BrainOutClient.ClientController.getGameMode();
@@ -252,11 +254,20 @@ public class FreePlayerStatsComponentData extends ActiveStatsComponentData<FreeP
 
             ClientRealization clientRealization = ((ClientRealization) gameMode.getRealization());
 
-            if (!clientRealization.doDisplayPlayerBadge(playerData))
+            if (!ally && !clientRealization.doDisplayPlayerBadge(playerData))
                 return;
         }
 
+        if (nickName != null) nickName.setVisible(false);
+        boolean iconVisible = teamIcon != null && teamIcon.isVisible();
+        if (ally && teamIcon != null) teamIcon.setVisible(false);
         super.render(batch, context);
+        if (ally)
+        {
+            if (nickName != null) nickName.setVisible(identityVisible);
+            if (teamIcon != null) teamIcon.setVisible(iconVisible);
+            renderIdentity(batch, nickName, teamIcon);
+        }
 
         if (progress)
         {
@@ -309,7 +320,11 @@ public class FreePlayerStatsComponentData extends ActiveStatsComponentData<FreeP
     {
         RemoteClient o = BrainOutClient.ClientController.getRemoteClients().get(playerData.getOwnerId());
 
-        if (isKarmaQuestTarget())
+        if (isAlliedPlayer(playerData))
+        {
+            setTopIcon("player-icon-friend");
+        }
+        else if (isKarmaQuestTarget())
         {
             setTopIcon("fp-player-quest-target");
         }

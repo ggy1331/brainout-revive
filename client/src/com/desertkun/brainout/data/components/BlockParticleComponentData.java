@@ -36,6 +36,7 @@ public class BlockParticleComponentData extends Component<BlockParticleComponent
         effectData = map.addEffect(getContentComponent().getParticleEffect(),
             new PointLaunchData(BlockData.CURRENT_X + 0.5f, BlockData.CURRENT_Y + 0.5f, 0,
                 BlockData.CURRENT_DIMENSION));
+        if (effectData!=null) effectData.setEnvironment(true);
     }
 
     @Override

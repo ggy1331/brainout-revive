@@ -153,6 +153,41 @@ public class ActiveStatsComponentData<T extends ActiveStatsComponent> extends Co
         ui.draw(batch, 1);
     }
 
+    protected boolean isAlliedPlayer(com.desertkun.brainout.data.active.PlayerData player)
+    {
+        com.desertkun.brainout.client.ClientController controller = BrainOutClient.ClientController;
+        return player.getOwnerId() != controller.getMyId() &&
+            controller.getRemoteClients().get(player.getOwnerId()) != null &&
+            controller.getGameMode() != null &&
+            !controller.getGameMode().isEnemies(controller.getMyId(), player.getOwnerId());
+    }
+
+    // Draw only identity widgets outside the world stencil; bodies and combat UI stay clipped.
+    protected void renderIdentity(Batch batch, com.badlogic.gdx.scenes.scene2d.Actor... actors)
+    {
+        boolean clipped = com.badlogic.gdx.Gdx.gl.glIsEnabled(com.badlogic.gdx.graphics.GL20.GL_STENCIL_TEST);
+        batch.flush();
+        com.badlogic.gdx.Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_STENCIL_TEST);
+        try
+        {
+            for (com.badlogic.gdx.scenes.scene2d.Actor actor : actors)
+            {
+                if (actor == null || !actor.isVisible() || actor.getParent() == null) continue;
+                float x = actor.getX(), y = actor.getY();
+                com.badlogic.gdx.math.Vector2 position = actor.getParent().localToStageCoordinates(
+                    new com.badlogic.gdx.math.Vector2(x, y));
+                actor.setPosition(position.x, position.y);
+                try { actor.draw(batch, 1); }
+                finally { actor.setPosition(x, y); }
+            }
+        }
+        finally
+        {
+            batch.flush();
+            if (clipped) com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_STENCIL_TEST);
+        }
+    }
+
     public float getHealthValue()
     {
         return health.getHealth() / health.getInitHealth();

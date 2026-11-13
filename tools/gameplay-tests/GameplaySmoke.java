@@ -145,10 +145,10 @@ public class GameplaySmoke {
             held.setBoolean(null,true);cpc.getMousePosition().set(1,0);constrain.invoke(mine,30f);
             require(mine.isHighStanceHeld(),"aim hold not active");
             cpc.update(.1f);
-            require(Math.abs(cpc.getAimOffset().len()-mine.getAimCameraDistance())<.01f,"camera must target max aim distance");
+            require(cpc.getAimOffset().epsilonEquals(cpc.getMousePosition(), .01f),"camera must follow actual aim marker");
             cpc.getMousePosition().set(.1f,0);constrain.invoke(mine,30f);
             require(cpc.getMousePosition().len()<1,"inner aim circle still blocks cursor: "+cpc.getMousePosition());
-            System.out.println("AIM_MODE_PASS maximum camera offset, no inner limit");
+            System.out.println("AIM_MODE_PASS camera follows marker, no inner limit");
         }finally{Gdx.input=original;held.setBoolean(null,false);constrain.invoke(mine,30f);cpc.getMousePosition().set(old);}
     }
     static void loadoutMenu(){
@@ -280,8 +280,50 @@ public class GameplaySmoke {
         int red=0,hidden=0;for(int y=4*30;y<12*30;y++) {int rgba=p.getPixel((int)(12.5*30),y);if(((rgba>>>24)&255)>220&&((rgba>>>16)&255)<30)red++;else hidden++;}
         require(red>20&&hidden>20,"partial actor must contain visible AND hidden fragments: "+red+"/"+hidden);
         int shaded=p.getPixel(20*30,12*30);int sr=(shaded>>>24)&255,sg=(shaded>>>16)&255,sb=(shaded>>>8)&255;
-        require(Math.abs(sr-129)<=3&&Math.abs(sg-86)<=3&&Math.abs(sb-43)<=3,"shade must preserve hue and darken only 16%: "+Integer.toHexString(shaded));
-        System.out.println("VISIBILITY_COLOR_PASS hue preserved, 16% darker");
+        require(Math.abs(sr-116)<=3&&Math.abs(sg-78)<=3&&Math.abs(sb-39)<=3,"shade must preserve hue and darken only 24%: "+Integer.toHexString(shaded));
+        System.out.println("VISIBILITY_COLOR_PASS hue preserved, 24% darker");
+        ActiveData fire=new com.desertkun.brainout.content.active.Active().getData(player.getDimension());
+        fire.addComponent(new com.desertkun.brainout.content.components.SimplePhysicsComponent().getComponent(fire));
+        require(!WorldVisibility.isMapDecoration(fire),"physics object must remain clipped");
+        com.desertkun.brainout.content.components.ClientCampFireComponent fireComponent=new com.desertkun.brainout.content.components.ClientCampFireComponent();
+        fireComponent.read(new com.badlogic.gdx.utils.Json(),new com.badlogic.gdx.utils.JsonReader().parse("{}"));
+        fire.addComponent(fireComponent.getComponent(fire));
+        require(WorldVisibility.isMapDecoration(fire),"physics campfire must remain environment");
+        require(!WorldVisibility.isMapDecoration(player),"player must not be environment");
+        // Environment particles and allied identity widgets survive the same stencil that hides bodies.
+        com.desertkun.brainout.data.containers.CompleteDataContainer<com.desertkun.brainout.data.effect.EffectData> fx = new com.desertkun.brainout.data.containers.CompleteDataContainer<>();
+        for (int i=0;i<2;i++) {
+            final int index=i;
+            com.desertkun.brainout.data.effect.EffectData effect=new com.desertkun.brainout.data.effect.EffectData(null,null) {
+                public void render(com.badlogic.gdx.graphics.g2d.Batch batch,RenderContext rc) {
+                    batch.end();shape.begin(ShapeRenderer.ShapeType.Filled);shape.setColor(0,1,0,1);
+                    shape.rect(ox+17+index*2,oy+12,1,1);shape.end();batch.begin();
+                }
+                public void init(){} public void update(float dt){} public boolean hasUpdate(){return false;}
+                public boolean hasRender(){return true;} public boolean done(){return false;}
+            };
+            effect.setEnvironment(i==0);fx.add(effect);
+        }
+        b.begin();map.visibilityMask.effects(fx).render(b,context);b.end();
+        Pixmap effectsImage=ScreenUtils.getFrameBufferPixmap(0,0,720,540);
+        require(((effectsImage.getPixel(525,375)>>>16)&255)>240,"environment hidden behind wall");
+        require(((effectsImage.getPixel(585,375)>>>16)&255)<150,"combat effect leaked behind wall");
+        effectsImage.dispose();
+        com.desertkun.brainout.data.components.ActiveStatsComponentData stats=new com.desertkun.brainout.data.components.ActiveStatsComponentData(player,new com.desertkun.brainout.content.components.ActiveStatsComponent());
+        com.badlogic.gdx.scenes.scene2d.Group parent=new com.badlogic.gdx.scenes.scene2d.Group();parent.setPosition(ox+17,oy+14);
+        com.badlogic.gdx.scenes.scene2d.Actor badge=new com.badlogic.gdx.scenes.scene2d.Actor(){
+            public void draw(com.badlogic.gdx.graphics.g2d.Batch batch,float alpha){
+                batch.end();shape.begin(ShapeRenderer.ShapeType.Filled);shape.setColor(0,0,1,1);
+                shape.rect(getX(),getY(),1,1);shape.end();batch.begin();
+            }
+        };parent.addActor(badge);
+        java.lang.reflect.Method identity=stats.getClass().getDeclaredMethod("renderIdentity",com.badlogic.gdx.graphics.g2d.Batch.class,com.badlogic.gdx.scenes.scene2d.Actor[].class);identity.setAccessible(true);
+        b.begin();map.visibilityMask.clip(b,true);identity.invoke(stats,b,new com.badlogic.gdx.scenes.scene2d.Actor[]{badge});
+        require(Gdx.gl.glIsEnabled(GL20.GL_STENCIL_TEST),"identity did not restore body stencil");
+        require(badge.getX()==0&&badge.getY()==0,"identity changed widget layout");map.visibilityMask.clip(b,false);b.end();
+        Pixmap identityImage=ScreenUtils.getFrameBufferPixmap(0,0,720,540);
+        require(((identityImage.getPixel(525,435)>>>8)&255)>240,"allied identity hidden behind wall");identityImage.dispose();
+        System.out.println("ENVIRONMENT_IDENTITY_PASS environment and badge visible; combat effect hidden; stencil restored");
         PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/visibility.png"),p,-1,true);p.dispose();f.end();f.dispose();b.dispose();shape.dispose();
         player.setX(px);player.setY(py);
         for(int l=0;l<2;l++)for(int x=0;x<24;x++)for(int y=0;y<18;y++)map.setBlockNoRefresh(ox+x,oy+y,saved[l][x][y],layers[l],false);
