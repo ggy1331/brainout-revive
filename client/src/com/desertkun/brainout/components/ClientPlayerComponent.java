@@ -688,7 +688,17 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
             float h = (Math.min(BrainOutClient.getWidth(),
                 BrainOutClient.getHeight()) / Constants.Graphics.RES_SIZE) * 0.16f; // low stance circle (was 0.4, then 0.25), keep in sync with MyPlayerComponent.lowStanceRadius
 
-            if (mpc.isHighStanceHeld())
+            // paired pistols (akimbo) can't aim: RMB fires the second pistol, and they are for close
+            // range anyway. The camera still looks ahead past the inner circle.
+            boolean paired = playerData.getCurrentInstrument() instanceof WeaponData &&
+                ((WeaponData) playerData.getCurrentInstrument()).getWeapon().isPaired();
+            if (paired)
+            {
+                setAim(false);
+                if (pointPos.len() < h) aimOffset.set(0, 0);
+                else aimOffset.set(tmp.set(pointPos).nor().scl(pointPos.len() - h));
+            }
+            else if (mpc.isHighStanceHeld())
             {
                 // high stance on RMB: the camera follows the aim mark itself. Checked first: on
                 // the edge of the circle the mark length is h +- rounding, and a "len < h" frame
