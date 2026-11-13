@@ -47,6 +47,16 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
         this.amount = 1;
     }
 
+    /** The title of the weapon these upgrades make: a selected conversion is named after its model. */
+    public String getDisplayTitle(ObjectMap<String, Upgrade> selected)
+    {
+        Upgrade conversion = selected == null ? null : selected.get("conversion");
+        if (conversion != null && conversion.getConversion() != null && upgrades.containsKey("conversion") &&
+            upgrades.get("conversion").contains(conversion, true) && conversion.getTitle().isValid())
+            return conversion.getTitle().get();
+        return getTitle().get();
+    }
+
     public class InstrumentSelection extends ConsumableSelection
     {
         private InstrumentInfo info;
@@ -229,6 +239,12 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
         public ObjectMap<String, Upgrade> getSelectedUpgrades()
         {
             return info.upgrades;
+        }
+
+        /** The name of the model this selection is: a selected conversion is named after its model. */
+        public String getDisplayTitle()
+        {
+            return InstrumentSlotItem.this.getDisplayTitle(info.upgrades);
         }
 
         @Override

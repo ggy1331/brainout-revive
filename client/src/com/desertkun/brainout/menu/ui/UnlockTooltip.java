@@ -231,6 +231,10 @@ public class UnlockTooltip
 
         protected String getTitle()
         {
+            // a weapon with a conversion selected is shown under its model's name
+            if (item instanceof InstrumentSlotItem && ((InstrumentSlotItem) item).getStaticSelection()
+                instanceof InstrumentSlotItem.InstrumentSelection)
+                return ((InstrumentSlotItem.InstrumentSelection) ((InstrumentSlotItem) item).getStaticSelection()).getDisplayTitle();
             return item.getTitle().get();
         }
 

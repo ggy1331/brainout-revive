@@ -210,8 +210,8 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
             instrument.addActor(killCountParent);
         }
 
-        main.add(new BorderActor(new Label(item.getTitle().get(),
-                BrainOutClient.Skin, "title-level"), "form-gray")).width(256).left().row();
+        titleLabel = new Label(item.getDisplayTitle(info.upgrades), BrainOutClient.Skin, "title-level");
+        main.add(new BorderActor(titleLabel, "form-gray")).width(256).left().row();
 
         main.add(new BorderActor(instrument, "bg-weapon-panel")).expand().fill().size(w, h).row();
 
@@ -849,9 +849,14 @@ public class UpgradeInstrumentMenu extends Menu implements EventReceiver
         return upgradeButton;
     }
 
+    private Label titleLabel;
+
     private void updateChars()
     {
         chars.update();
+        // the header follows the selected conversion (AK-74 -> "AK-12")
+        if (titleLabel != null)
+            titleLabel.setText(item.getDisplayTitle(info.upgrades));
     }
 
     @Override
