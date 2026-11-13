@@ -1,0 +1,7 @@
+Bullet penetration sounds (glass-*.wav, wood-*.wav)
+Source: "75 CC0 breaking / falling / hit sfx" by rubberduck, OpenGameArt
+https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx (sfx_breaking_and_falling.zip)
+License: CC0 1.0 (public domain)
+glass-1..4 = bfh1_glass_hit_01, bfh1_glass_hit_02, bfh1_glass_breaking_02, bfh1_glass_breaking_05
+wood-1..4  = bfh1_wood_breaking_01..04
+Converted: ffmpeg -af "loudnorm=I=-20:TP=-3:LRA=7,afade=t=out:st=0.25|0.3:d=0.15" -ac 1 -ar 44100 pcm_s16le

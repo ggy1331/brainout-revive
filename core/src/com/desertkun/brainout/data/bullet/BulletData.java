@@ -309,6 +309,13 @@ public abstract class BulletData extends ComponentObject implements Renderable, 
                 if (blockIn != null && blockIn.getCreator().isPenetrable())
                 {
                     speed.scl(penetrationSpeedLeft(blockIn.getCreator().getResist()));
+
+                    if (bullet.isBlockEffectEnabled())
+                    {
+                        BrainOut.EventMgr.sendEvent(blockIn, LaunchEffectEvent.obtain(
+                            LaunchEffectEvent.Kind.custom,
+                            new PointLaunchData(oldX, oldY, getAngle(), getDimension()), "penetrate"));
+                    }
                 }
 
                 LaunchData hitLaunchData = null;

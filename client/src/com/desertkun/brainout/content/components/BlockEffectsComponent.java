@@ -25,7 +25,8 @@ public class BlockEffectsComponent extends ContentComponent
             "hit",
             "destroy",
             "place",
-            "step"
+            "step",
+            "penetrate" // a bullet went through a light block (glass, wood), see BulletData
         });
     }
 

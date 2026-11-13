@@ -42,6 +42,7 @@ components = [
             sparkle-1, wood-hit-snd-5
             sparkle-1, wood-hit-snd-6
         ]
+        penetrate = penetrate-glass-snd-1, penetrate-glass-snd-2, penetrate-glass-snd-3, penetrate-glass-snd-4
         step = [
             ice-step-snd-1, ice-step-part-1
             ice-step-snd-1, ice-step-part-2

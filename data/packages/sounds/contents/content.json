@@ -3531,5 +3531,45 @@
         "class": "content.effect.SoundEffect",
         "sound": "sounds:sounds/walkietalkie-click-down.mp3",
         "tag": "client"
+    },
+    "penetrate-glass-snd-1": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/glass-1.wav",
+        "tag": "client"
+    },
+    "penetrate-glass-snd-2": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/glass-2.wav",
+        "tag": "client"
+    },
+    "penetrate-glass-snd-3": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/glass-3.wav",
+        "tag": "client"
+    },
+    "penetrate-glass-snd-4": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/glass-4.wav",
+        "tag": "client"
+    },
+    "penetrate-wood-snd-1": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/wood-1.wav",
+        "tag": "client"
+    },
+    "penetrate-wood-snd-2": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/wood-2.wav",
+        "tag": "client"
+    },
+    "penetrate-wood-snd-3": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/wood-3.wav",
+        "tag": "client"
+    },
+    "penetrate-wood-snd-4": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/penetrate/wood-4.wav",
+        "tag": "client"
     }
 }}

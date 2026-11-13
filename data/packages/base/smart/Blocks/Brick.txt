@@ -80,6 +80,7 @@ components = [
                 ]
             ]
         }
+        penetrate = penetrate-wood-snd-1, penetrate-wood-snd-2, penetrate-wood-snd-3, penetrate-wood-snd-4
         step = wood-step-snd-1, wood-step-snd-2, wood-step-snd-3, wood-step-snd-4
         tag = client
     }
