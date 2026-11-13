@@ -75,14 +75,14 @@ MAGS = {'stg': [('Р›С‘РіРєРёР№ РјР°РіР°Р·РёРЅ РЅ�
         'mp40':[('Р‘С‹СЃС‚СЂС‹Р№ РјР°РіР°Р·РёРЅ РЅР° 24','short',24,1),('Р›С‘РіРєРёР№ РјР°РіР°Р·РёРЅ РЅР° 32','box',32,0.93),
                 ('Р‘Р°СЂР°Р±Р°РЅ РЅР° 64','drum',64,1),('РЈСЃРёР»РµРЅРЅС‹Р№ РјР°РіР°Р·РёРЅ РЅР° 32','curved',32,1.10)]}
 
-def sprite(weapon, slot, index):
+def sprite(weapon, slot, index, skin='weapon-default'):
     # Each module is independently painted at native resolution in the art source.
     import importlib.util
     global _ART_MODULE
     if '_ART_MODULE' not in globals():
         spec=importlib.util.spec_from_file_location('vanguard_pixel_art',ROOT/'tools/weapon-art/vanguard_modules.py')
         _ART_MODULE=importlib.util.module_from_spec(spec);spec.loader.exec_module(_ART_MODULE)
-    return _ART_MODULE.draw(weapon,slot,index)
+    return _ART_MODULE.draw(weapon,slot,index,skin)
 
 
 def build(source,target):
@@ -112,8 +112,10 @@ def build(source,target):
         parts={'stg':(25,78),'mp40':(8,57)}[weapon]
         tip = 78.8 if weapon=='stg' else 75.52
         m['bones'].append({'name':'vg-tip','parent':'root','x':tip,'y':11.56 if weapon=='stg' else 11.5})
+        grip_x,grip_y=(51.8,8.06) if weapon=='stg' else (51.52,10.0)
+        m['bones'].append({'name':'vg-underbarrel','parent':'root','x':grip_x,'y':grip_y})
         for slot in ('butt','barrel','scope','silencer','grip','rear-grip'):
-            m['slots'].insert(-1,{'name':slot,'bone':'vg-tip' if slot=='silencer' else 'root',**({'attachment':'default'} if slot in ('butt','barrel','scope','rear-grip') else {})})
+            m['slots'].insert(-1,{'name':slot,'bone':'vg-tip' if slot=='silencer' else 'vg-underbarrel' if slot=='grip' else 'root',**({'attachment':'default'} if slot in ('butt','barrel','scope','rear-grip') else {})})
         for skin in m['skins']:
             a=skin['attachments'];body=a.get('body',{}).get('default')
             if not body:continue
@@ -146,7 +148,7 @@ def build(source,target):
             upgrades[slot]=[]
             for i,(label,shape,props) in enumerate(items):
                 key=f'vg-{weapon}-{slot}-{i}';art=sprite(weapon,slot,i);x,y=positions[slot]
-                delta = 0; delta_y = 0
+                delta = 0; delta_y = 0; grip_delta_y = 0
                 # All vertices share the native receiver's pixel grid. Measure
                 # connections from alpha, not from canvas centres.
                 origin_x,origin_y=(-35.2,19.06) if weapon=='stg' else (-7.48,17.0)
@@ -162,15 +164,19 @@ def build(source,target):
                     x=seam+art.width/2;y=top-art.height/2
                     delta=seam+art.width-tip
                     delta_y=(top-edge_center('x',art.width-1))-(11.56 if weapon=='stg' else 11.5)
+                    mount_column=max(0,min(art.width-1,round(grip_x-seam)))
+                    occupied=[row for row in range(art.height) if art.getpixel((mount_column,row))[3]>128]
+                    if occupied:grip_delta_y=top-max(occupied)-1-grip_y
                 elif slot=='butt':
                     seam=origin_x+parts[0];socket_y=origin_y-(9.5 if weapon=='stg' else 7)
                     x=seam-art.width/2;y=socket_y+edge_center('x',art.width-1)-art.height/2
                 elif slot=='scope':
                     x=origin_x+(54 if weapon=='stg' else 29)
-                    y=origin_y-(5 if weapon=='stg' else 3)+art.height/2
+                    # One native pixel of overlap keeps the actual mounting feet
+                    # seated despite fractional render scales. Art is alpha-trimmed.
+                    y=origin_y-(6 if weapon=='stg' else 4)+art.height/2
                 elif slot=='grip':
-                    x=origin_x+(87 if weapon=='stg' else 59)
-                    y=origin_y-(11 if weapon=='stg' else 8)-art.height/2
+                    x=0;y=-art.height/2
                 elif slot=='rear-grip':
                     socket=origin_x+(38 if weapon=='stg' else 8)
                     x=socket+art.width/2-edge_center('y',0)
@@ -181,14 +187,21 @@ def build(source,target):
                     y=(2.23 if weapon=='stg' else 11)-art.height/2
                 a=attachment(key,art,x,y)
                 for skin in m['skins']:
-                    if 'body' in skin['attachments']:skin['attachments'].setdefault(slot,{})[key]=deepcopy(a)
+                    if 'body' not in skin['attachments']:continue
+                    fitted=deepcopy(a)
+                    if skin['name']!='weapon-default':
+                        painted=sprite(weapon,slot,i,skin['name'])
+                        name=key+'-'+skin['name']
+                        put(name,painted);fitted['path']=name
+                    skin['attachments'].setdefault(slot,{})[key]=fitted
                 label=label.replace('—','-').replace('ё','е').replace('×','x')
+                label=('STG: ' if weapon=='stg' else 'MP40: ')+label
                 textkey=key.upper().replace('-','_');labels[textkey]={'RU':label,'EN':label}
                 stat='; '.join(f'{k}: {v}' for k,v in props.items())
                 labels[textkey+'_DESC']={'RU':label+'. '+stat,'EN':label+'. '+stat}
                 components=[{'class':'content.components.ReplaceSlotComponent','classToReplace':'data.components.WeaponAnimationComponentData','replace':{slot:key},'tag':'client'},
                             {'class':'content.components.IconComponent','big-icon':key,'tag':'client'}]
-                if slot=='barrel': components[0]['boneOffsets']={'vg-tip':{'x':delta,'y':delta_y},'fire-bone':{'x':delta,'y':delta_y}}
+                if slot=='barrel': components[0]['boneOffsets']={'vg-tip':{'x':delta,'y':delta_y},'fire-bone':{'x':delta,'y':delta_y},'vg-underbarrel':{'y':grip_delta_y}}
                 if slot=='grip' and shape=='light': components.extend(deepcopy(c['gs-ak74-tactical-light']['components'][2:]))
                 if slot=='silencer' and shape=='flash': components.append({'class':'content.components.SuppressBulletAttachmentsComponent','suppress':'fire-bone','tag':'client'})
                 if props.get('silent')=='=1':

@@ -174,7 +174,8 @@ public class InstrumentIcon extends WidgetGroup implements Disposable
     {
         // Attachment geometry may move the muzzle; deselecting a barrel restores it.
         for (com.esotericsoftware.spine.Bone bone : data.getSkeleton().getBones())
-            if (bone.getData().getName().equals("fire-bone") || bone.getData().getName().equals("vg-tip"))
+            if (bone.getData().getName().equals("fire-bone") || bone.getData().getName().equals("vg-tip") ||
+                bone.getData().getName().equals("vg-underbarrel"))
             {
                 bone.setX(bone.getData().getX()); bone.setY(bone.getData().getY());
             }

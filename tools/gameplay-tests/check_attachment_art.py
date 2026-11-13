@@ -32,6 +32,26 @@ with ZipFile(ROOT / 'bin/client/packages/base.zip') as archive:
             for original, rebuilt in zip(native.getdata(), result.getdata()):
                 assert original == rebuilt or original[3] == rebuilt[3] == 0, (weapon, skin['name'])
             print('NATIVE_APPEARANCE_PASS', weapon, skin['name'])
+            for key, attachment in skin['attachments']['scope'].items():
+                if key == 'default':
+                    continue
+                region = attachment.get('path', attachment['name'])
+                match = re.search(re.escape(region) +
+                    r'\n  rotate: false\n  xy: (\d+), (\d+)\n  size: (\d+), (\d+)', atlas)
+                x, y, width, height = map(int, match.groups())
+                optic = page.crop((x, y, x + width, y + height))
+                assert optic.getbbox() == (0, 0, width, height), (key, 'untrimmed optical sprite')
+                # At least one real bottom-foot pixel must overlap the receiver.
+                left = attachment['x'] - width/2 - ox
+                receiver_y = round(oy - (attachment['y'] - height/2)) - 1
+                contacts = 0
+                for column in range(width):
+                    receiver_x = int(left + column + .5)
+                    if optic.getpixel((column, height-1))[3] and 0 <= receiver_x < native.width:
+                        if native.getpixel((receiver_x, receiver_y))[3]:
+                            contacts += 1
+                assert contacts >= 1, (weapon, skin['name'], key, 'floating scope')
+            print('ALL_SCOPE_MOUNTS_PASS', weapon, skin['name'])
     hashes = json.loads(archive.read('__H'))
     assert all(zlib.crc32(archive.read(key)) == value for key, value in hashes.items())
     print('PACKAGE_CRC_PASS')
@@ -45,3 +65,9 @@ for weapon in ('stg', 'mp40'):
     drum = Image.open(ROOT / 'tools/weapon-art/vanguard-sprites' / ('vg-' + weapon + '-clip-2.png'))
     assert drum.height > drum.width * 1.5, 'Drum must retain its side profile'
 print('SPRITE_EXPORTS_PASS 122')
+
+for left in (ROOT / 'tools/weapon-art/vanguard-sprites').glob('vg-stg-*.png'):
+    right = left.with_name(left.name.replace('vg-stg-', 'vg-mp40-'))
+    a, b = Image.open(left).convert('RGBA'), Image.open(right).convert('RGBA')
+    assert a.size != b.size or a.tobytes() != b.tobytes(), ('shared weapon artwork', left.name)
+print('WEAPON_SPECIFIC_ART_PASS 61 pairs')
