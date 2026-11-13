@@ -1,5 +1,110 @@
 """STG-specific native-grid drawings. No MP40 shapes are used here."""
 from PIL import Image, ImageDraw
+from pathlib import Path
+
+NATIVE=Path(__file__).resolve().parents[2]/'data/packages/base/textures/GAME'
+
+def native(name,box=None):
+    im=Image.open(NATIVE/(name+'.png')).convert('RGBA')
+    if box:im=im.crop(box)
+    return im.crop(im.getbbox())
+
+def size(im,w,h):return im.resize((w,h),Image.Resampling.NEAREST)
+
+def iron(i):
+    p=Paint(11 if i==0 else 15,6 if i==0 else 8)
+    w,h=p.im.size;p.tube(0,h-2,w-1,h-1)
+    p.box((2,1,4,h-3),2);p.line((2,1,4,1),4)
+    p.box((w-5,0,w-3,h-3),3);p.dot(w-4,0,5)
+    if i:p.line((4,3,w-5,3),1);p.rivet(7,5)
+    return p.im
+
+def fitted_barrel(i):
+    # Preserve native STG edge shading and front sight. Replace the complete
+    # upper front from x=50, leaving the lower magazine well in the receiver.
+    original=Image.open(NATIVE/'stg-skin.png').convert('RGBA')
+    lengths=[27,55,43,17];jacket=lengths[i]
+    out=Image.new('RGBA',(jacket+21,11));d=ImageDraw.Draw(out)
+    section=original.crop((50,5,93,11))
+    # Native-grid extension/cropping, no blurred or squashed texture.
+    for x in range(jacket):
+        sx=x if x<4 else 39+x-(jacket-4) if x>=jacket-4 else 4+(x-4)%34
+        out.alpha_composite(section.crop((sx,0,sx+1,6)),(x,5))
+    out.alpha_composite(original.crop((93,0,114,11)),(jacket,0))
+    if i==0:
+        for x in (8,15):
+            d.rectangle((x,7,x+3,8),fill=METAL[0]);d.line((x+1,9,x+3,9),fill=METAL[3])
+    elif i==1:
+        for x in range(8,jacket-6,7):
+            d.rectangle((x,7,x+3,8),fill=METAL[0]);d.line((x,6,x+3,6),fill=METAL[3])
+        d.line((5,10,jacket-5,10),fill=METAL[1])
+    elif i==2:
+        # Carved wood panels use the game's existing FG42 grain, with STG steel
+        # collars at each end. The gas tube and front sight stay above the wood.
+        wood=native('fg42-skin',(60,7,86,16))
+        for x in range(4,jacket-4):
+            strip=wood.crop(((x-4)%wood.width,0,(x-4)%wood.width+1,min(6,wood.height)))
+            out.alpha_composite(strip,(x,5))
+        d.line((4,5,jacket-5,5),fill=WOOD[4]);d.line((4,10,jacket-5,10),fill=WOOD[1])
+        for x in (3,jacket-4):d.line((x,5,x,10),fill=METAL[4])
+    else:
+        d.rectangle((6,7,10,8),fill=METAL[0]);d.line((6,6,10,6),fill=METAL[4])
+    return out
+
+def fitted_stock(i):
+    if i==0:return size(native('akm-butt-default'),30,13)
+    if i==1:return size(native('ak74-butt-old'),29,14)
+    if i==2:
+        p=Paint(4,7);p.tube(0,0,3,6);p.rivet(1,3);return p.im
+    if i==3:return size(native('fg42-skin',(0,5,33,30)),29,17)
+    # Retain the recognisable STG wooden cheek shape, add a rubber recoil pad.
+    im=size(native('stg-skin',(0,0,25,28)),30,17)
+    d=ImageDraw.Draw(im);d.line((0,5,0,15),fill=METAL[1],width=2)
+    d.line((1,5,1,14),fill=METAL[3]);d.line((4,7,21,4),fill=WOOD[4])
+    return im
+
+def fitted_magazine(i):
+    if i==0:return size(native('rpk74-clip-extended'),18,31)
+    if i==1:return size(native('stg-clip-default'),9,17)
+    if i==3:
+        im=native('stg-clip-default');d=ImageDraw.Draw(im)
+        d.line((4,5,7,15,10,21),fill=METAL[4]);d.line((5,6,8,16,11,22),fill=METAL[1])
+        return im
+    # Side elevation of a drum: axis runs across the gun, so the side view is
+    # a narrow curved housing, not a circular plate facing the viewer.
+    p=Paint(13,24);p.tube(3,0,9,5)
+    p.poly([(2,5),(10,5),(12,8),(12,19),(10,23),(2,23),(0,20),(0,8)],1)
+    p.poly([(3,6),(9,6),(10,9),(10,20),(8,22),(3,21),(2,18),(2,9)],3)
+    p.line([(2,8),(2,18),(3,20)],4);p.line((4,6,8,6),5)
+    p.line((11,9,11,19),0);p.line((3,22,9,22),2)
+    for y in (9,13,17):p.line((4,y,8,y),2)
+    p.box((5,11,7,13),1);p.dot(6,11,4)
+    return p.im
+
+def fitted_rear(i):
+    # Keep the STG's sloped grip silhouette and native shaded grooves.
+    im=Image.open(NATIVE/'stg-skin.png').convert('RGBA').crop((28,16,43,28))
+    mask=Image.new('L',im.size);ImageDraw.Draw(mask).polygon([(6,0),(14,0),(13,4),(10,6),(8,12),(0,12),(3,6)],fill=255)
+    from PIL import ImageChops
+    im.putalpha(ImageChops.multiply(im.getchannel('A'),mask));d=ImageDraw.Draw(im)
+    pal=WOOD if i==2 else LEATHER if i in (1,3,7) else METAL
+    # Different materials retain native highlights rather than a flat fill.
+    for y in range(im.height):
+        for x in range(im.width):
+            rgba=im.getpixel((x,y))
+            if rgba[3]:
+                tone=max(0,min(5,round((sum(rgba[:3])/3-20)/17)))
+                d.point((x,y),fill=pal[tone])
+    for y in range(2,10):
+        for x in range(2,12):
+            if not im.getpixel((x,y))[3]:continue
+            mark= ((x+y)%4==0 if i==1 else (x-y)%5==0 if i==3 else y%3==0 if i==4 else
+                   x%3==0 and y%3==0 if i==5 else (x+2*y)%6==0 if i==7 else (x+y)%3==0 if i==8 else False)
+            if mark:d.point((x,y),fill=pal[3 if i in (1,3,7) else 1])
+    if i==6:
+        d.polygon([(7,3),(10,3),(7,8),(4,9)],fill=METAL[1]);d.line((7,3,5,7),fill=METAL[3])
+    if i==9:d.line((7,3,4,9),fill=METAL[4])
+    return im
 
 METAL = ['#24221e','#33312c','#45423c','#56534c','#6b685f','#858175']
 WOOD = ['#291d12','#422b15','#65421d','#875a29','#aa783c','#c18d48']
@@ -163,6 +268,29 @@ def foregrip(i):
     else:
         p.poly([(2,2),(8,2),(7,11),(5,12),(1,10)],2)
         p.poly([(4,4),(6,4),(5,9),(3,9)],(0,0,0,0));p.line((2,3,2,9),3)
+    # Small metal collars and wear highlights read at native resolution; avoid
+    # uniformly filled silhouettes that looked unlike the shaded receiver.
+    p.line((2,1,w-3,1),1)
+    if i in (0,2,8):
+        p.box((2,1,w-3,2),2);p.line((3,1,w-4,1),4)
+        p.rivet(w//2,2)
+    if i==0:
+        p.line((3,4,2,11),WOOD[3]);p.dot(5,4,WOOD[4]);p.line((3,12,6,13),WOOD[1])
+    elif i==1:
+        p.rivet(5,3);p.line((8,3,7,5),1);p.dot(8,2,4)
+    elif i==2:
+        p.line((3,4,3,6),LEATHER[3]);p.line((4,7,6,7),LEATHER[1])
+    elif i==4:
+        p.line((1,4,14,4),3);p.dot(17,3,5);p.line((1,6,14,6),1)
+        p.line((7,1,10,1),4);p.rivet(9,2)
+    elif i==6:
+        p.line((2,3,11,8),4);p.line((14,8,17,3),1);p.rivet(4,2);p.rivet(16,2)
+    elif i==7:
+        p.line((10,2,25,2),5);p.line((10,3,23,3),2)
+        for x in (2,4,6):p.line((x,1,x,3),1)
+        p.dot(8,0,4)
+    elif i==8:
+        p.line((2,4,1,9),4);p.line((3,10,6,11),1);p.dot(7,4,4)
     return p.im
 
 def rear_grip(i):
@@ -198,5 +326,11 @@ def rear_grip(i):
     return p.im
 
 def draw(slot,index):
-    return {'barrel':barrel,'butt':stock,'clip':magazine,'silencer':muzzle,
-            'grip':foregrip,'rear-grip':rear_grip}[slot](index)
+    if slot=='silencer':
+        sources=['ak105-muzzle-on','m3gg-barrel-muzle',None,None,'ak74-silencer','aksu-silencer','ak108-silencer']
+        if sources[index]:
+            im=native(sources[index]);return size(im,*[(12,4),(13,5),(1,1),(1,1),(26,6),(18,5),(15,6)][index])
+    if slot=='grip' and index==3:return size(native('bar-bipod'),27,7)
+    if slot=='grip' and index==5:return size(native('ots141a-grip-tactical'),11,14)
+    return {'barrel':fitted_barrel,'butt':fitted_stock,'clip':fitted_magazine,'silencer':muzzle,
+            'grip':foregrip,'rear-grip':fitted_rear}[slot](index)

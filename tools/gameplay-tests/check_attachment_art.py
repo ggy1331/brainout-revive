@@ -9,6 +9,19 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[2]
 ART = ROOT / 'data/packages/base/textures/GAME'
 with ZipFile(ROOT / 'bin/client/packages/base.zip') as archive:
+    texts=json.loads(archive.read('data/texts.json'))['data']
+    content=json.loads(archive.read('content.json'))['content']
+    checked=0
+    for key,item in content.items():
+        if not key.startswith(('vg-stg-', 'vg-mp40-')):continue
+        for field in ('name','description'):
+            value=texts[item[field]]['RU']
+            assert not any(c in value for c in '\ufffd\u0402\u0452\u0458\u0459\u045a\u045b\u045c\u045e\u045f'), (key,value)
+            assert not re.search(r'(?:Р[А-Яа-я]|С[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏ]){2}',value), (key,value)
+            assert all(c.isascii() or '\u0410'<=c<='\u044f' or c in 'Ёё' for c in value), (key,value)
+            checked+=1
+    assert checked==244
+    print('RUSSIAN_TEXT_PASS',checked,'titles and descriptions')
     atlas = archive.read('content/textures/GAME.atlas').decode()
     page = Image.open(archive.open('content/textures/vanguard-modules.png')).convert('RGBA')
     for weapon in ('stg', 'mp40'):

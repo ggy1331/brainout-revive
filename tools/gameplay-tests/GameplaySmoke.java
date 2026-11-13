@@ -45,6 +45,7 @@ public class GameplaySmoke {
             require(stencil.get(0)>=8,"scene has no stencil buffer");
             validateAttachments();
             contactSheets();
+            stgShowcase();
             testHands(game.getPlayerData());
             testRules(game.getPlayerData());
             testMask(game);
@@ -128,8 +129,32 @@ public class GameplaySmoke {
         selection.getSelectedUpgrades().put("clip",BrainOut.ContentMgr.get("vg-stg-clip-2",Upgrade.class));
         selection.getSelectedUpgrades().put("scope",BrainOut.ContentMgr.get("vg-stg-scope-1",Upgrade.class));
         com.desertkun.brainout.menu.impl.UpgradeInstrumentMenu menu=new com.desertkun.brainout.menu.impl.UpgradeInstrumentMenu(item,w,()->{});
-        menu.onInit();menu.getViewport().update(1100,750,true);menu.act(.1f);menu.draw();png("attachment-menu.png");menu.onRelease();menu.dispose();
+        menu.onInit();menu.getViewport().update(1100,750,true);menu.act(.1f);menu.draw();png("attachment-menu.png");
+        com.badlogic.gdx.scenes.scene2d.ui.Table tooltip=(com.badlogic.gdx.scenes.scene2d.ui.Table)
+            new com.desertkun.brainout.menu.ui.UnlockTooltip.UnlockTooltipCreator(
+                BrainOut.ContentMgr.get("vg-stg-butt-0",Upgrade.class),null).get();
+        tooltip.pack();tooltip.setPosition(15,350);menu.addActor(tooltip);
+        menu.act(.1f);menu.draw();png("attachment-tooltip.png");
+        tooltip.remove();
+        tooltip=(com.badlogic.gdx.scenes.scene2d.ui.Table)new com.desertkun.brainout.menu.ui.UnlockTooltip.UnlockTooltipCreator(
+            BrainOut.ContentMgr.get("vg-stg-clip-2",Upgrade.class),null).get();
+        tooltip.pack();tooltip.setPosition(15,350);menu.addActor(tooltip);
+        menu.act(.1f);menu.draw();png("magazine-tooltip.png");menu.onRelease();menu.dispose();
         System.out.println("ATTACHMENT_MENU_PASS");
+    }
+    static void stgShowcase(){
+        FrameBuffer f=new FrameBuffer(Pixmap.Format.RGBA8888,1400,420,false);f.begin();
+        Gdx.gl.glClearColor(.13f,.14f,.14f,1);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        OrthographicCamera camera=new OrthographicCamera();camera.setToOrtho(false,1400,420);
+        SpriteBatch b=new SpriteBatch();b.setProjectionMatrix(camera.combined);b.begin();
+        String[] slots={"barrel","butt","clip","scope","silencer","grip","rear-grip"};
+        int[][] choices={{0,0,1,0,0,1,0},{1,3,0,6,4,3,2},{2,4,2,10,1,0,1},{3,1,3,2,2,6,6}};
+        for(int i=0;i<choices.length;i++){
+            InstrumentInfo info=new InstrumentInfo();info.instrument=BrainOut.ContentMgr.get("weapon-stg",Instrument.class);info.skin=info.instrument.getDefaultSkin();
+            for(int j=0;j<slots.length;j++)info.upgrades.put(slots[j],BrainOut.ContentMgr.get("vg-stg-"+slots[j]+"-"+choices[i][j],Upgrade.class));
+            InstrumentIcon icon=new InstrumentIcon(info,3f,true);icon.setBounds(15+(i%2)*700,20+(1-i/2)*210,500,180);icon.resetAnimation();icon.draw(b,1);
+        }
+        b.end();Pixmap p=ScreenUtils.getFrameBufferPixmap(0,0,1400,420);PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/stg-showcase.png"),p,-1,true);p.dispose();f.end();f.dispose();b.dispose();
     }
     static void testHands(PlayerData player){
         for(String id:new String[]{"colt","welrod","supershorty","peacemaker"}){

@@ -1,6 +1,6 @@
 """Weapon-specific artwork and deterministic conversion to native sprite assets.
 
-STG: individually authored native-grid parts and cleaned original optics atlas.
+STG: native-grid drawings and adaptations of this game's own component artwork.
 MP40: original generated parts atlas and native-game optical bodies re-fitted to
 compact MP40 mounts. Each weapon and skin has its own colour palette.
 """
@@ -31,6 +31,12 @@ MP_OPTICS=['ak105-scope-pkas','fg42-scope-optical','ak74m-scope-eotech',
  'svds-scope-pso','ak105bullpup-scope-elcan','an94-scope-tulpan',
  'bizon-scope-cobra','aac-scope-qd','9a91-scope-optical','augpara-scope-truglo',
  'aac-scope-default','aac-scope-default']
+STG_NATIVE_OPTICS=['m3gg-scope-colimator','gewehr43-scope-zf4','rpk16-scope-okp7',
+ 'galil-scope-elbit','crossbow-scope-acog','fnfal-scope-suit','m98k-scope-optical',
+ 'hk416-scope-aimpoint','m21-scope-pks','mp9-scope-truglo','garand-scope-m81',
+ 'mosin-scope-npz','groza-scope-po4x34','m14-scope-redfield','pkm-scope-cobra',
+ 'lr300-scope-susat','g36c-scope-aimpoint','desert50ae-scope-optical',
+ 'qbu88-scope-optical','hk21-scope-elcan']
 
 @lru_cache(None)
 def load(path):return Image.open(path).convert('RGBA')
@@ -86,6 +92,9 @@ def stg_module():
 def raw(weapon,slot,index):
     if slot=='scope':return scope(weapon,index)
     if weapon=='stg':return trim(stg_module().draw(slot,index))
+    # The source sheet orders the padded stock before the stock-delete cap;
+    # the upgrade catalogue orders these two choices the other way around.
+    if slot=='butt' and index in (1,2):index=3-index
     source=load(HERE/'art-sources/mp40-parts-v3.png')
     bounds=json.loads((HERE/'art-sources/mp40-parts-v3.json').read_text())[MP_OFFSETS[slot]+index]
     part=dominant(source.crop(bounds))
@@ -95,13 +104,18 @@ def raw(weapon,slot,index):
 @lru_cache(None)
 def scope(weapon,index):
     if weapon=='stg':
-        source=load(HERE/'art-sources/vanguard-optics.png');cw,ch=source.width//4,source.height//6
-        x,y=index%4*cw,index//4*ch
-        part=dominant(source.crop((x,y,x+cw,y+ch)))
-        part=fit(part,STG_OPTICS[index])
-        if index>=20:return part
-        height={5:8,13:8,18:9}.get(index,max(3,part.height-2))
-        return seated_optic(part.crop((0,0,part.width,min(height,part.height))),'stg')
+        if index>=20:return stg_module().iron(index-20)
+        part=load(NATIVE/(STG_NATIVE_OPTICS[index]+'.png')).copy()
+        # Remove the donor's weapon-specific bracket, retaining the optical body.
+        bottom={0:6,1:6,2:7,3:8,4:7,5:9,6:5,7:8,8:8,9:8,
+                10:6,11:6,12:7,13:8,14:10,15:8,16:8,17:7,18:10,19:7}[index]
+        part=part.crop((0,0,43 if index==18 else part.width,bottom))
+        part=trim(part)
+        if part.width>38:part=fit(part,(38,max(5,round(part.height*38/part.width))))
+        if index in (12,17):
+            mini=trim(load(NATIVE/'m3gg-scope-colimator.png'));out=Image.new('RGBA',(part.width,part.height+5))
+            out.alpha_composite(part,(0,5));out.alpha_composite(mini,(8,0));part=out
+        return seated_optic(part,'stg')
     part=load(NATIVE/(MP_OPTICS[index]+'.png')).copy()
     donor_bottom={0:9,11:10,13:9,15:11,16:10,18:9}
     if index in donor_bottom:part=part.crop((0,0,part.width,donor_bottom[index]))
