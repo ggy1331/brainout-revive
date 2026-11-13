@@ -1,0 +1,144 @@
+{
+ "skeleton": {
+  "hash": "g11-approved",
+  "spine": "4.0.45",
+  "x": -21.28,
+  "y": -3.34,
+  "width": 48.0,
+  "height": 18.8,
+  "images": "../../../textures/GAME/",
+  "audio": ""
+ },
+ "bones": [
+  {
+   "name": "root",
+   "scaleX": 0.4,
+   "scaleY": 0.4
+  },
+  {
+   "name": "center-bone",
+   "parent": "root",
+   "x": 7.31,
+   "y": 14.65
+  },
+  {
+   "name": "fire-bone",
+   "parent": "root",
+   "length": 16.0,
+   "x": 25.22,
+   "y": 13.78,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "hook-bone",
+   "parent": "root",
+   "length": 17.82,
+   "x": -20.0,
+   "y": 22.0
+  },
+  {
+   "name": "laser-bone",
+   "parent": "root",
+   "length": 3.3,
+   "x": 51.22,
+   "y": 7.78,
+   "scaleX": 2.5,
+   "scaleY": 2.5
+  },
+  {
+   "name": "pair-mag-travel",
+   "parent": "root"
+  },
+  {
+   "name": "g11-crank",
+   "parent": "root",
+   "x": -20.31,
+   "y": 12.58
+  }
+ ],
+ "slots": [
+  {
+   "name": "body",
+   "bone": "root",
+   "attachment": "default"
+  },
+  {
+   "name": "clip",
+   "bone": "pair-mag-travel",
+   "attachment": "default"
+  },
+  {
+   "name": "crank",
+   "bone": "g11-crank",
+   "attachment": "default"
+  }
+ ],
+ "skins": [
+  {
+   "name": "weapon-default",
+   "attachments": {
+    "body": {
+     "default": {
+      "name": "g11-body",
+      "x": 6.81,
+      "y": 15.15,
+      "width": 120,
+      "height": 47
+     }
+    },
+    "clip": {
+     "default": {
+      "name": "g11-mag",
+      "x": 41.81,
+      "y": 22.15,
+      "width": 46,
+      "height": 7
+     }
+    },
+    "crank": {
+     "default": {
+      "name": "g11-crank",
+      "x": 0.12,
+      "y": 0.07,
+      "width": 12,
+      "height": 12
+     }
+    }
+   }
+  }
+ ],
+ "animations": {
+  "animation": {},
+  "crank": {
+   "bones": {
+    "g11-crank": {
+     "rotate": [
+      {
+       "time": 0
+      },
+      {
+       "time": 0.12,
+       "value": -90
+      },
+      {
+       "time": 0.24,
+       "value": -180
+      },
+      {
+       "time": 0.36,
+       "value": -270
+      },
+      {
+       "time": 0.48,
+       "value": -359
+      },
+      {
+       "time": 0.49
+      }
+     ]
+    }
+   }
+  }
+ }
+}

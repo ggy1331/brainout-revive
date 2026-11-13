@@ -83,6 +83,21 @@
 				"slot-melee"
 			]
 		},
+		"g11-only": {
+			"defines": {
+			},
+			"limit-tags": {
+				"slot-primary": [
+					"g11"
+				]
+			},
+			"limit-slots": [
+				"slot-player-skin",
+				"slot-primary",
+				"slot-secondary",
+				"slot-melee"
+			]
+		},
 		"toz34-only": {
 			"defines": {
 			},

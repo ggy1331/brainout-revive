@@ -164,7 +164,7 @@ def render(zpath, clip, t, weapon_json, weapon_skin, actor_skin, scale=6, size=(
             pass
     # sprites not packed yet: take them straight from the source folder
     src = Path(__file__).resolve().parents[2] / 'data/packages/base/textures/GAME'
-    for p in list(src.glob('colt1911-*.png')) + list(src.glob('sa-*.png')) + list(src.glob('fm-*.png')) + list(src.glob('sa-shell-*.png')):
+    for p in list(src.glob('colt1911-*.png')) + list(src.glob('sa-*.png')) + list(src.glob('fm-*.png')) + list(src.glob('sa-shell-*.png')) + list(src.glob('g11-*.png')):
         regions.setdefault(p.stem, Image.open(p).convert('RGBA'))
     world, slots = rig.pose(clip, t)
     canvas = Image.new('RGBA', size, (70, 74, 70, 255))
@@ -176,7 +176,19 @@ def render(zpath, clip, t, weapon_json, weapon_skin, actor_skin, scale=6, size=(
     if paired:
         hooks['slot-secondary'] = 'pair-magazine-right'
     anim_bones = actor['animations'].get(clip, {}).get('bones', {})
-    for s in actor['slots']:
+    order = list(actor['slots'])
+    for key in actor['animations'].get(clip, {}).get('drawOrder', []):
+        if key.get('time', 0) <= t + 1e-6:
+            order = list(actor['slots'])
+            moved = {o['slot']: o['offset'] for o in key.get('offsets', [])}
+            names = [sl['name'] for sl in order]
+            rest = [sl for sl in order if sl['name'] not in moved]
+            final = [None] * len(order)
+            for n, off in moved.items():
+                final[names.index(n) + off] = order[names.index(n)]
+            it = iter(rest)
+            order = [f if f is not None else next(it) for f in final]
+    for s in order:
         name = slots.get(s['name'])
         if s['name'] in hooks and gun is not None:
             marker_name = hooks[s['name']]

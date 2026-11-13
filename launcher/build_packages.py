@@ -7,6 +7,7 @@ For each side, in place in bin/<side>/packages:
   base.zip     -> equipment_package -> gameplay_package -> loadout_rules -> welrod_graft apply
                -> player_skins (skins added to the source actor.json) -> finalize_sidearms -> colt1911 (slide, magazine, staged reload)
                -> sidearms (the same for the other grip-magazine pistols)
+               -> g11 (HK G11: own stances, magazine-from-the-top reload, cocking handle)
   freeplay.zip -> welrod_graft freeplay
 The untouched make_data output is kept as build/base-<side>-premod.zip and
 build/freeplay-<side>-premod.zip, so the script can be run again safely.
@@ -27,6 +28,7 @@ import loadout_rules
 import welrod_graft
 import colt1911
 import sidearms
+import g11
 import player_skins
 from finalize_sidearms import finalize
 
@@ -47,7 +49,8 @@ def side(name, fresh):
     player_skins.build(tmp / "4-welrod.zip", tmp / "4-skins.zip")
     finalize(tmp / "4-skins.zip", tmp / "5-final.zip")
     colt1911.build(tmp / "5-final.zip", tmp / "6-colt.zip")
-    sidearms.build(tmp / "6-colt.zip", pk / "base.zip")
+    sidearms.build(tmp / "6-colt.zip", tmp / "7-sidearms.zip")
+    g11.build(tmp / "7-sidearms.zip", pk / "base.zip")
     welrod_graft.freeplay(keep_fp, pk / "freeplay.zip")
     print(name, "packages ready")
 

@@ -1,0 +1,4 @@
+HK G11 sounds (fire-1..3, reload, fetch)
+Source: recordings made by GGY from the YouTube video "H&K G11/HD" (2026-11-13). Not our own recording:
+no redistribution licence; kept by decision of the project owner (same as the ASh-12 sounds).
+Cut and levelled by tools/weapon-art/build_g11_audio.py.

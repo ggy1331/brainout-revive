@@ -105,9 +105,12 @@ public class WeaponAnimationComponentData extends InstrumentAnimationComponentDa
                 rightMagazine = new MagazineMotion(offHand, actor, "right");
             }
         }
+        // a single weapon whose magazine follows the hand: every sidearm, and any weapon whose
+        // skeleton has the pair-mag-travel bone (HK G11, launcher/g11.py)
         if (event.getID() == Event.ID.setInstrument && weaponData != null && weaponData.getWeapon().getSlot() != null && !weaponData.getWeapon().isPaired() &&
             getAttachedTo() instanceof PlayerAnimationComponentData &&
-            "slot-secondary".equals(weaponData.getWeapon().getSlot().getID()))
+            ("slot-secondary".equals(weaponData.getWeapon().getSlot().getID()) ||
+             (getSkeleton() != null && getSkeleton().findBone("pair-mag-travel") != null)))
             leftMagazine = new MagazineMotion(getSkeleton(), getAttachedTo().getSkeleton(), "left");
         return handled;
     }

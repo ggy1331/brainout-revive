@@ -1,0 +1,25 @@
+// HK G11 - our own weapon (brainout-revive), see Weapon.txt.
+class = content.shop.InstrumentSlotItem
+id = sl-pri-g11
+access = byDefault
+components = [
+    {
+        class = content.components.RandomWeightComponent
+        weight = 15
+    }
+]
+instrument = {
+    id = weapon-g11
+    skins = skin-weapon-g11-default
+}
+items = [
+    {
+        amount = 90
+        id = bullet-4.73x33
+    }
+]
+name = ITEM_WEAP_G11
+slot = slot-primary
+category = assault
+tags = unique, g11
+index = 367

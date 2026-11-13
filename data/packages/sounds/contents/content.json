@@ -3571,5 +3571,30 @@
         "class": "content.effect.SoundEffect",
         "sound": "sounds:sounds/penetrate/wood-4.wav",
         "tag": "client"
+    },
+    "g11-shoot-1": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/g11/fire-1.wav",
+        "tag": "client"
+    },
+    "g11-shoot-2": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/g11/fire-2.wav",
+        "tag": "client"
+    },
+    "g11-shoot-3": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/g11/fire-3.wav",
+        "tag": "client"
+    },
+    "g11-reload-snd": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/g11/reload.wav",
+        "tag": "client"
+    },
+    "g11-fetch-snd": {
+        "class": "content.effect.SoundEffect",
+        "sound": "sounds:sounds/g11/fetch.wav",
+        "tag": "client"
     }
 }}
