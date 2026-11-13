@@ -42,7 +42,31 @@ FAMILIES = {
     # AR-15 / AR-10 (M16A2 has its M203 drawn into the body: no second launcher on it)
     "m16": {"members": ["ar15", "m16a3", "m4a1", "m4a1-desert", "car15", "hk416", "lr300", "sgi5k",
                         "gilboa-snake", "ares-shrike", "aac", "sr47", "ar57", "hk417", "rsaas", "m110"]},
+    # GGY, 2026-11-13: the rest of the families
+    "vityaz": {"members": ["bizon", "gepard", "ak9-2"], "parts": True},          # Kalashnikov SMGs (AK-9: 9x39)
+    "vss": {"members": ["vssm-2", "aswal"], "parts": True},
+    "sr3": {"members": ["9a91", "vsk94"], "parts": True},
+    "m4a1-zoom": {"members": ["mg36", "xm8"], "parts": True},                     # G36
+    "svd": {"members": ["svds", "svu"], "parts": True},
+    "aug": {"members": ["auga3", "augpara"], "parts": True},
+    "ls5": {"members": ["l86"], "parts": True},                                   # L85A2
+    "pkm": {"members": ["pecheneg"], "parts": True},
+    "scar": {"members": ["scarl"], "parts": True},                                # SCAR-H
+    "ots141a": {"members": ["groza"], "parts": True},                             # OTs-14-1A 7.62 -> OTs-14 Groza 9x39
+    "mp5": {"members": ["mp5sd6"], "parts": True},
+    "mp7": {"members": ["mp7a2", "mpx"], "parts": True},
+    "m82": {"members": ["m95"], "parts": True},
+    # sidearms (secondary slot; with the akimbo perk the paired version of the model is given)
+    "makarov": {"members": ["aps"], "parts": True},
+    "fiveseven": {"members": ["fnx45"], "parts": True},
+    "beretta": {"members": ["m93r"], "parts": True},
+    "desert": {"members": ["desert50ae"], "parts": True},
 }
+
+
+def item_key(c, model):
+    """the shop item of a model: a primary, or a sidearm"""
+    return "sl-pri-" + model if "sl-pri-" + model in c else "sl-sec-" + model
 
 # root coordinates, y up. rail: where a scope's mount sits; muzzle: start of the muzzle device,
 # bore height (None = measured in the body picture); grip / tac: under the handguard / the barrel
@@ -75,7 +99,7 @@ for _m in AR_HOLDER:
 for _m in ("ar15", "aac", "hk417", "rsaas"):
     SLOT_ALIAS.setdefault(_m, {})["scope"] = "optic"      # the "scope" slot shows their top rail: keep it
 # kinds a model can't take (AR-57: a P90 magazine on top; M16A2: the M203 is part of its body)
-NO_KIND = {"ar57": {"clip"}, "m16": {"gl"}}
+NO_KIND = {"ar57": {"clip"}, "m16": {"gl"}, "l86": {"scope"}}   # L86: its sight is part of the body
 DEFAULTS = {"ak74m": {"cap": None, "holder": None}}
 
 # upgrade row key -> (slot in the skeletons, anchor)
@@ -105,8 +129,9 @@ SKIN_OF = {}   # id(skeleton) -> the name of the weapon's default skin in it (M4
 
 
 def note_skin(c, model, skel):
-    w = c[c["sl-pri-" + model]["instrument"]["id"]]
+    w = c[c[item_key(c, model)]["instrument"]["id"]]
     SKIN_OF[id(skel)] = c.get(w.get("defaultSkin"), {}).get("data", "weapon-default")
+    SKEL_MODEL[id(skel)] = model
     return skel
 
 
@@ -115,9 +140,18 @@ def default_atts(skel):
     return next(s for s in skel["skins"] if s["name"] == name)["attachments"]
 
 
+def body_att(skel):
+    atts = default_atts(skel)
+    shown = {sl["name"]: sl.get("attachment") for sl in skel["slots"]}
+    for slot in ("body", "weapon-default"):
+        if atts.get(slot):
+            return atts[slot].get(shown.get(slot)) or next(iter(atts[slot].values()))
+    raise KeyError("no body")
+
+
 def px(skel):
-    """root units per texture pixel (1 for most weapons; the M110 is drawn at 0.35)"""
-    return next(iter(default_atts(skel)["body"].values())).get("scaleX", 1)
+    """root units per texture pixel (1 for most weapons; the M110 and some pistols are drawn at 0.35)"""
+    return body_att(skel).get("scaleX", 1)
 
 
 AUTO = {}
@@ -133,7 +167,10 @@ def auto_anchors(skel):
     atts = default_atts(skel)
     shown = {sl["name"]: sl.get("attachment") for sl in skel["slots"]}
     pixels = []                                # opaque pixels of the body (and a separate barrel) in root units
-    for slot in ("body", "barrel"):
+    # every part of the gun shown by default (L85: the front is its "holder", Groza: "barrel")
+    for slot in shown:
+        if slot in NOT_BODY:
+            continue
         a = atts.get(slot, {}).get(shown.get(slot))
         if not a:
             continue
@@ -167,7 +204,28 @@ def auto_anchors(skel):
     thin = [r for r in runs if len(r) <= 4] or runs
     bore = sum(thin[0]) / len(thin[0]) * k if thin else 0
     rx = cx - 2 * k
+    left = min(p[0] for p in pixels)
+    if SKEL_MODEL.get(id(skel)) in BULLPUP:
+        # a bullpup (magazine behind the grip): the scope goes on the highest part of the middle
+        mid = [p for p in pixels if left + 0.3 * (right - left) <= p[0] <= left + 0.75 * (right - left)]
+        top = max(p[1] for p in mid)
+        xs = sorted(p[0] for p in mid if p[1] >= top - k)
+        rx = xs[len(xs) // 2]
     res = {"rail": (rx, max(column(rx)) + k / 2), "muzzle": (mx, bore)}
+    slide = atts.get("sa-slide", {}).get(shown.get("sa-slide"))
+    if slide:
+        # a pistol: a sight goes over the middle of the slide
+        x = slide.get("x", 0)
+        res["rail"] = (x, max(column(x)) + k / 2)
+    if id(skel) in FROM_PARTS:
+        parts = anchors_from_parts(skel)
+        if "rail" in parts:
+            # x where the model's own scope is mounted, y = top of the gun there (the same rule
+            # for every model; a scope picture's own bottom can be a side bracket)
+            x = parts.pop("rail")[0]
+            if column(x):
+                res["rail"] = (x, max(column(x)) + k / 2)
+        res.update(parts)
     for kind, f, extra in (("grip", 0.33, 0), ("tac", 0.6, k)):
         x = cx + f * (mx - cx)
         res[kind] = (x, min(column(x)) - k / 2 + extra)
@@ -175,10 +233,53 @@ def auto_anchors(skel):
     return res
 
 
+NOT_BODY = {"clip", "scope", "silencer", "cap", "grip", "light", "laser", "tactical", "gl", "cover", "optic",
+            "butt", "bipod", "clip1", "clip2", "special", "sa-mag", "muzle"}
+FROM_PARTS = set()
+BULLPUP = {"ls5", "l86", "groza", "ots141a", "svu", "aug", "auga3", "augpara", "ak105bullpup"}
+SKEL_MODEL = {}        # id(skeleton) -> model     # id(skeleton) of models whose anchors come from their own scope / suppressor
+
+
+def anchors_from_parts(skel):
+    """rail = where the model's own scope's mount sits, muzzle = where its own suppressor starts (the
+    inverse of gunsmith.place): reliable where "above the magazine" is not (Bizon's helical magazine
+    under the barrel, bullpups)"""
+    from PIL import Image
+    atts = default_atts(skel)
+    width = body_att(skel)["width"]
+    out = {}
+
+    def part(slot, ok):
+        # the lowest one first: a red dot on the rail, not a PSO on its side bracket
+        for n, a in sorted(atts.get(slot, {}).items(), key=lambda e: e[1]["height"]):
+            if not n.startswith("cv-") and ok(a):
+                im = Image.open(os.path.join(gunsmith.GAME, a.get("name", n) + ".png")).convert("RGBA")
+                return a, im, gunsmith.solid_bbox(im)
+        return None
+
+    sc = part("scope", lambda a: a["width"] <= 48 and a["height"] < 24)
+    if sc:
+        a, im, (l, t, r, b) = sc
+        k = a.get("scaleX", 1)
+        left, top = a.get("x", 0) - a["width"] * k / 2, a.get("y", 0) + a["height"] * k / 2
+        out["rail"] = (left + gunsmith.mount_centre(im, b) * k, top - b * k)
+    si = part("silencer", lambda a: True)
+    if si:
+        a, im, (l, t, r, b) = si
+        k = a.get("scaleX", 1)
+        left, top = a.get("x", 0) - a["width"] * k / 2, a.get("y", 0) + a["height"] * k / 2
+        out["muzzle"] = (left + l * k, top - (t + b) / 2 * k)
+    return out
+
+
 def anchor_point(model, skel, kind):
     atts = default_atts(skel)
     if kind == "clip":
-        ref = next(iter(a for n, a in atts["clip"].items() if n in ("clip-default", "default")))
+        shown = {sl["name"]: sl.get("attachment") for sl in skel["slots"]}.get("clip")
+        clips = atts.get("clip", {})
+        # the shown magazine; an MP7 has its magazine drawn into the body: its own longer one then
+        ref = clips.get(shown) or next((a for n, a in clips.items() if n in ("clip-default", "default")),
+                                       next(iter(clips.values())))
         return complex(ref.get("x", 0) - ref["width"] / 2, ref.get("y", 0) + ref["height"] / 2)
     table = ANCHORS[model] if model in ANCHORS else auto_anchors(skel)
     if kind == "gl" and "gl" not in table:
@@ -191,7 +292,7 @@ def anchor_point(model, skel, kind):
 
 def snap(att, skel):
     """the part's corner on the same pixel grid as the body (no half-pixel blur)"""
-    body = next(iter(default_atts(skel)["body"].values()))
+    body = body_att(skel)
     k = body.get("scaleX", 1)
     gx = (body.get("x", 0) - body["width"] * k / 2) % k
     gy = (body.get("y", 0) - body["height"] * k / 2) % k
@@ -207,12 +308,14 @@ def ensure_slot(skel, slot):
     if slot in BEHIND:
         skel["slots"].insert(0, {"name": slot, "bone": "root"})
     else:
-        skel["slots"].insert(names.index("body") + 1, {"name": slot, "bone": "root"})
+        # over the body (the Deagles: "weapon-default"; split sidearms: over the slide as well)
+        top = max(names.index(n) for n in ("body", "weapon-default", "sa-slide") if n in names)
+        skel["slots"].insert(top + 1, {"name": slot, "bone": "root"})
 
 
 def family(c, skeletons, base, members, borrow=()):
     models = [base] + members
-    items = {m: c["sl-pri-" + m] for m in models + list(borrow)}
+    items = {m: c[item_key(c, m)] for m in models + list(borrow)}
     for m, slots in DEFAULTS.items():
         if m in models:
             for sl in skeletons[m]["slots"]:
@@ -232,10 +335,15 @@ def family(c, skeletons, base, members, borrow=()):
             if key not in KINDS:
                 continue
             for u in as_list(ups):
-                if u in MODEL_ONLY or any(s[0] == u for s in shared):
-                    continue
+                if u not in c or u in MODEL_ONLY or any(s[0] == u for s in shared):
+                    continue                       # (a few rows name upgrades that don't exist)
                 key_u = "gl" if any(comp["class"].endswith("SecondaryWeaponSlotComponent")
                                     for comp in c[u]["components"]) else key
+                if KINDS[key_u][0] == "grip":
+                    rp = next(comp for comp in c[u]["components"] if comp["class"].endswith("ReplaceSlotComponent"))
+                    ga = [default_atts(skeletons[m]).get(sl, {}).get(n) for sl, n in rp["replace"].items()]
+                    if any(a and a["width"] > 26 for a in ga):
+                        continue                   # a whole handguard with a grip (L85, M16A4): its own model only
                 if key_u in ONE_OF and any(KINDS[k][0] == KINDS[key_u][0] for *_, k in shared):
                     continue
                 rep = next(comp for comp in c[u]["components"] if comp["class"].endswith("ReplaceSlotComponent"))
@@ -299,11 +407,11 @@ def family(c, skeletons, base, members, borrow=()):
     conversions = []
     for m in members:
         cid = "conversion-%s-%s" % (base, m)
-        body = next(iter(default_atts(skeletons[m])["body"].values()))
+        body = body_att(skeletons[m])
         up = {"class": "content.upgrades.Upgrade", "access": "byDefault", "name": items[m]["name"],
               "description": DESC_KEY,
-              "properties": {}, "conversion": weapons[m], "convertsFrom": "sl-pri-" + m,
-              "conversionBase": "sl-pri-" + base,
+              "properties": {}, "conversion": weapons[m], "convertsFrom": item_key(c, m),
+              "conversionBase": item_key(c, base),
               "components": [{"class": "content.components.IconComponent", "tag": "client",
                               "big-icon": body.get("name", "")}]}
         ammo = next((i for i in items[m].get("items", []) if i["id"].startswith("bullet-")), None)
@@ -311,7 +419,7 @@ def family(c, skeletons, base, members, borrow=()):
             up["ammo"] = {"id": ammo["id"], "amount": ammo["amount"]}
         c[cid] = up
         conversions.append(cid)
-        for key in ("sl-pri-" + m, "sl-pri-%s-slot2" % m):
+        for key in (item_key(c, m), item_key(c, m) + "-slot2"):
             if key in c:
                 c[key]["enabled"] = False
     rows["conversion"] = conversions
@@ -325,6 +433,8 @@ def apply(c, skeletons):
         skeletons = {m: note_skin(c, m, json.loads(t)) for m, t in SERVER_SKELETONS.items()}
     report = {}
     for base, f in FAMILIES.items():
+        if f.get("parts"):
+            FROM_PARTS.update(id(skeletons[m]) for m in [base] + f["members"])
         report[base] = family(c, skeletons, base, f["members"], f.get("borrow", ()))
     return report
 
@@ -335,6 +445,36 @@ DESC = {"RU": "Переделка базового оружия в другую 
         "EN": "Converts the base weapon into another model of its family. All family attachments fit."}
 
 
+class _NoZip:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, *a):
+        return False
+
+
+def copy_attachments(skel, paired):
+    """every "cv-" attachment (and its slot) of a model's skeleton into its akimbo copy"""
+    names = [sl["name"] for sl in paired["slots"]]
+    src_names = [sl["name"] for sl in skel["slots"]]
+    for sl in skel["slots"]:
+        if sl["name"] not in names:
+            i = src_names.index(sl["name"])
+            after = next((paired["slots"].index(x) for x in paired["slots"] if i > 0 and x["name"] == src_names[i - 1]), None)
+            paired["slots"].insert(after + 1 if after is not None else len(paired["slots"]), dict(sl))
+            names = [x["name"] for x in paired["slots"]]
+    cv = {}
+    for s in skel["skins"]:
+        for slot, atts in s.get("attachments", {}).items():
+            for n, a in atts.items():
+                if n.startswith("cv-"):
+                    cv.setdefault(slot, {})[n] = a
+    for s in paired["skins"]:
+        for slot, atts in cv.items():
+            s.setdefault("attachments", {}).setdefault(slot, {}).update(deepcopy(atts))
+    return paired
+
+
 def build(source, destination):
     with ZipFile(source) as src:
         names = src.namelist()
@@ -342,17 +482,26 @@ def build(source, destination):
         c = data["content"]
         changes = {}
         models = {m for base, f in FAMILIES.items() for m in [base] + f["members"]}
-        paths = {m: model_path(c, c["sl-pri-" + m]["instrument"]["id"]) for m in models}
+        paths = {m: model_path(c, c[item_key(c, m)]["instrument"]["id"]) for m in models}
         if all(p in names for p in paths.values()):
             skeletons = {m: note_skin(c, m, json.loads(src.read(p))) for m, p in paths.items()}
             apply(c, skeletons)
             for m, p in paths.items():
                 changes[p] = encode(skeletons[m])
+                # the akimbo version of a sidearm has its own copy of the skeleton
+                pid = "paired-" + c[item_key(c, m)]["instrument"]["id"]
+                if pid in c:
+                    pp = model_path(c, pid)
+                    if pp in names:
+                        changes[pp] = encode(copy_attachments(skeletons[m], json.loads(src.read(pp))))
         else:
-            # server package: skeletons come from the source tree (same content changes)
+            # server package (no skeletons): the client's skeletons from the same build, so that the
+            # content (which attachments are the same picture, slots) comes out identical
+            client = Path(__file__).resolve().parents[1] / "build" / "packages-client" / "8-g11.zip"
             root = Path(__file__).resolve().parents[1] / "data" / "packages" / "base" / "contents"
-            for m, p in paths.items():
-                SERVER_SKELETONS[m] = (root / p).read_text(encoding="utf-8")
+            with ZipFile(client) if client.exists() else _NoZip() as cz:
+                for m, p in paths.items():
+                    SERVER_SKELETONS[m] = cz.read(p).decode("utf-8") if cz else (root / p).read_text(encoding="utf-8")
             apply(c, None)
         changes["content.json"] = encode(data)
         if "data/texts.json" in names:
@@ -375,7 +524,7 @@ def preview(out_dir):
     z = ZipFile(root / "build/packages-client/8-g11.zip")      # the package before this stage
     c = json.loads(z.read("content.json"))["content"]
     allm = {m for base, f in FAMILIES.items() for m in [base] + f["members"]}
-    skel = {m: note_skin(c, m, json.loads(z.read(model_path(c, c["sl-pri-" + m]["instrument"]["id"])))) for m in allm}
+    skel = {m: note_skin(c, m, json.loads(z.read(model_path(c, c[item_key(c, m)]["instrument"]["id"])))) for m in allm}
     report = apply(c, skel)
     game = root / "data/packages/base/textures/GAME"
     VIEW = {"scope": (-12, 62, 4, 36), "silencer": (40, 150, -2, 28), "clip": (0, 50, -28, 16)}

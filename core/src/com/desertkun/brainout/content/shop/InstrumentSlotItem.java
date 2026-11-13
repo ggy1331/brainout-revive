@@ -131,6 +131,12 @@ public class InstrumentSlotItem extends ConsumableSlotItem implements WithBadge
             if (conversion != null)
             {
                 Instrument target = BrainOut.ContentMgr.get(conversion.getConversion(), Instrument.class);
+                // akimbo: the paired version of the converted model
+                if (target != null && equipped.getID().startsWith("paired-"))
+                {
+                    Instrument pairedTarget = BrainOut.ContentMgr.get("paired-" + target.getID(), Instrument.class);
+                    if (pairedTarget != null) target = pairedTarget;
+                }
                 if (target != null) equipped = target;
             }
             InstrumentData instrumentData = equipped.getData(playerData.getDimension());
