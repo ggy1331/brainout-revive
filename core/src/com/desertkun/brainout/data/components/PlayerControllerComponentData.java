@@ -593,9 +593,20 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         InstrumentData held = playerData.getCurrentInstrument();
         if (held instanceof com.desertkun.brainout.data.instrument.WeaponData &&
             ((com.desertkun.brainout.data.instrument.WeaponData)held).getWeapon().isPaired()) return false;
+        if (weaponBusyForSprint()) return false;
         sprintRemaining = SPRINT_SECONDS;
 
         return true;
+    }
+
+    /**
+     * Shooting or reloading (incl. chambering) the held weapon: the tactical sprint stops and
+     * can't start. Only the local player's client knows its weapon state (MyPlayerComponent);
+     * the resulting state change reaches the server as usual (sendState).
+     */
+    protected boolean weaponBusyForSprint()
+    {
+        return false;
     }
 
     protected void setRun(boolean pressed)
@@ -769,7 +780,8 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         else standUp = Math.min(1, standUp + dt / STAND_UP_TIME);
         runTapWindow = Math.max(0, runTapWindow - dt);
         sprintRemaining = Math.max(0, sprintRemaining - dt);
-        if (state == Player.State.tacticalRun && sprintRemaining == 0) setState(Player.State.run);
+        if (state == Player.State.tacticalRun && (sprintRemaining == 0 || weaponBusyForSprint()))
+            setState(Player.State.run);
         if (!hasFixture)
         {
             if (wasOnLadder && ladderJumpTimer <= 0)

@@ -85,6 +85,21 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     }
 
     @Override
+    protected boolean weaponBusyForSprint()
+    {
+        InstrumentData held = getPlayerData().getCurrentInstrument();
+        if (held == null) return false;
+        MyWeaponComponent mwc = held.getComponent(MyWeaponComponent.class);
+        WeaponSlotComponent slot = mwc != null ? mwc.getCurrentSlot() : null;
+        if (slot == null) return false;
+        if (slot.isReloadingOrChambering()) return true;
+        // a knife swing doesn't end the sprint, a shot does
+        Instrument instrument = held.getInstrument();
+        boolean melee = instrument.getSlot() != null && "slot-melee".equals(instrument.getSlot().getID());
+        return slot.isLaunching() && !melee;
+    }
+
+    @Override
     protected void sendState(Player.State state)
     {
         BrainOutClient.ClientController.sendTCP(new PlayerStateMsg(state));

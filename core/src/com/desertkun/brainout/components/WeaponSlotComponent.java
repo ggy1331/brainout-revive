@@ -294,17 +294,6 @@ public abstract class WeaponSlotComponent extends Component
         return poc == null || poc.isEnabled();
     }
 
-    /** No firing during the tactical sprint (double-tap Shift); melee still works. */
-    private boolean sprintBlocksFire()
-    {
-        ActiveData owner = data.getOwner();
-        if (!(owner instanceof PlayerData) || ((PlayerData) owner).getState() != Player.State.tacticalRun)
-            return false;
-        Instrument instrument = data.getInstrument();
-        return instrument == null || instrument.getSlot() == null ||
-            !"slot-melee".equals(instrument.getSlot().getID());
-    }
-
     private boolean singleSwing;
     private long meleeReadyAt;
 
@@ -435,7 +424,7 @@ public abstract class WeaponSlotComponent extends Component
             }
             case idle:
             {
-                if (isLaunching() && !sprintBlocksFire())
+                if (isLaunching())
                 {
                     ActiveData owner = data.getOwner();
 
@@ -503,7 +492,7 @@ public abstract class WeaponSlotComponent extends Component
             }
             case cocked:
             {
-                if (isLaunching() && !sprintBlocksFire())
+                if (isLaunching())
                 {
                     doLaunch();
                 }
