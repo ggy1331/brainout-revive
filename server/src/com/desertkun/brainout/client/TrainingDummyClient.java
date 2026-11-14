@@ -58,6 +58,14 @@ public class TrainingDummyClient extends BotClient
         };
     }
 
+    @Override
+    public org.json.JSONObject getInfo()
+    {
+        org.json.JSONObject info=super.getInfo();
+        info.put("training-dummy",true);
+        return info;
+    }
+
     public PlayerClient getOwner()
     {
         return owner;

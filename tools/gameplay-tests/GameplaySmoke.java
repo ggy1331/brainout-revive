@@ -50,6 +50,7 @@ public class GameplaySmoke {
             testHands(game.getPlayerData());
             testRules(game.getPlayerData());
             testAimMode(game.getPlayerData());
+            testWheelZoomAndDummy(game.getPlayerData());
             testConversions();
             loadoutMenu();
             testMask(game);
@@ -129,6 +130,50 @@ public class GameplaySmoke {
         require(restored.getSelectedSkin()==base.getDefaultSkin(),"base skin restored after conversion removed");
         require(!restored.getAvailableSkins().contains(skin,true),"foreign skins removed");
         System.out.println("CONVERSION_SKINS_PASS catalog, application, save, removal");
+    }
+    static void testWheelZoomAndDummy(PlayerData player) throws Exception {
+        com.desertkun.brainout.components.ClientPlayerComponent camera=player.getComponent(com.desertkun.brainout.components.ClientPlayerComponent.class);
+        float old=camera.getScale();
+        com.desertkun.brainout.controllers.KeyboardController input=new com.desertkun.brainout.controllers.KeyboardController();
+        input.init();
+        try {
+            camera.setScale(1);
+            input.setControllerMode(com.desertkun.brainout.controllers.GameController.ControllerMode.disabled);
+            require(!input.scrolled(0,-1)&&camera.getScale()==1,"menu/disabled wheel must not zoom");
+            input.setControllerMode(com.desertkun.brainout.controllers.GameController.ControllerMode.action);
+            require(input.scrolled(0,-1)&&camera.getScale()<1,"wheel up must zoom in");
+            float after=camera.getScale();input.keyDown(Input.Keys.C);
+            require(camera.getScale()==after,"C must no longer zoom");
+            input.scrolled(0,-100);
+            require(camera.getScale()<.15f,"close-up zoom must go beyond old .5 minimum");
+            require(Math.abs(camera.getScale()*Gdx.graphics.getHeight()/Constants.Graphics.RES_SIZE-4.5f)<.01f,"close-up must frame 4.5 world units");
+            require(Math.abs(camera.getWatchX()-player.getX())<.01f && Math.abs(camera.getWatchY()-player.getY())<.01f,"close-up must keep player centered");
+            input.scrolled(0,100);require(camera.getScale()==1,"wheel out must clamp at normal view");
+        } finally {camera.setScale(old);}
+        PlayerData dummy=new PlayerData((com.desertkun.brainout.content.active.Player)player.getCreator(),player.getDimension());
+        dummy.setOwnerId(-90444);dummy.setTeam(player.getTeam());
+        com.desertkun.brainout.client.RemoteClient remote=new com.desertkun.brainout.client.RemoteClient(-90444,"Training dummy","","","",player.getTeam(),null,new org.json.JSONObject().put("bot",true).put("training-dummy",true));
+        BrainOutClient.ClientController.getRemoteClients().put(-90444,remote);
+        PlayerStatsComponentData stats=new PlayerStatsComponentData(dummy,new com.desertkun.brainout.content.components.PlayerStatsComponent());
+        try {
+            stats.init();
+            java.lang.reflect.Field nameField=PlayerStatsComponentData.class.getDeclaredField("nickName");nameField.setAccessible(true);
+            com.badlogic.gdx.scenes.scene2d.ui.Label name=(com.badlogic.gdx.scenes.scene2d.ui.Label)nameField.get(stats);
+            require(name!=null && name.getColor().equals(Color.YELLOW),"dummy name must be yellow");
+            java.lang.reflect.Field iconField=PlayerStatsComponentData.class.getDeclaredField("teamIcon");iconField.setAccessible(true);
+            ActiveStatsComponentData.StatIcon icon=(ActiveStatsComponentData.StatIcon)iconField.get(stats);
+            require(icon!=null && icon.trainingDummy,"dummy icon palette flag missing");
+            FrameBuffer f=new FrameBuffer(Pixmap.Format.RGBA8888,32,32,false);f.begin();
+            Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+            OrthographicCamera cam=new OrthographicCamera();cam.setToOrtho(false,32,32);
+            SpriteBatch batch=new SpriteBatch();batch.setProjectionMatrix(cam.combined);batch.begin();
+            icon.setPosition(8,8);icon.setSize(11,11);icon.setScale(1);icon.draw(batch,1);batch.end();
+            Pixmap pixels=ScreenUtils.getFrameBufferPixmap(0,0,32,32);int yellow=0,cyan=0;
+            for(int x=0;x<32;x++)for(int y=0;y<32;y++){int c=pixels.getPixel(x,y),r=c>>>24,g=(c>>>16)&255,b=(c>>>8)&255;if(r>220&&g>220&&b<30)yellow++;if(r<30&&g>220&&b>220)cyan++;}
+            require(yellow>20&&cyan==0,"dummy icon must render yellow, not cyan: "+yellow+"/"+cyan);
+            PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/dummy-yellow-icon.png"),pixels);pixels.dispose();batch.dispose();f.end();f.dispose();
+        } finally {stats.release();BrainOutClient.ClientController.getRemoteClients().remove(-90444);}
+        System.out.println("WHEEL_ZOOM_DUMMY_PASS menu guard, C disabled, wheel limits, player close-up, yellow name and GPU icon");
     }
     static void testAimMode(PlayerData player) throws Exception {
         com.desertkun.brainout.components.my.MyPlayerComponent mine=player.getComponent(com.desertkun.brainout.components.my.MyPlayerComponent.class);

@@ -217,7 +217,8 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
         if (playerData == null)
             return;
 
-        boolean ally = isAlliedPlayer(playerData);
+        boolean dummy = isTrainingDummy(playerData);
+        boolean ally = !dummy && isAlliedPlayer(playerData);
         PlayerComponentData pc = playerData.getComponent(PlayerComponentData.class);
 
         GameMode gameMode = BrainOutClient.ClientController.getGameMode();
@@ -225,7 +226,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
         {
             if (pc != null && pc.getState() == Player.State.sit)
             {
-                if (gameMode.isEnemies(BrainOutClient.ClientController.getMyId(), playerData.getOwnerId()))
+                if (!dummy && gameMode.isEnemies(BrainOutClient.ClientController.getMyId(), playerData.getOwnerId()))
                 {
                     return;
                 }
@@ -233,11 +234,11 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
 
             ClientRealization clientRealization = ((ClientRealization) gameMode.getRealization());
 
-            if (!ally && !clientRealization.doDisplayPlayerBadge(playerData))
+            if (!dummy && !ally && !clientRealization.doDisplayPlayerBadge(playerData))
                 return;
         }
 
-        if (nickName != null) nickName.setVisible(false);
+        if (nickName != null) nickName.setVisible(dummy && identityVisible);
         boolean iconVisible = teamIcon != null && teamIcon.isVisible();
         if (ally && teamIcon != null) teamIcon.setVisible(false);
         super.render(batch, context);
@@ -322,7 +323,8 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
 
     private void setEnemy(boolean enemy)
     {
-        String icon = enemy ? "player-icon-enemy" : "player-icon-friend";
+        boolean dummy=isTrainingDummy(playerData);
+        String icon = enemy && !dummy ? "player-icon-enemy" : "player-icon-friend";
 
         if (teamIcon == null)
         {
@@ -332,6 +334,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
         {
             teamIcon.setDrawable(BrainOutClient.Skin, icon);
         }
+        if (teamIcon!=null) teamIcon.trainingDummy=dummy;
     }
 
     @Override
@@ -343,7 +346,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
 
         if (nickName != null)
         {
-            nickName.setColor(CC.getColorOf(playerData));
+            nickName.setColor(isTrainingDummy(playerData) ? Color.YELLOW : CC.getColorOf(playerData));
         }
 
         updateTeamIcon();

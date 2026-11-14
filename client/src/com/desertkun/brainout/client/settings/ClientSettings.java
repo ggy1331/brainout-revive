@@ -303,8 +303,6 @@ public abstract class ClientSettings extends CoreSettings
                 KeyProperties.Keys.shootMode);
         new KeycodeProperty("unload-weapon", "MENU_CONTROL_UNLOAD_WEAPON", Input.Keys.T, controls,
                 KeyProperties.Keys.unloadWeapon);
-        new KeycodeProperty("zoom", "MENU_CONTROL_ZOOM", Input.Keys.C, controls,
-                KeyProperties.Keys.zoom);
         new KeycodeProperty("chat", "MENU_CONTROL_CHAT", ClientConstants.Keys.KEY_CHAT, controls,
                 KeyProperties.Keys.chat);
         new KeycodeProperty("team-chat", "MENU_CONTROL_TEAM_CHAT", ClientConstants.Keys.KEY_TEAM_CHAT, controls,

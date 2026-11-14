@@ -30,8 +30,37 @@ public class ActiveStatsComponentData<T extends ActiveStatsComponent> extends Co
     protected HealthComponentData health;
     protected final ActiveData activeData;
 
+    private static com.badlogic.gdx.graphics.glutils.ShaderProgram dummyIconShader;
+
+    protected boolean isTrainingDummy(com.desertkun.brainout.data.active.PlayerData player)
+    {
+        com.desertkun.brainout.client.RemoteClient remote=BrainOutClient.ClientController.getRemoteClients().get(player.getOwnerId());
+        return remote!=null && remote.getInfoBoolean("training-dummy",false);
+    }
+
     public class StatIcon extends Image
     {
+        public boolean trainingDummy;
+
+        @Override
+        public void draw(Batch batch,float alpha)
+        {
+            if (!trainingDummy) { super.draw(batch,alpha); return; }
+            if (dummyIconShader==null)
+            {
+                // Rotate the existing cyan/blue palette to yellow/amber, preserving
+                // the original icon pixels, white border and alpha.
+                String vertex="attribute vec4 a_position; attribute vec4 a_color; attribute vec2 a_texCoord0; uniform mat4 u_projTrans; varying vec4 v_color; varying vec2 v_texCoords; void main(){v_color=a_color;v_color.a*=255.0/254.0;v_texCoords=a_texCoord0;gl_Position=u_projTrans*a_position;}";
+                String fragment="#ifdef GL_ES\nprecision mediump float;\n#endif\nvarying vec4 v_color; varying vec2 v_texCoords; uniform sampler2D u_texture; void main(){vec4 c=texture2D(u_texture,v_texCoords);gl_FragColor=v_color*vec4(c.b,c.g,c.r,c.a);}";
+                dummyIconShader=new com.badlogic.gdx.graphics.glutils.ShaderProgram(vertex,fragment);
+                if (!dummyIconShader.isCompiled()) throw new IllegalStateException(dummyIconShader.getLog());
+            }
+            com.badlogic.gdx.graphics.glutils.ShaderProgram previous=batch.getShader();
+            batch.setShader(dummyIconShader);
+            try { super.draw(batch,alpha); }
+            finally { batch.setShader(previous); }
+        }
+
         public StatIcon(String textureRegion)
         {
             super(BrainOutClient.getRegion(textureRegion));

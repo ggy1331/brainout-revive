@@ -168,13 +168,13 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
     @Override
     public float getWatchX()
     {
-        return playerData.getX() + aimOffsetFolowing.x;
+        return playerData.getX() + aimOffsetFolowing.x * zoomAimOffsetFactor();
     }
 
     @Override
     public float getWatchY()
     {
-        return playerData.getY() + aimOffsetFolowing.y;
+        return playerData.getY() + aimOffsetFolowing.y * zoomAimOffsetFactor();
     }
 
     @Override
@@ -300,6 +300,18 @@ public class ClientPlayerComponent extends PlayerComponentData implements Watche
     public String getDimension()
     {
         return playerData.getDimension();
+    }
+
+    private float zoomAimOffsetFactor()
+    {
+        return MathUtils.clamp((scale-.15f)/.35f,0f,1f);
+    }
+
+    public void zoomByScroll(float amount)
+    {
+        if (!Float.isFinite(amount)) return;
+        float minimum=MathUtils.clamp(4.5f*Constants.Graphics.RES_SIZE/Math.max(1,Gdx.graphics.getHeight()),.02f,.2f);
+        setScale(MathUtils.clamp(scale*(float)Math.pow(1.2,MathUtils.clamp(amount,-100,100)),minimum,1f));
     }
 
     public void setScale(float scale)

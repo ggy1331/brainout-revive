@@ -60,6 +60,19 @@ public class KeyboardController extends GameController
         });
     }
 
+    @Override
+    public boolean scrolled(float amountX,float amountY)
+    {
+        if (controllerMode!=ControllerMode.action && controllerMode!=ControllerMode.actionWithNoMouseLocking) return false;
+        if (amountY==0 || !Float.isFinite(amountY)) return false;
+        com.desertkun.brainout.client.states.CSGame game=BrainOutClient.ClientController.getState(com.desertkun.brainout.client.states.CSGame.class);
+        if (game==null || game.getPlayerData()==null || !game.getPlayerData().isAlive()) return false;
+        com.desertkun.brainout.components.ClientPlayerComponent camera=game.getPlayerData().getComponent(com.desertkun.brainout.components.ClientPlayerComponent.class);
+        if (camera==null) return false;
+        camera.zoomByScroll(amountY);
+        return true;
+    }
+
     private void updateKeyCodes()
     {
         keyCodes = new int[]
@@ -224,9 +237,8 @@ public class KeyboardController extends GameController
                 }
                 case zoom:
                 {
-                    sendEvent(GameControllerEvent.obtain(GameControllerEvent.Action.switchZoom));
-
-                    return true;
+                    // Zoom is controlled by the mouse wheel; ignore old saved key bindings.
+                    return false;
                 }
                 case slotPrimary:
                 {
