@@ -504,7 +504,11 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         if (pose != null)
         {
             if (visualHeight < 0 || playerData.isWounded()) visualHeight = pose.height;
-            else visualHeight += MathUtils.clamp(pose.height - visualHeight, -3.6f * dt, 3.6f * dt);
+            else
+            {
+                float step = 3.6f * dt * PlayerControllerComponentData.stanceChangeSpeed(playerData.getPlayer());
+                visualHeight += MathUtils.clamp(pose.height - visualHeight, -step, step);
+            }
         }
 
         float origAngle = playerData.getAngle();
@@ -1063,10 +1067,11 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                     else
                     {
                         AnimationState.TrackEntry transition = state.setAnimation(ANIMATION_BOTTOM, change, false);
-                        transition.setMixDuration(0.06f);
-                        transition.setTimeScale(1 / rigSpeed);
+                        float postureSpeed = PlayerControllerComponentData.stanceChangeSpeed(playerData.getPlayer());
+                        transition.setMixDuration(0.06f / postureSpeed);
+                        transition.setTimeScale(postureSpeed / rigSpeed);
                         next = state.addAnimation(ANIMATION_BOTTOM, a, true, change.getDuration());
-                        next.setMixDuration(0.08f);
+                        next.setMixDuration(0.08f / postureSpeed);
                     }
                 }
                 next.setEventThreshold(0);

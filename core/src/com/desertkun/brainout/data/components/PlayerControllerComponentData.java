@@ -1178,6 +1178,11 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         this.moveDirection.x *= pl.getSpeedCoef();
     }
 
+    public static float stanceChangeSpeed(Player player)
+    {
+        return "player-fast".equals(player.getID()) ? 1.3f : 1f;
+    }
+
     private static int posture(Player.State value)
     {
         if (value == Player.State.crawl) return 0;
@@ -1198,7 +1203,8 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         if (from < 0 || to < 0) { stanceProgress = 1; return; }
         float base = playerData.getPlayer().getState(state).speed.x;
         stanceFromSpeed = Math.abs(base * horizontalScale());
-        stanceDuration = from + to == 1 ? .47f : from + to == 2 ? .66f : .26f;
+        stanceDuration = (from + to == 1 ? .47f : from + to == 2 ? .66f : .26f) /
+            stanceChangeSpeed(playerData.getPlayer());
         stanceProgress = 0;
     }
 

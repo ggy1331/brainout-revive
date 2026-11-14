@@ -92,6 +92,11 @@ def build(source,dest):
                     st=comp.get('states',{})
                     for action in ('hold','hit'):
                         if st.get(action):st[action]='refined-low-'+wid+'-'+action
+        texts=json.loads(z.read('data/texts.json'))
+        texts['data']['ITEM_SPECIAL_TRAINING_DESC'].update({
+            'RU':'Двойное нажатие бега: тактический спринт на 2,4 с, задержка 1 с. Смена стоек на 30% быстрее.',
+            'EN':'Double-tap Run: tactical sprint for 2.4 s, with a 1 s cooldown. Stance changes are 30% faster.'})
+        changes['data/texts.json']=encode(texts)
         changes['content.json']=encode(data)
         if '__H' in z.namelist():
             hashes=json.loads(z.read('__H'));hashes.update({n:zlib.crc32(v) for n,v in changes.items()});changes['__H']=encode(hashes)

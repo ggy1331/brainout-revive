@@ -46,6 +46,7 @@ public class MovementSmoke {
             testMovement(game.getPlayerData());
             testArmSync(game.getPlayerData());
             testSprintTimers(game.getPlayerData());
+            testFastStances(game.getPlayerData());
             renderPoses();
             System.out.println("MOVEMENT_SMOKE_PASS");
         }catch(Throwable ex){ex.printStackTrace();System.out.println("MOVEMENT_SMOKE_FAIL");}
@@ -77,6 +78,37 @@ public class MovementSmoke {
         c.setMoveDirection(new com.badlogic.gdx.math.Vector2(1,0));c.setMoveDirection(new com.badlogic.gdx.math.Vector2(1,1));
         require(p.getState()==com.desertkun.brainout.content.active.Player.State.normal,"W sit->stand");
         System.out.println("W_AND_SPRINT_PASS");
+    }
+    static void testFastStances(PlayerData player) throws Exception {
+        PlayerControllerComponentData control=player.getComponentWithSubclass(PlayerControllerComponentData.class);
+        PlayerComponentData visual=player.getComponentWithSubclass(PlayerComponentData.class);
+        var vf=PlayerComponentData.class.getDeclaredField("playerData");vf.setAccessible(true);
+        var af=PlayerComponentData.class.getDeclaredField("animation");af.setAccessible(true);
+        var bottom=PlayerComponentData.class.getDeclaredMethod("setBottomAnimation",String.class,float.class);bottom.setAccessible(true);
+        var stateField=field("state");var progress=field("stanceProgress");
+        var begin=method("beginStanceTransition",com.desertkun.brainout.content.active.Player.State.class);
+        try {
+            for(String id:new String[]{"player-default","player-fast"}){
+                var content=BrainOut.ContentMgr.get(id,com.desertkun.brainout.content.active.Player.class);
+                PlayerData fake=new PlayerData(content,player.getDimension());field("playerData").set(control,fake);vf.set(visual,fake);
+                float speed=id.equals("player-fast")?1.3f:1;
+                require(PlayerControllerComponentData.stanceChangeSpeed(content)==speed,"perk scope");
+                var poses=new com.desertkun.brainout.content.active.Player.State[]{com.desertkun.brainout.content.active.Player.State.normal,com.desertkun.brainout.content.active.Player.State.sit,com.desertkun.brainout.content.active.Player.State.crawl};
+                for(int a=0;a<3;a++)for(int b=0;b<3;b++)if(a!=b){
+                    stateField.set(control,poses[a]);progress.setFloat(control,1);begin.invoke(control,poses[b]);
+                    float base=a+b==1?.26f:a+b==2?.66f:.47f;
+                    require(Math.abs(field("stanceDuration").getFloat(control)-base/speed)<.00001,"stance timing "+id);
+                }
+                PlayerAnimationComponentData animation=(PlayerAnimationComponentData)af.get(visual);
+                animation.getState().clearTrack(0);bottom.invoke(visual,"stay",1f);bottom.invoke(visual,"sit",1f);
+                var entry=animation.getState().getCurrent(0);
+                require(entry.getAnimation().getName().equals("stance-stand-sit"),"missing transition");
+                float rig=animation.getContentComponent().getAnimation().getTimeScale();
+                require(Math.abs(entry.getTimeScale()*rig-speed)<.00001,"animation/physics speed mismatch");
+                require(Math.abs(entry.getNext().getDelay()-entry.getAnimation().getDuration())<.00001,"queue must use clip time");
+                System.out.println("FAST_STANCE_PASS "+id+" six directions and animation x"+speed);
+            }
+        } finally {field("playerData").set(control,player);vf.set(visual,player);}
     }
     static void testSprintTimers(PlayerData p)throws Exception {
         PlayerControllerComponentData c=p.getComponentWithSubclass(PlayerControllerComponentData.class);
@@ -143,3 +175,4 @@ public class MovementSmoke {
         batch.dispose();System.out.println("ANIMATION_PASS");
     }
 }
+
