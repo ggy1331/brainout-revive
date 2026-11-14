@@ -45,6 +45,7 @@ public class MovementSmoke {
             require(stencil.get(0)>=8,"scene has no stencil buffer");
             testMovement(game.getPlayerData());
             testArmSync(game.getPlayerData());
+            testSprintTimers(game.getPlayerData());
             renderPoses();
             System.out.println("MOVEMENT_SMOKE_PASS");
         }catch(Throwable ex){ex.printStackTrace();System.out.println("MOVEMENT_SMOKE_FAIL");}
@@ -76,6 +77,23 @@ public class MovementSmoke {
         c.setMoveDirection(new com.badlogic.gdx.math.Vector2(1,0));c.setMoveDirection(new com.badlogic.gdx.math.Vector2(1,1));
         require(p.getState()==com.desertkun.brainout.content.active.Player.State.normal,"W sit->stand");
         System.out.println("W_AND_SPRINT_PASS");
+    }
+    static void testSprintTimers(PlayerData p)throws Exception {
+        PlayerControllerComponentData c=p.getComponentWithSubclass(PlayerControllerComponentData.class);
+        var set=method("setState",com.desertkun.brainout.content.active.Player.State.class);
+        var tick=method("updateSprintTimers",float.class);
+        require(Math.abs(field("SPRINT_SECONDS").getFloat(null)-2.4f)<.00001,"sprint duration");
+        set.invoke(c,com.desertkun.brainout.content.active.Player.State.tacticalRun);
+        field("sprintRemaining").setFloat(c,2.4f);field("sprintCooldown").setFloat(c,0);
+        tick.invoke(c,2.39f);require(p.getState()==com.desertkun.brainout.content.active.Player.State.tacticalRun,"ended early");
+        tick.invoke(c,.011f);require(p.getState()==com.desertkun.brainout.content.active.Player.State.run,"did not expire");
+        require(field("sprintCooldown").getFloat(c)==1f,"cooldown not one second");
+        tick.invoke(c,.99f);require(field("sprintCooldown").getFloat(c)>0&&!(Boolean)method("startTacticalRun").invoke(c),"cooldown bypass");
+        tick.invoke(c,.011f);require(field("sprintCooldown").getFloat(c)==0,"cooldown did not clear");
+        set.invoke(c,com.desertkun.brainout.content.active.Player.State.tacticalRun);
+        set.invoke(c,com.desertkun.brainout.content.active.Player.State.sit);
+        require(field("sprintCooldown").getFloat(c)==1f,"early cancel bypass");
+        System.out.println("SPRINT_TIMERS_PASS 2.4s duration, 1s cooldown, early cancellation protected");
     }
     static void testArmSync(PlayerData player) throws Exception {
         PlayerComponentData component=player.getComponentWithSubclass(PlayerComponentData.class);

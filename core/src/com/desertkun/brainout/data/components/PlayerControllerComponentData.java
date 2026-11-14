@@ -61,13 +61,13 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private float stanceProgress = 1, stanceDuration = .26f, stanceFromSpeed;
     private boolean upHeld, upConsumed;
     private float hasJumped;
-    private float runTapWindow, sprintRemaining;
+    private float runTapWindow, sprintRemaining, sprintCooldown;
     private boolean runHeld;
     private float groundSpeed, groundedSinceJump, jumpScale = 1;
     private boolean jumpedBefore;
     private static final float WALK_SCALE = 0.8f;
     private static final float SPRINT_SCALE = 16f / 12f;
-    private static final float SPRINT_SECONDS = 1.8f;
+    private static final float SPRINT_SECONDS = 2.4f;
     private static final float SPRINT_TAP_WINDOW = 0.35f; // release -> press again within this = sprint
     private static final float HOP_RECOVERY = 0.24f;
     // Ladder inertia: only up/down reversals are slowed down (against fast ladder "strafing");
@@ -610,8 +610,17 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         return pcd != null && pcd.hasContact(SimplePhysicsComponentData.Contact.bottom);
     }
 
+    private void updateSprintTimers(float dt)
+    {
+        sprintCooldown = Math.max(0, sprintCooldown - dt);
+        sprintRemaining = Math.max(0, sprintRemaining - dt);
+        if (state == Player.State.tacticalRun && (sprintRemaining == 0 || weaponBusyForSprint()))
+            setState(Player.State.run);
+    }
+
     protected boolean startTacticalRun()
     {
+        if (sprintCooldown > 0) return false;
         if (isWounded() || !playerData.canRun() ||
             !"player-fast".equals(playerData.getPlayer().getID())) return false;
         InstrumentData held = playerData.getCurrentInstrument();
@@ -833,9 +842,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         }
         stanceProgress = Math.min(1, stanceProgress + dt / stanceDuration);
         runTapWindow = Math.max(0, runTapWindow - dt);
-        sprintRemaining = Math.max(0, sprintRemaining - dt);
-        if (state == Player.State.tacticalRun && (sprintRemaining == 0 || weaponBusyForSprint()))
-            setState(Player.State.run);
+        updateSprintTimers(dt);
         if (!hasFixture)
         {
             if (wasOnLadder && ladderJumpTimer <= 0)
@@ -1181,6 +1188,11 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
     protected void beginStanceTransition(Player.State next)
     {
+        if (state == Player.State.tacticalRun && next != Player.State.tacticalRun)
+        {
+            sprintCooldown = 1f;
+            sprintRemaining = 0;
+        }
         int from = posture(state), to = posture(next);
         if (from == to) return;
         if (from < 0 || to < 0) { stanceProgress = 1; return; }
