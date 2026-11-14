@@ -838,7 +838,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     /**
      * Weapon stances on the mouse: without RMB the cursor stays inside the low stance circle
      * (weapon lowered); holding RMB raises the weapon and removes the inner limit.
-     * The cursor slides against solid geometry and living players. Paired pistols (RMB fires the
+     * The cursor stops at first contact with solid geometry and living players. Paired pistols (RMB fires the
      * second one), other instruments and gamepads keep the old free cursor.
      */
     private void constrainAim(float maxAimDist)
