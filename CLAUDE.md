@@ -399,3 +399,8 @@ Secondary sprint arms now read the unwrapped leg track clock: one arm cycle per 
 
 ## 2026-11-14 — tactical sprint 2.4 seconds + 1 second cooldown
 Duration raised from 1.8 to 2.4 seconds. A one-second cooldown begins on every exit from tactical sprint, including expiry, weapon action, releasing Run, posture change or dive. Shared client/server transition hook; startTacticalRun rejects cooldown. Speed remains 16 and arm phase lock is preserved. MovementSmoke SPRINT_TIMERS_PASS: before/after expiry, cooldown rejection/expiry, early cancel; other movement/arm tests passed. Desktop/server builds passed. Installed only PlayerControllerComponentData family, preserving every other current JAR entry and all resource packages. Backup/hashes: build/sprint-timers-install.json.
+
+## 2026-11-14 — hub target aim contact
+- AimCursorCollision explicitly catches open target-left/target-right panels with 0.05 world-unit clearance, matching player cursor clearance, including across cell edges. Closed variants are excluded. Initial aim stops; held aim slides as before.
+- GameplaySmoke PASS against patched installed client: both target orientations catch initial aim and allow sliding; closed panels permit passage. All existing regressions pass.
+- Only AimCursorCollision.class replaced; other client entries byte-preserved and server/packages unchanged. Backup ../gameplay-backup-20261114/aim-target-v9; build/aim-target-{baseline,installed}.json record hashes.

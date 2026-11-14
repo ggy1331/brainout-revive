@@ -21,6 +21,16 @@ public final class AimCursorCollision
         for (int i=0;i<count;i++) if (players.get(i).contains(x,y)) return true;
         for (int layer : LAYERS)
         {
+            // Open range panels get the same small cursor clearance as players.
+            // Inspect neighbouring cells too, since the clearance crosses tile edges.
+            for (int tx=MathUtils.floor(x-.05f);tx<=MathUtils.floor(x+.05f);tx++)
+                for (int ty=MathUtils.floor(y-.05f);ty<=MathUtils.floor(y+.05f);ty++)
+                {
+                    BlockData target=map.getBlockAt(tx,ty,layer);
+                    if (target==null) continue;
+                    String id=target.getCreator().getID();
+                    if ("target-left".equals(id) || "target-right".equals(id)) return true;
+                }
             int bx=MathUtils.floor(x), by=MathUtils.floor(y);
             BlockData block=map.getBlockAt(bx,by,layer);
             if (WorldVisibility.isSolidSurface(block) &&

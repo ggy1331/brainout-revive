@@ -362,6 +362,21 @@ public class GameplaySmoke {
             cursor.move(map,player,result.x,result.y,ox+12,oy+10,result);
             require(result.x>ox+10.5f && result.y>oy+9,"cursor did not go around player: "+result);
         }finally{map.getActives().removeItem(target.getId());}
+        for(String side:new String[]{"left","right"}) {
+            com.desertkun.brainout.content.block.Block open=BrainOut.ContentMgr.get("target-"+side,com.desertkun.brainout.content.block.Block.class);
+            com.desertkun.brainout.content.block.Block closed=BrainOut.ContentMgr.get("target-"+side+"-closed",com.desertkun.brainout.content.block.Block.class);
+            require(open!=null && closed!=null,"range target content missing");
+            map.setBlockNoRefresh(ox+10,oy+8,open.getBlock(),layers[0],false);
+            cursor.move(map,player,ox+7,oy+8.5f,ox+13,oy+8.5f,result,false);
+            require(Math.abs(result.x-(ox+9.95f))<.002f,"open target must catch initial aim: "+result);
+            cursor.move(map,player,result.x,result.y,result.x+.3f,result.y+.3f,result);
+            require(result.x<ox+9.951f && result.y>oy+8.79f,"cursor must slide on open target: "+result);
+            map.setBlockNoRefresh(ox+10,oy+8,closed.getBlock(),layers[0],false);
+            cursor.move(map,player,ox+7,oy+8.5f,ox+13,oy+8.5f,result,false);
+            require(result.x>ox+12.99f,"closed target must not catch aim: "+result);
+            map.setBlockNoRefresh(ox+10,oy+8,null,layers[0],false);
+        }
+        System.out.println("RANGE_TARGET_AIM_PASS both open panels catch/slide, closed panels pass");
         for(int x=0;x<24;x++)map.setBlockNoRefresh(ox+x,oy+7,solid,layers[0],false);
         cursor.move(map,player,ox+5,oy+12,ox+11,oy+2,result,false);
         require(Math.abs(result.y-(oy+8))<.002f && Math.abs(result.x-(ox+7.4f))<.002f,"cursor must stop at floor impact: "+result);
