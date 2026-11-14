@@ -71,6 +71,8 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
     private float visualHeight = -1;
     private boolean animatedSprint;
     private String sprintClip;
+    private AnimationState.TrackEntry sprintLegTrack, sprintArmTrack;
+    private float sprintLegTime, sprintLegCycles;
     private float carryBlend, sampleTime, gaitSpeed;
     private Vector2 mousePosition;
     private boolean woundedRight;
@@ -791,6 +793,38 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
             lastPosition.set(getX(), getY());
             trigger = 0.05f;
         }
+        AnimationState.TrackEntry legs = animation.getState().getCurrent(ANIMATION_BOTTOM);
+        AnimationState.TrackEntry arms = animation.getState().getCurrent(4);
+        if (carrying && sidearm && arms != null && legs != null && legs.getLoop() &&
+            gaitSpeedAtNormalTempo(legs.getAnimation().getName()) > 0)
+            synchronizeSprintArmTracks(legs, arms);
+        else if (!carrying || !sidearm)
+        {
+            sprintLegTrack = null;
+            sprintArmTrack = null;
+        }
+        else if (arms != null) arms.setTimeScale(0);
+    }
+
+    /** One arm swing per two leg cycles. Read the leg clock, so speed changes cannot drift. */
+    private void synchronizeSprintArmTracks(AnimationState.TrackEntry legs, AnimationState.TrackEntry arms)
+    {
+        float duration = legs.getAnimationEnd() - legs.getAnimationStart();
+        if (duration <= 0) return;
+        if (sprintArmTrack != arms)
+        {
+            sprintLegCycles = legs.getTrackTime() / duration;
+            sprintLegTrack = null;
+            sprintArmTrack = arms;
+        }
+        if (sprintLegTrack == legs)
+            sprintLegCycles += Math.max(0, legs.getTrackTime() - sprintLegTime) / duration;
+        // Changing gait clips must not jump the arm back to the start of its swing.
+        sprintLegTrack = legs;
+        sprintLegTime = legs.getTrackTime();
+        arms.setTimeScale(0);
+        arms.setTrackTime(sprintLegCycles * .5f *
+            (arms.getAnimationEnd() - arms.getAnimationStart()));
     }
 
     protected boolean isWounded()

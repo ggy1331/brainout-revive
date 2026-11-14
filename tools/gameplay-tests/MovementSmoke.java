@@ -44,6 +44,7 @@ public class MovementSmoke {
             java.nio.IntBuffer stencil=BufferUtils.newIntBuffer(1);Gdx.gl.glGetIntegerv(GL20.GL_STENCIL_BITS,stencil);
             require(stencil.get(0)>=8,"scene has no stencil buffer");
             testMovement(game.getPlayerData());
+            testArmSync(game.getPlayerData());
             renderPoses();
             System.out.println("MOVEMENT_SMOKE_PASS");
         }catch(Throwable ex){ex.printStackTrace();System.out.println("MOVEMENT_SMOKE_FAIL");}
@@ -75,6 +76,24 @@ public class MovementSmoke {
         c.setMoveDirection(new com.badlogic.gdx.math.Vector2(1,0));c.setMoveDirection(new com.badlogic.gdx.math.Vector2(1,1));
         require(p.getState()==com.desertkun.brainout.content.active.Player.State.normal,"W sit->stand");
         System.out.println("W_AND_SPRINT_PASS");
+    }
+    static void testArmSync(PlayerData player) throws Exception {
+        PlayerComponentData component=player.getComponentWithSubclass(PlayerComponentData.class);
+        java.lang.reflect.Method sync=PlayerComponentData.class.getDeclaredMethod("synchronizeSprintArmTracks",AnimationState.TrackEntry.class,AnimationState.TrackEntry.class);sync.setAccessible(true);
+        SkeletonData data=BrainOut.ContentMgr.get("anim-actor",com.desertkun.brainout.content.Animation.class).getSkeletonData();
+        AnimationState state=new AnimationState(new AnimationStateData(data));
+        AnimationState.TrackEntry legs=state.setAnimation(0,"run-forward",true), arms=state.setAnimation(4,"sprint-short-refined-low-weapon-colt-hold",true);
+        float duration=legs.getAnimationEnd(), armDuration=arms.getAnimationEnd();
+        sync.invoke(component,legs,arms);
+        for(int i=1;i<=240;i++){
+            legs.setTrackTime(i*duration/40);sync.invoke(component,legs,arms);
+            require(Math.abs(arms.getTrackTime()/armDuration-i/80f)<.0001,"arm phase drift");
+            require(arms.getTimeScale()==0,"independent arm clock still running");
+        }
+        float before=arms.getTrackTime();legs=state.setAnimation(0,"run-backward",true);legs.setTrackTime(.13f);sync.invoke(component,legs,arms);
+        require(Math.abs(arms.getTrackTime()-before)<.0001,"gait switch snapped arm");
+        sync.invoke(component,legs,arms);require(Math.abs(arms.getTrackTime()-before)<.0001,"paused legs moved arms");
+        System.out.println("ARM_SYNC_PASS 6 leg cycles = 3 arm cycles; gait switch continuous; pause stable");
     }
     static void renderPoses()throws Exception {
         com.desertkun.brainout.content.Animation actor=BrainOut.ContentMgr.get("anim-actor",com.desertkun.brainout.content.Animation.class);
