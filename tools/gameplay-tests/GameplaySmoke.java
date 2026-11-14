@@ -332,11 +332,13 @@ public class GameplaySmoke {
         // Restore the isolated wall after testing the stencil, for cursor sweeps.
         for(int l=0;l<2;l++)for(int x=0;x<24;x++)for(int y=0;y<18;y++)map.setBlockNoRefresh(ox+x,oy+y,null,layers[l],false);
         for(int y=7;y<18;y++)map.setBlockNoRefresh(ox+10,oy+y,solid,layers[0],false);
-        cursor.move(map,player,ox+5,oy+8,ox+18,oy+10,result);
+        cursor.move(map,player,ox+5,oy+8,ox+18,oy+10,result,false);
         require(Math.abs(result.x-(ox+10))<.002f && Math.abs(result.y-(oy+8+10f/13f))<.002f,"cursor must stop at wall impact without sliding: "+result);
         com.badlogic.gdx.math.Vector2 impact=new com.badlogic.gdx.math.Vector2(result);
-        for(int repeat=0;repeat<30;repeat++) cursor.move(map,player,result.x,result.y,result.x+1,result.y+.4f,result);
+        for(int repeat=0;repeat<30;repeat++) cursor.move(map,player,result.x,result.y,result.x+1,result.y+.4f,result,false);
         require(result.epsilonEquals(impact,.002f),"cursor crept along wall under continued pressure: "+result);
+        cursor.move(map,player,result.x,result.y,result.x+2,result.y+2,result);
+        require(Math.abs(result.x-impact.x)<.002f && result.y>impact.y+1.99f,"held aim must slide up wall after initial impact: "+result);
         cursor.move(map,player,result.x,result.y,result.x,oy+5,result);
         cursor.move(map,player,result.x,result.y,ox+13,oy+5,result);
         require(result.x>ox+10&&result.y<oy+7,"cursor must round wall edge: "+result);
@@ -361,14 +363,16 @@ public class GameplaySmoke {
             require(result.x>ox+10.5f && result.y>oy+9,"cursor did not go around player: "+result);
         }finally{map.getActives().removeItem(target.getId());}
         for(int x=0;x<24;x++)map.setBlockNoRefresh(ox+x,oy+7,solid,layers[0],false);
-        cursor.move(map,player,ox+5,oy+12,ox+11,oy+2,result);
+        cursor.move(map,player,ox+5,oy+12,ox+11,oy+2,result,false);
         require(Math.abs(result.y-(oy+8))<.002f && Math.abs(result.x-(ox+7.4f))<.002f,"cursor must stop at floor impact: "+result);
         impact.set(result);
-        for(int repeat=0;repeat<30;repeat++)cursor.move(map,player,result.x,result.y,result.x+.4f,result.y-1,result);
+        for(int repeat=0;repeat<30;repeat++)cursor.move(map,player,result.x,result.y,result.x+.4f,result.y-1,result,false);
         require(result.epsilonEquals(impact,.002f),"cursor crept along floor: "+result);
+        cursor.move(map,player,result.x,result.y,result.x+2,result.y-2,result);
+        require(Math.abs(result.y-impact.y)<.002f && result.x>impact.x+1.99f,"held aim must slide along floor after initial impact: "+result);
         cursor.move(map,player,result.x,result.y,result.x,oy+12,result);
         require(result.y>oy+11.9f,"cursor must move away from contact");
         for(int l=0;l<2;l++)for(int x=0;x<24;x++)for(int y=0;y<18;y++)map.setBlockNoRefresh(ox+x,oy+y,saved[l][x][y],layers[l],false);
-        System.out.println("CURSOR_COLLISION_PASS exact wall/floor impact, no creep, move away, platform, player");
+        System.out.println("CURSOR_COLLISION_PASS initial wall/floor impact, subsequent sliding, move away, platform, player");
     }
 }

@@ -838,7 +838,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
     /**
      * Weapon stances on the mouse: without RMB the cursor stays inside the low stance circle
      * (weapon lowered); holding RMB raises the weapon and removes the inner limit.
-     * The cursor stops at first contact with solid geometry and living players. Paired pistols (RMB fires the
+     * Initial aim stops at contact; subsequent mouse movement slides along geometry and players. Paired pistols (RMB fires the
      * second one), other instruments and gamepads keep the old free cursor.
      */
     private void constrainAim(float maxAimDist)
@@ -890,7 +890,7 @@ public class MyPlayerComponent extends PlayerControllerComponentData
             }
             if (!wasAimHeld) cursorWorld.set(originX,originY);
             aimCollision.move(getMap(),playerData,cursorWorld.x,cursorWorld.y,
-                originX+pointPos.x,originY+pointPos.y,cursorWorld);
+                originX+pointPos.x,originY+pointPos.y,cursorWorld,wasAimHeld);
             pointPos.set(cursorWorld.x-originX,cursorWorld.y-originY);
         }
         else

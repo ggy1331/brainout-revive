@@ -391,3 +391,8 @@ Installation: four files only; save data unchanged. Baseline + backup hashes: bu
 
 ## 2026-11-14 — sprint arm/leg phase lock
 Secondary sprint arms now read the unwrapped leg track clock: one arm cycle per two leg cycles. No independent timer/drift; changing gait clips retains accumulated cycles, stationary/transitional poses freeze the arm clock. Other weapon animations unchanged. MovementSmoke ARM_SYNC_PASS: six leg cycles -> three arm cycles, gait change continuity and paused-leg stability; existing movement tests passed. desktop/server dist passed. Installed only PlayerComponentData family inside the current JARs; all other entries and packages untouched. Backup and hashes: build/arm-sync-install.json.
+
+## 2026-11-14 — initial aim contact followed by sliding
+- User clarified that only the initial RMB aim extension must stop exactly at impact. MyPlayerComponent now passes wasAimHeld to AimCursorCollision: false performs refined first-contact stop, true restores the original surface sliding for subsequent mouse movement.
+- GameplaySmoke PASS on exact patched current client: initial oblique wall/floor contacts, subsequent sliding, moving away, obstacles/platforms/players and prior gameplay regressions.
+- Targeted javac compilation against installed client; only AimCursorCollision and MyPlayerComponent class family patched. Concurrent PlayerComponentData/MovementSmoke edits left intact. All other installed JAR entries preserved; server and packages unchanged. Backup ../gameplay-backup-20261114/aim-slide-v8; baseline/installed hashes build/aim-slide-{baseline,installed}.json.

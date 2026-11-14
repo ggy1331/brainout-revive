@@ -7,7 +7,7 @@ import com.desertkun.brainout.data.active.*;
 import com.desertkun.brainout.data.block.BlockData;
 import com.desertkun.brainout.data.components.SimplePhysicsComponentData;
 
-/** Swept cursor movement stopping at first contact; no physics bodies or per-step allocation. */
+/** Swept cursor movement with optional sliding after initial aim contact; no physics bodies or per-step allocation. */
 public final class AimCursorCollision
 {
     private final Array<Rectangle> players = new Array<>();
@@ -31,6 +31,12 @@ public final class AimCursorCollision
 
     public void move(Map map, PlayerData owner, float fromX, float fromY,
                      float targetX, float targetY, Vector2 result)
+    {
+        move(map,owner,fromX,fromY,targetX,targetY,result,true);
+    }
+
+    public void move(Map map, PlayerData owner, float fromX, float fromY,
+                     float targetX, float targetY, Vector2 result, boolean slide)
     {
         this.map=map; count=0;
         for (ActiveData active : map.getActives().values())
@@ -65,6 +71,12 @@ public final class AimCursorCollision
             if (!blocked(result.x+dx,result.y+dy)) result.add(dx,dy);
             else
             {
+                if (slide)
+                {
+                    if (!blocked(result.x+dx,result.y)) result.x+=dx;
+                    if (!blocked(result.x,result.y+dy)) result.y+=dy;
+                    continue;
+                }
                 // Stop the whole mouse move at first contact, without projecting its
                 // remaining distance onto the surface. Refine within the last step
                 // so the mark touches the surface instead of stopping a step short.
