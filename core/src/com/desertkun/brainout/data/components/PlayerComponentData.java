@@ -785,7 +785,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                 String gait = legs.getAnimation().getName();
                 float nominal = gaitSpeedAtNormalTempo(gait);
                 if (nominal > 0)
-                    legs.setTimeScale(MathUtils.clamp(gaitSpeed / nominal, 0.12f, 2.6f) /
+                    legs.setTimeScale(MathUtils.clamp(gaitSpeed / nominal, 0.12f, 2.6f) * gaitTempo(gait) /
                         animation.getContentComponent().getAnimation().getTimeScale());
             }
             lastPosition.set(getX(), getY());
@@ -965,6 +965,11 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
         return 0;
     }
 
+    private float gaitTempo(String clip)
+    {
+        return clip.startsWith("move-") || clip.startsWith("run-") ? .88f : 1f;
+    }
+
     private String stanceForClip(String name)
     {
         if (name.startsWith("crouch")) return "prone";
@@ -989,7 +994,7 @@ public class PlayerComponentData extends Component<PlayerComponent> implements
                 String target = stanceForClip(anim);
                 float rigSpeed = animation.getContentComponent().getAnimation().getTimeScale();
                 float nominal = gaitSpeedAtNormalTempo(anim);
-                if (nominal > 0) timeScale = MathUtils.clamp(gaitSpeed / nominal, 0.12f, 2.6f);
+                if (nominal > 0) timeScale = MathUtils.clamp(gaitSpeed / nominal, 0.12f, 2.6f) * gaitTempo(anim);
                 AnimationState.TrackEntry next;
                 if (queued != null && current.getAnimation().getName().startsWith("stance-") &&
                     target != null && target.equals(previous))

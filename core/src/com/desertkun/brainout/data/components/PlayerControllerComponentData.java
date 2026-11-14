@@ -56,18 +56,17 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
     private static final float SLIDE_END_SPEED = 4.5f;   // slower than this: the slide is over
     private static final float SLIDE_MAX_TIME = 1.2f;
     private static final float SLIDE_COOLDOWN = 0.8f;
-    // getting up from prone: 0 = still lying, 1 = fully up. The speed climbs from the crawl speed
-    // to the full speed of the new stance while the body comes up (STAND_UP_TIME), so Shift
-    // pressed while prone doesn't give a sprint at once.
-    private float standUp = 1;
-    private static final float STAND_UP_TIME = 0.7f;
+    // Share transition timings with stance_animations.py. Interrupted transitions start
+    // at their current speed, rather than snapping back to a stance endpoint.
+    private float stanceProgress = 1, stanceDuration = .26f, stanceFromSpeed;
+    private boolean upHeld, upConsumed;
     private float hasJumped;
     private float runTapWindow, sprintRemaining;
     private boolean runHeld;
     private float groundSpeed, groundedSinceJump, jumpScale = 1;
     private boolean jumpedBefore;
     private static final float WALK_SCALE = 0.8f;
-    private static final float SPRINT_SCALE = 1.32f;
+    private static final float SPRINT_SCALE = 16f / 12f;
     private static final float SPRINT_SECONDS = 1.8f;
     private static final float SPRINT_TAP_WINDOW = 0.35f; // release -> press again within this = sprint
     private static final float HOP_RECOVERY = 0.24f;
@@ -716,7 +715,10 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         if (state == Player.State.dive) return;
         if (mode == PositionMode.crouch && startDive()) return;
         if (mode == PositionMode.normal && hasTopContact()) return;
-        if (state == Player.State.crawl && mode != PositionMode.crouch) standUp = 0;
+        Player.State next = mode == PositionMode.crouch ? Player.State.crawl :
+            mode == PositionMode.sit ? Player.State.sit : mode == PositionMode.squat ? Player.State.squat : Player.State.normal;
+        if (mode == PositionMode.crouch && BrainOut.PackageMgr.getDefine("crawl", "").equals("disabled")) return;
+        beginStanceTransition(next);
 
         switch (mode)
         {
@@ -829,8 +831,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
                 slideTapExpired = false;
             }
         }
-        if (state == Player.State.crawl || state == Player.State.dive) standUp = 0;
-        else standUp = Math.min(1, standUp + dt / STAND_UP_TIME);
+        stanceProgress = Math.min(1, stanceProgress + dt / stanceDuration);
         runTapWindow = Math.max(0, runTapWindow - dt);
         sprintRemaining = Math.max(0, sprintRemaining - dt);
         if (state == Player.State.tacticalRun && (sprintRemaining == 0 || weaponBusyForSprint()))
@@ -1093,6 +1094,7 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
     private void setState(Player.State state)
     {
+        beginStanceTransition(state);
         this.state = state;
 
         PlayerComponentData cpc = playerData.getComponentWithSubclass(PlayerComponentData.class);
@@ -1169,23 +1171,32 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
         this.moveDirection.x *= pl.getSpeedCoef();
     }
 
-    private float horizontalScale()
+    private static int posture(Player.State value)
     {
-        return stanceScale() * standUpScale();
+        if (value == Player.State.crawl) return 0;
+        if (value == Player.State.sit || value == Player.State.squat) return 1;
+        if (value == Player.State.normal || value == Player.State.run || value == Player.State.tacticalRun) return 2;
+        return -1;
     }
 
-    /** Getting up from prone: from the crawl speed to the full speed of the current stance. */
-    private float standUpScale()
+    protected void beginStanceTransition(Player.State next)
     {
-        if (standUp >= 1 || state == Player.State.crawl || state == Player.State.dive) return 1;
-        Player.State crawl = Player.State.crawl;
-        float lying = playerData.getPlayer().getState(crawl) == null ? 0 :
-            Math.abs(playerData.getPlayer().getState(crawl).speed.x);
-        float now = playerData.getCurrentState() == null ? 0 : Math.abs(playerData.getCurrentState().speed.x) * stanceScale();
-        if (now <= 0) return 1;
-        float from = Math.min(1, lying / now);
-        float k = standUp * standUp * (3 - 2 * standUp);           // smooth: slow start, full when up
-        return from + (1 - from) * k;
+        int from = posture(state), to = posture(next);
+        if (from == to) return;
+        if (from < 0 || to < 0) { stanceProgress = 1; return; }
+        float base = playerData.getPlayer().getState(state).speed.x;
+        stanceFromSpeed = Math.abs(base * horizontalScale());
+        stanceDuration = from + to == 1 ? .47f : from + to == 2 ? .66f : .26f;
+        stanceProgress = 0;
+    }
+
+    private float horizontalScale()
+    {
+        float base = Math.abs(playerData.getPlayer().getState(state).speed.x);
+        float target = base * stanceScale();
+        if (stanceProgress >= 1 || base <= 0) return stanceScale();
+        float k = stanceProgress * stanceProgress * (3 - 2 * stanceProgress);
+        return (stanceFromSpeed + (target - stanceFromSpeed) * k) / base;
     }
 
     private float stanceScale()
@@ -1237,14 +1248,17 @@ public abstract class PlayerControllerComponentData extends Component<ContentCom
 
     public void setMoveDirection(Vector2 direction)
     {
-        if (isCrouching() && direction.y > 0.5f)
+        boolean pressed = direction.y > .5f;
+        if (pressed && !upHeld && !isWounded() &&
+            (state == Player.State.crawl || state == Player.State.sit || state == Player.State.squat))
         {
-            setPositionMode(PositionMode.normal);
-            return;
+            upConsumed = true;
+            if (!hasTopContact()) setPositionMode(state == Player.State.crawl ? PositionMode.sit : PositionMode.normal);
         }
-
-        this.originalDirection.set(direction);
-
+        upHeld = pressed;
+        if (!pressed) upConsumed = false;
+        // One press raises one stance. Holding W must not immediately jump or stand again.
+        this.originalDirection.set(direction.x, upConsumed ? 0 : direction.y);
         updateMoveDirection();
     }
 

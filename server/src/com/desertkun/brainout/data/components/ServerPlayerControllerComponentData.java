@@ -467,6 +467,7 @@ public class ServerPlayerControllerComponentData extends PlayerControllerCompone
             state = Player.State.wounded;
         }
 
+        beginStanceTransition(state);
         this.state = state;
         pcd.setState(state);
         updateMoveDirection();
