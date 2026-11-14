@@ -7,7 +7,7 @@
 ## Авторы revive
 
 - **GGY a.k.a. pixx** ([@ggy1331](https://github.com/ggy1331)) — идея, хост, тесты
-- **Семён Чехов** ([@markozph](https://github.com/markozph)) — соавтор: тесты по сети, баг-репорты, помощь с проектом
+- **[markozph](https://github.com/markozph)** — соавтор: тесты по сети, баг-репорты, помощь с проектом
 - Код и правки помогал писать Claude (Anthropic)
 
 Оригинальная игра и исходники — **desertkun**, лицензия MIT (см. [LICENSE](LICENSE)). Ниже — оригинальный README.
