@@ -414,3 +414,8 @@ player-fast now changes stand/sit/prone at x1.3 animation speed. Shared stanceCh
 - Targeted compilation against current installed JARs; only edited client class families and TrainingDummyClient family replaced. All other JAR entries and both packages preserved.
 - Exact patched client/server GameplaySmoke PASS: wheel direction/limits, disabled-mode guard, C disabled, close-up centering, yellow dummy label and framebuffer-tested yellow icon; all previous attachment/conversion/visibility/aim/reload regressions pass. Icon capture build/gameplay-lab/dummy-yellow-icon.png.
 - Backup ../gameplay-backup-20261114/zoom-dummy-v10; build/zoom-dummy-baseline.json and zoom-dummy-installed.json record runtime hashes. No public release/updater changes.
+
+## 2026-11-14 — zoom preserves aim camera position
+- Removed zoom-dependent attenuation from ClientPlayerComponent.getWatchX/Y. Wheel zoom now changes scale only; camera keeps following the aim marker even at maximum close-up instead of recentering on the player.
+- GameplaySmoke regression sets a nonzero (8,3) camera follow offset and checks that zooming fully in/out preserves both coordinates. Existing zoom range and dummy yellow palette tests retained.
+- Only ClientPlayerComponent.class patched in installed client, all other entries preserved. Backup ../gameplay-backup-20261114/zoom-center-v11; hashes build/zoom-center-{baseline,installed}.json.

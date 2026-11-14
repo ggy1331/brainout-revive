@@ -134,6 +134,11 @@ public class GameplaySmoke {
     static void testWheelZoomAndDummy(PlayerData player) throws Exception {
         com.desertkun.brainout.components.ClientPlayerComponent camera=player.getComponent(com.desertkun.brainout.components.ClientPlayerComponent.class);
         float old=camera.getScale();
+        java.lang.reflect.Field followingField=camera.getClass().getDeclaredField("aimOffsetFolowing");followingField.setAccessible(true);
+        com.badlogic.gdx.math.Vector2 following=(com.badlogic.gdx.math.Vector2)followingField.get(camera);
+        com.badlogic.gdx.math.Vector2 oldFollowing=new com.badlogic.gdx.math.Vector2(following);
+        following.set(8,3);
+        float watchX=camera.getWatchX(),watchY=camera.getWatchY();
         com.desertkun.brainout.controllers.KeyboardController input=new com.desertkun.brainout.controllers.KeyboardController();
         input.init();
         try {
@@ -147,9 +152,10 @@ public class GameplaySmoke {
             input.scrolled(0,-100);
             require(camera.getScale()<.15f,"close-up zoom must go beyond old .5 minimum");
             require(Math.abs(camera.getScale()*Gdx.graphics.getHeight()/Constants.Graphics.RES_SIZE-4.5f)<.01f,"close-up must frame 4.5 world units");
-            require(Math.abs(camera.getWatchX()-player.getX())<.01f && Math.abs(camera.getWatchY()-player.getY())<.01f,"close-up must keep player centered");
+            require(Math.abs(camera.getWatchX()-watchX)<.01f && Math.abs(camera.getWatchY()-watchY)<.01f,"zoom must retain camera position at aim marker");
             input.scrolled(0,100);require(camera.getScale()==1,"wheel out must clamp at normal view");
-        } finally {camera.setScale(old);}
+            require(Math.abs(camera.getWatchX()-watchX)<.01f && Math.abs(camera.getWatchY()-watchY)<.01f,"zoom out must retain camera position");
+        } finally {camera.setScale(old);following.set(oldFollowing);}
         PlayerData dummy=new PlayerData((com.desertkun.brainout.content.active.Player)player.getCreator(),player.getDimension());
         dummy.setOwnerId(-90444);dummy.setTeam(player.getTeam());
         com.desertkun.brainout.client.RemoteClient remote=new com.desertkun.brainout.client.RemoteClient(-90444,"Training dummy","","","",player.getTeam(),null,new org.json.JSONObject().put("bot",true).put("training-dummy",true));
@@ -173,7 +179,7 @@ public class GameplaySmoke {
             require(yellow>20&&cyan==0,"dummy icon must render yellow, not cyan: "+yellow+"/"+cyan);
             PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/dummy-yellow-icon.png"),pixels);pixels.dispose();batch.dispose();f.end();f.dispose();
         } finally {stats.release();BrainOutClient.ClientController.getRemoteClients().remove(-90444);}
-        System.out.println("WHEEL_ZOOM_DUMMY_PASS menu guard, C disabled, wheel limits, player close-up, yellow name and GPU icon");
+        System.out.println("WHEEL_ZOOM_DUMMY_PASS menu guard, C disabled, wheel limits, fixed camera center, yellow name and GPU icon");
     }
     static void testAimMode(PlayerData player) throws Exception {
         com.desertkun.brainout.components.my.MyPlayerComponent mine=player.getComponent(com.desertkun.brainout.components.my.MyPlayerComponent.class);
