@@ -117,9 +117,9 @@ public class ChunkData implements Updatable, Json.Serializable, Disposable, Even
         if (flags == null)
             return false;
 
-        // the hub (define lobby = true): shooting is allowed everywhere, not only on the ranges.
-        // Players there are teammates and can't hurt each other; training dummies can be hit.
-        if (flag == ChunkFlag.shootingDisabled && isHub())
+        // Shared hubs allow shooting and synchronize occupants in the starting
+        // room too. Keep the stored map flags intact for non-hub modes.
+        if ((flag == ChunkFlag.shootingDisabled || flag == ChunkFlag.hideOthers) && isHub())
             return false;
 
         return flags.contains(flag);

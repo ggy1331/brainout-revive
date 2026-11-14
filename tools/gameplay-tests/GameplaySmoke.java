@@ -51,6 +51,7 @@ public class GameplaySmoke {
             testRules(game.getPlayerData());
             testAimMode(game.getPlayerData());
             testWheelZoomAndDummy(game.getPlayerData());
+            testSharedHubRoom(game.getPlayerData());
             testConversions();
             loadoutMenu();
             testMask(game);
@@ -131,6 +132,23 @@ public class GameplaySmoke {
         require(!restored.getAvailableSkins().contains(skin,true),"foreign skins removed");
         System.out.println("CONVERSION_SKINS_PASS catalog, application, save, removal");
     }
+    static void testSharedHubRoom(PlayerData player) {
+        com.desertkun.brainout.data.containers.ChunkData chunk=player.getMap().getChunkAt((int)player.getX(),(int)player.getY());
+        require(chunk!=null,"spawn room chunk missing");
+        String previous=BrainOut.PackageMgr.getDefine("lobby","false");
+        BrainOut.PackageMgr.setDefine("lobby","false");
+        boolean had=chunk.hasFlag(com.desertkun.brainout.data.containers.ChunkData.ChunkFlag.hideOthers);
+        try {
+            chunk.setFlag(com.desertkun.brainout.data.containers.ChunkData.ChunkFlag.hideOthers);
+            require(chunk.hasFlag(com.desertkun.brainout.data.containers.ChunkData.ChunkFlag.hideOthers),"non-hub private flag must remain effective");
+            BrainOut.PackageMgr.setDefine("lobby","true");
+            require(!chunk.hasFlag(com.desertkun.brainout.data.containers.ChunkData.ChunkFlag.hideOthers),"shared hub starting room must synchronize occupants");
+        } finally {
+            if(!had)chunk.removeFlag(com.desertkun.brainout.data.containers.ChunkData.ChunkFlag.hideOthers);
+            BrainOut.PackageMgr.setDefine("lobby",previous);
+        }
+        System.out.println("SHARED_HUB_ROOM_PASS room occupants synchronized; other modes retain flag");
+    }
     static void testWheelZoomAndDummy(PlayerData player) throws Exception {
         com.desertkun.brainout.components.ClientPlayerComponent camera=player.getComponent(com.desertkun.brainout.components.ClientPlayerComponent.class);
         float old=camera.getScale();
@@ -157,7 +175,7 @@ public class GameplaySmoke {
             require(Math.abs(camera.getWatchX()-watchX)<.01f && Math.abs(camera.getWatchY()-watchY)<.01f,"zoom out must retain camera position");
         } finally {camera.setScale(old);following.set(oldFollowing);}
         PlayerData dummy=new PlayerData((com.desertkun.brainout.content.active.Player)player.getCreator(),player.getDimension());
-        dummy.setOwnerId(-90444);dummy.setTeam(player.getTeam());
+        dummy.setOwnerId(-90444);dummy.setTeam(player.getTeam());dummy.setX(16);dummy.setY(10);
         com.desertkun.brainout.client.RemoteClient remote=new com.desertkun.brainout.client.RemoteClient(-90444,"Training dummy","","","",player.getTeam(),null,new org.json.JSONObject().put("bot",true).put("training-dummy",true));
         BrainOutClient.ClientController.getRemoteClients().put(-90444,remote);
         PlayerStatsComponentData stats=new PlayerStatsComponentData(dummy,new com.desertkun.brainout.content.components.PlayerStatsComponent());
@@ -169,7 +187,7 @@ public class GameplaySmoke {
             java.lang.reflect.Field iconField=PlayerStatsComponentData.class.getDeclaredField("teamIcon");iconField.setAccessible(true);
             ActiveStatsComponentData.StatIcon icon=(ActiveStatsComponentData.StatIcon)iconField.get(stats);
             require(icon!=null && icon.trainingDummy,"dummy icon palette flag missing");
-            FrameBuffer f=new FrameBuffer(Pixmap.Format.RGBA8888,32,32,false);f.begin();
+            FrameBuffer f=new FrameBuffer(Pixmap.Format.RGBA8888,32,32,true,true);f.begin();
             Gdx.gl.glClearColor(0,0,0,0);Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
             OrthographicCamera cam=new OrthographicCamera();cam.setToOrtho(false,32,32);
             SpriteBatch batch=new SpriteBatch();batch.setProjectionMatrix(cam.combined);batch.begin();
@@ -177,7 +195,18 @@ public class GameplaySmoke {
             Pixmap pixels=ScreenUtils.getFrameBufferPixmap(0,0,32,32);int yellow=0,cyan=0;
             for(int x=0;x<32;x++)for(int y=0;y<32;y++){int c=pixels.getPixel(x,y),r=c>>>24,g=(c>>>16)&255,b=(c>>>8)&255;if(r>220&&g>220&&b<30)yellow++;if(r<30&&g>220&&b>220)cyan++;}
             require(yellow>20&&cyan==0,"dummy icon must render yellow, not cyan: "+yellow+"/"+cyan);
-            PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/dummy-yellow-icon.png"),pixels);pixels.dispose();batch.dispose();f.end();f.dispose();
+            PixmapIO.writePNG(Gdx.files.absolute(System.getenv("GAMEPLAY_LAB")+"/dummy-yellow-icon.png"),pixels);pixels.dispose();
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+            Gdx.gl.glEnable(GL20.GL_STENCIL_TEST);Gdx.gl.glStencilFunc(GL20.GL_NEVER,0,0xff);
+            RenderContext rc=new RenderContext(32,32);rc.camera=cam;
+            batch.begin();stats.render(batch,rc);batch.end();
+            require(Gdx.gl.glIsEnabled(GL20.GL_STENCIL_TEST),"dummy badge must restore body mask");
+            Gdx.gl.glDisable(GL20.GL_STENCIL_TEST);
+            Pixmap outside=ScreenUtils.getFrameBufferPixmap(0,0,32,32);int visible=0;
+            for(int x=0;x<32;x++)for(int y=0;y<32;y++)if((outside.getPixel(x,y)&255)>0)visible++;
+            require(visible>0 && name.isVisible(),"dummy identity must render outside field of view");outside.dispose();
+            batch.dispose();f.end();f.dispose();
+            System.out.println("DUMMY_OUTSIDE_FOV_PASS identity visible and body stencil restored");
         } finally {stats.release();BrainOutClient.ClientController.getRemoteClients().remove(-90444);}
         System.out.println("WHEEL_ZOOM_DUMMY_PASS menu guard, C disabled, wheel limits, fixed camera center, yellow name and GPU icon");
     }

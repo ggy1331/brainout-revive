@@ -419,3 +419,10 @@ player-fast now changes stand/sit/prone at x1.3 animation speed. Shared stanceCh
 - Removed zoom-dependent attenuation from ClientPlayerComponent.getWatchX/Y. Wheel zoom now changes scale only; camera keeps following the aim marker even at maximum close-up instead of recentering on the player.
 - GameplaySmoke regression sets a nonzero (8,3) camera follow offset and checks that zooming fully in/out preserves both coordinates. Existing zoom range and dummy yellow palette tests retained.
 - Only ClientPlayerComponent.class patched in installed client, all other entries preserved. Backup ../gameplay-backup-20261114/zoom-center-v11; hashes build/zoom-center-{baseline,installed}.json.
+
+## 2026-11-14 — shared hub room and offscreen dummy identity
+- Dummy name/icon now use the ally identity rendering path outside the FOV stencil, preserving yellow palette. Body remains clipped.
+- ChunkData.hasFlag ignores hideOthers only with lobby=true, like the existing hub shootingDisabled exception. This fixes ServerPlayerControllerComponentData.shouldSync and other room-specific replication gates without removing the original map flags or changing non-hub modes.
+- Exact patched client/server GameplaySmoke PASS: dummy identity rendered with GL_NEVER stencil while restoring stencil; hub hideOthers disabled and non-hub semantics preserved; all prior regressions pass. No two-human-client session was run.
+- Patched only PlayerStatsComponentData and ChunkData class families, all other runtime entries preserved. Backup ../gameplay-backup-20261114/hub-visibility-v12; hashes build/hub-visibility-{baseline,installed}.json.
+- Toolbar redesign is PREVIEW ONLY, NOT installed. First concept rejected; second uses exact installed style reference build/hub-icon-preview/current-style-reference.png (white/lavender silhouettes, amber/red/cyan halos). Revised preview: C:/Users/Semyon/.codex/generated_images/01a1d148-59c1-7053-8e06-1732d664a9f9/exec-8466bcc3-b665-486f-9208-51bce24680d1.png. Wait for user approval before replacing toolbar assets.

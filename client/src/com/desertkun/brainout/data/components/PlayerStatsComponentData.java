@@ -218,7 +218,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
             return;
 
         boolean dummy = isTrainingDummy(playerData);
-        boolean ally = !dummy && isAlliedPlayer(playerData);
+        boolean ally = dummy || isAlliedPlayer(playerData);
         PlayerComponentData pc = playerData.getComponent(PlayerComponentData.class);
 
         GameMode gameMode = BrainOutClient.ClientController.getGameMode();
@@ -238,7 +238,7 @@ public class PlayerStatsComponentData extends ActiveStatsComponentData<PlayerSta
                 return;
         }
 
-        if (nickName != null) nickName.setVisible(dummy && identityVisible);
+        if (nickName != null) nickName.setVisible(false);
         boolean iconVisible = teamIcon != null && teamIcon.isVisible();
         if (ally && teamIcon != null) teamIcon.setVisible(false);
         super.render(batch, context);
